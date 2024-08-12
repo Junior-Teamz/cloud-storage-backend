@@ -18,4 +18,5 @@ Before you begin, ensure you have the following installed on your local machine:
 5. generate laravel key app: `php artisan key:generate`
 6. generate JWT secret key: `php artisan jwt:secret`
 7. link the storage: `php artisan storage:link`
-8. last, run the migration: `php artisan migrate --seed`
+8. run the migration: `php artisan migrate --seed`
+9. serve laravel: `php artisan serve`
