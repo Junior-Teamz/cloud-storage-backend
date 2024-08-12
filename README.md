@@ -5,7 +5,7 @@ This repository store backend code for cloud storage Junior Teamz.
 ## Prerequisites
 Before you begin, ensure you have the following installed on your local machine:
 
-- **PHP** (version 8.3)
+- **PHP** (version 8.3, and the [Laravel PHP extension is enabled.](https://laravel.com/docs/11.x/deployment#server-requirements))
 - **Composer**
 - **MySQL**
 - **Git**
