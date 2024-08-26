@@ -3,9 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Tymon\JWTAuth\Contracts\JWTSubject;
@@ -54,12 +57,25 @@ class User extends Authenticatable implements JWTSubject
 
     protected static function booted()
     {
-        static::creating(function ($user) {
-            if (empty($user->uuid)) {
-                $user->uuid = (string) Str::uuid();
-            }
+        static::created(function ($user) {
+            // Buat folder root di database
+            $folder = \App\Models\Folder::create([
+                'name' => $user->name . ' Main Folder',
+                'user_id' => $user->id,
+                'parent_id' => null, // Folder root tidak memiliki parent
+            ]);
+
+            // Ambil nanoid dari folder yang baru dibuat
+            $folderNanoid = $folder->nanoid;
+
+            // Buat direktori di storage/app/ dengan nama folder adalah nanoid
+            $folderPath = $folderNanoid;
+
+            // Buat direktori fisik di penyimpanan lokal Laravel
+            Storage::makeDirectory($folderPath);
         });
     }
+
 
     public function getPermissionArray()
     {
@@ -76,5 +92,10 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function folders(): HasMany
+    {
+        return $this->hasMany(Folder::class);
     }
 }

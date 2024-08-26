@@ -17,13 +17,10 @@ class PermissionSeeder extends Seeder
         'folders.update',
         'folders.delete',
         'folders.move',
-        'folders.create_sub',
-        'folders.read_sub',
 
         // File Permissions
         'files.upload',
         'files.download',
-        'files.read_meta',
         'files.update',
         'files.delete',
         'files.move',
@@ -43,13 +40,10 @@ class PermissionSeeder extends Seeder
             'folders.update',
             'folders.delete',
             'folders.move',
-            'folders.create_sub',
-            'folders.read_sub',
         
             // File Permissions
             'files.upload',
             'files.download',
-            'files.read_meta',
             'files.update',
             'files.delete',
             'files.move',
@@ -60,14 +54,6 @@ class PermissionSeeder extends Seeder
             'users.read',
             'users.update',
             'users.delete',
-        
-            // Access Management
-            'access.grant',
-            'access.revoke',
-            'access.view_list',
-            'access.update_list',
-        
-            // 'read_only',
         ];
 
         foreach ($permissions as $permission) {

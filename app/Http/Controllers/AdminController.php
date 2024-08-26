@@ -2,18 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Folder;
-use App\Models\User;
-use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
+use App\Models\User;
+use Exception;
 
-class UserController extends Controller
+class AdminController extends Controller
 {
-    public function register(Request $request)
+    public function createUserFromAdmin(Request $request)
     {
+        $user = Auth::user();
+
+        if (!($user->hasRole('admin') && $user->is_superadmin == 1)) {
+            return response()->json([
+                'error' => 'Anda tidak di izinkan untuk mengupdate user.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:100'],
             'email' => [
@@ -60,52 +67,33 @@ class UserController extends Controller
         }
 
         try {
-            $user = User::create([
+            $newUser = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
             ]);
 
-            $roles = 'user';
-            $user->assignRole($roles);
-
             return response()->json([
-                'message' => 'Berhasil Mendaftarkan Akun!',
-                'data' => $user
+                'message' => 'User berhasil ditambahkan',
+                'data' => $newUser
             ], 201);
         } catch (Exception $e) {
-            Log::error('Error occurred on registering user: ' . $e->getMessage());
+            Log::error('Error occurred on adding user: ' . $e->getMessage());
             return response()->json([
-                'errors' => 'Terjadi kesalahan ketika mendaftarkan akun.',
+                'errors' => 'Terjadi kesalahan ketika menambahkan user.',
             ], 500);
         }
     }
 
-    public function index()
+    public function updateUserFromAdmin(Request $request, $userIdToBeUpdated)
     {
         $user = Auth::user();
 
-        try {
-            $getUserData = User::where('id', $user->id)->first();
-            
-            $getFolderRootId = Folder::where('user_id', $user->id)->first();
-
-            $getUserData['folder_root_id'] = $getFolderRootId->id;
-
+        if (!($user->hasRole('admin') && $user->is_superadmin == 1)) {
             return response()->json([
-                'data' => $getUserData
-            ], 200);
-        } catch (Exception $e) {
-            Log::error('Error occurred on getting user data: ' . $e->getMessage());
-            return response()->json([
-                'errors' => 'Terjadi kesalahan ketika mendapatkan mengambil data tentang user.',
-            ], 500);
+                'error' => 'Anda tidak di izinkan untuk mengupdate user.',
+            ], 403);
         }
-    }
-
-    public function update(Request $request)
-    {
-        $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:100'],
@@ -153,48 +141,52 @@ class UserController extends Controller
         }
 
         try {
-            $updatedUser = User::where('id', $user->id)->update([
+            $updatedUser = User::where('id', $userIdToBeUpdated)->update([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
             ]);
-            
             return response()->json([
-                'message' => 'Data user berhasil diperbarui',
+                'message' => 'User berhasil diupdate',
                 'data' => $updatedUser
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred on updating user: ' . $e->getMessage());
             return response()->json([
-                'errors' => 'Terjadi kesalahan ketika mengupdate data user.',
+                'errors' => 'Terjadi kesalahan ketika mengupdate user.',
             ], 500);
         }
     }
 
     /**
-     * Delete the current user (DELETE).
+     * Delete a user from admin (DELETE).
      * 
      * This function is DANGEROUS and should be used with caution.
      * 
+     * @param int $userIdToBeDeleted The ID of the user to be deleted.
+     * 
      * @return \Illuminate\Http\JsonResponse
      */
-    public function delete()
+    public function deleteUserFromAdmin($userIdToBeDeleted)
     {
         $user = Auth::user();
 
+        // Check if the user has the required permission to delete users.
+        if (!($user->hasRole('admin') && $user->is_superadmin == 1)) {
+            return response()->json([
+                'error' => 'Anda tidak di izinkan untuk menghapus user.',
+            ], 403);
+        }
+
         try {
             // Delete the user from the database.
-            User::where('id', $user->id)->delete();
-
-            // Return a success response.
+            User::where('id', $userIdToBeDeleted)->delete();
             return response()->json([
                 'message' => 'User berhasil di hapus'
             ], 200);
         } catch (Exception $e) {
             // Log the error if an exception occurs.
             Log::error('Error occurred on deleting user: ' . $e->getMessage());
-
-            // Return an error response.
             return response()->json([
                 'errors' => 'Terjadi kesalahan ketika menghapus user.',
             ], 500);
