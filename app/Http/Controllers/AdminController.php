@@ -111,6 +111,7 @@ class AdminController extends Controller
                 },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'string', 'exists:roles,name'],
         ]);
 
         if ($validator->fails()) {
@@ -125,6 +126,8 @@ class AdminController extends Controller
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
             ]);
+
+            $newUser->assignRole($request->role);
 
             return response()->json([
                 'message' => 'User berhasil ditambahkan',

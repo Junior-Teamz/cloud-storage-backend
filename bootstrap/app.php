@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'protectRootFolder' => \App\Http\Middleware\ProtectRootFolder::class,
             'check_admin' => \App\Http\Middleware\CheckAdmin::class,
             'validate_admin' => \App\Http\Middleware\ValidateAdmin::class,
+            'hide_superadmin_flag' => \App\Http\Middleware\HideSuperadminFlag::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
