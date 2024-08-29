@@ -11,6 +11,59 @@ use Exception;
 
 class AdminController extends Controller
 {
+
+    public function index()
+    {
+        $user = Auth::user();
+
+        if (!($user->hasRole('admin') && $user->is_superadmin == 1)) {
+            return response()->json([
+                'error' => 'Anda tidak di izinkan untuk mengupdate user.',
+            ], 403);
+        }
+
+        try {
+
+            $admin = User::where('id', $user->id)->first();
+
+            return response()->json([
+                'data' => $admin
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error occurred on getting admin information: ' . $e->getMessage());
+            return response()->json([
+                'errors' => 'Terjadi kesalahan ketika mengambil data tentang admin.',
+            ], 500);
+        }
+    }
+
+    public function user_info($id) 
+    {
+        $user = Auth::user();
+
+        if (!($user->hasRole('admin') && $user->is_superadmin == 1)) {
+            return response()->json([
+                'error' => 'Anda tidak di izinkan untuk melakukan tindakan ini.',
+            ], 403);
+        }
+
+        try {
+
+            $user = User::where('id', $id)->first();
+
+            return response()->json([
+                'data' => $user
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error occurred on getting user information: ' . $e->getMessage());
+            return response()->json([
+                'errors' => 'Terjadi kesalahan ketika mengambil data user.',
+            ], 500);
+        }
+    }
+
     public function createUserFromAdmin(Request $request)
     {
         $user = Auth::user();

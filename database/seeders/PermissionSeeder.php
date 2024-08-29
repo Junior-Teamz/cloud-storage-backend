@@ -9,22 +9,11 @@ use Spatie\Permission\Models\Role;
 
 class PermissionSeeder extends Seeder
 {
-    protected $userPermission = [
-        // Folder Permissions
-        'folders.create',
-        'folders.info',
-        'folders.show',
-        'folders.update',
-        'folders.delete',
-        'folders.move',
-
-        // File Permissions
-        'files.upload',
-        'files.download',
-        'files.update',
-        'files.delete',
-        'files.move',
-        'files.share',
+    protected $adminPermission = [
+        'users.create',
+        'users.read',
+        'users.update',
+        'users.delete',
     ];
 
     /**
@@ -33,21 +22,6 @@ class PermissionSeeder extends Seeder
     public function run()
     {
         $permissions = [
-            // Folder Permissions
-            'folders.create',
-            'folders.info', // permission to see information about folder (like uuid, name, parent_id, etc.)
-            'folders.show', // permission to see inside the folder
-            'folders.update',
-            'folders.delete',
-            'folders.move',
-        
-            // File Permissions
-            'files.upload',
-            'files.download',
-            'files.update',
-            'files.delete',
-            'files.move',
-            'files.share',
 
             // User Management
             'users.create',
@@ -60,17 +34,14 @@ class PermissionSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'api']);
         }
 
-         // Get All Role Data
-         $roles = Role::all();
-         $allPermission = Permission::all();
+        // Get All Role Data
+        $roles = Role::all();
 
-         foreach ($roles as $role) {
-             // Check the role
-             if ($role->name === 'admin') {
-                 $role->syncPermissions($allPermission);
-             } elseif ($role->name === 'user') {
-                 $role->syncPermissions($this->userPermission);
-             }
-         }
+        foreach ($roles as $role) {
+            // Check the role
+            if ($role->name === 'admin') {
+                $role->syncPermissions($this->adminPermission);
+            }
+        }
     }
 }

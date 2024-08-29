@@ -56,19 +56,30 @@ class AuthController extends Controller
             // Simpan token JWT di cookie HTTP-only
             $cookie = Cookie::make('token', $token, 30, null, null, false, true);
 
-            return response()->json([
+            // Inisialisasi array respons
+            $responseData = [
                 'success' => true,
                 'user' => $userData,
                 'roles' => $roles,
                 'permissions' => $user->getPermissionArray(),
-            ])->withCookie($cookie);
+            ];
+
+            // Jika user adalah is_superadmin, tambahkan is_superadmin ke dalam respons JSON
+            if ($user->is_superadmin == 1) {
+                $responseData['is_superadmin'] = true;
+            }
+
+            // Kembalikan respons JSON dengan cookie
+            return response()->json($responseData)->withCookie($cookie);
+            
         } catch (\Exception $e) {
-            Log::error('Login error: '.$e->getMessage());
+            Log::error('Login error: ' . $e->getMessage());
             return response()->json(['errors' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
         }
     }
 
-    public function checkTokenValid(){
+    public function checkTokenValid()
+    {
         try {
             if (auth()->guard('api')->check()) {
                 return response()->json([
@@ -80,7 +91,7 @@ class AuthController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Check token error: '.$e->getMessage());
+            Log::error('Check token error: ' . $e->getMessage());
             return response()->json(['errors' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
         }
     }
@@ -95,7 +106,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Logout berhasil'])
                 ->withCookie($cookie);
         } catch (\Exception $e) {
-            Log::error('Logout error: '.$e->getMessage());
+            Log::error('Logout error: ' . $e->getMessage());
 
             return response()->json(['errors' => 'Terjadi kesalahan ketika logout'], 500);
         }

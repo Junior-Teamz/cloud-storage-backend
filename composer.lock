@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0e26da1e6fd06fdbdce19813dea4ea8e",
+    "content-hash": "74a7889b6cbe17391bb8754f3bffdc58",
     "packages": [
         {
             "name": "brick/math",
@@ -2144,6 +2144,95 @@
                 }
             ],
             "time": "2024-01-28T23:22:08+00:00"
+        },
+        {
+            "name": "marcocesarato/amwscan",
+            "version": "0.14.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/marcocesarato/PHP-Antimalware-Scanner.git",
+                "reference": "8aac06ef9f1ae9d847b62051ce850b42a9b0da16"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/marcocesarato/PHP-Antimalware-Scanner/zipball/8aac06ef9f1ae9d847b62051ce850b42a9b0da16",
+                "reference": "8aac06ef9f1ae9d847b62051ce850b42a9b0da16",
+                "shasum": ""
+            },
+            "require": {
+                "ext-fileinfo": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "ext-zlib": "*",
+                "php": ">=5.5"
+            },
+            "require-dev": {
+                "brainmaestro/composer-git-hooks": "^2.8",
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "marcocesarato/php-conventional-changelog": "^1.10"
+            },
+            "type": "console",
+            "extra": {
+                "hooks": {
+                    "pre-commit": [
+                        "sh bin/pre-commit"
+                    ],
+                    "pre-push": [
+                        "php bin/run vendor/bin/php-cs-fixer fix --dry-run --format=txt --verbose --diff --diff-format=udiff --config=.php_cs"
+                    ],
+                    "post-merge": "composer install"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AMWScan\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Marco Cesarato",
+                    "email": "cesarato.developer@gmail.com"
+                }
+            ],
+            "description": "AMWSCAN (Antimalware Scanner) is a php antimalware/antivirus scanner console script written in php for scan your project. This can work on php projects and a lot of others platform.",
+            "keywords": [
+                "amwscan",
+                "analysis",
+                "antimalware",
+                "antivirus",
+                "backdoor",
+                "base64",
+                "cleaner",
+                "code",
+                "decode",
+                "deobfuscated",
+                "deobfuscation",
+                "deobfuscator",
+                "eval",
+                "evil",
+                "evil-code",
+                "exploit",
+                "functions",
+                "malware",
+                "obfuscated",
+                "obfuscation",
+                "scan",
+                "scanner",
+                "scanning",
+                "shell",
+                "signatures",
+                "tool",
+                "virus"
+            ],
+            "support": {
+                "issues": "https://github.com/marcocesarato/PHP-Antimalware-Scanner/issues",
+                "source": "https://github.com/marcocesarato/PHP-Antimalware-Scanner/tree/v0.14.0"
+            },
+            "time": "2024-05-19T14:21:09+00:00"
         },
         {
             "name": "monolog/monolog",

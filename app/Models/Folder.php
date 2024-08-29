@@ -7,14 +7,17 @@ use App\Exceptions\ForbiddenActionException;
 use App\Models\Scopes\ProtectRootFolderScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Folder extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'nanoid', 'name', 'user_id', 'parent_id'
+        'nanoid',
+        'name',
+        'user_id',
+        'parent_id'
     ];
 
     protected static function boot()
@@ -52,5 +55,10 @@ class Folder extends Model
     public function subfolders()
     {
         return $this->hasMany(Folder::class, 'parent_id');
+    }
+
+    public function userFolderPermissions()
+    {
+        return $this->hasMany(UserFolderPermission::class);
     }
 }
