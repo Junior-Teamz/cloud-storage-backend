@@ -10,13 +10,12 @@ use Illuminate\Support\Facades\Route;
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
 Route::post('/login', [AuthController::class, 'login']); // login user
 Route::post('/logout', [AuthController::class, 'logout']); // logout user
+Route::get('/checkTokenValid', [AuthController::class, 'checkTokenValid'])->middleware('auth:api'); // periksa apakah token jwt masih valid atau tidak
 
-Route::middleware(['auth:api', 'hashid', 'remove_nanoid', 'protectRootFolder', 'check_admin'])->group(function () {
-
-    Route::get('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // periksa apakah token jwt masih valid atau tidak
+Route::middleware(['auth:api', 'hashid', 'remove_nanoid', 'protectRootFolder', 'check_admin', 'hide_superadmin_flag'])->group(function () {
 
     Route::prefix('user')->controller(UserController::class)->group(function () {
-        Route::get('/', 'index'); // Mendapatkan informasi user
+        Route::get('/index', 'index'); // Mendapatkan informasi user
         Route::put('/update', 'update'); // Update user
         Route::delete('/delete', 'delete'); // Menghapus user
     });
