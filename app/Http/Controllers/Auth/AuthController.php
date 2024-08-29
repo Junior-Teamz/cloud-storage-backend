@@ -80,6 +80,14 @@ class AuthController extends Controller
 
     public function checkTokenValid()
     {
+        // cek apakah terdapat token jwt pada header, dikarenakan pada login token jwt disimpan di cookie http-only
+        if(!request()->cookie('token')) {
+            return response()->json([
+                'errors' => 'token not found'
+            ], 403);
+        }
+            
+
         try {
             if (auth()->guard('api')->check()) {
                 return response()->json([
