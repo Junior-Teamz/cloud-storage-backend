@@ -19,7 +19,7 @@ Route::middleware(['auth:api', 'hashid', 'remove_nanoid', 'protectRootFolder'])-
         Route::put('/update', [UserController::class, 'update']); // Update user
         Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
     });
-    
+
     Route::prefix('folder')->group(function () {
         Route::get('/', [FolderController::class, 'index']); // dapatkan list folder dan file yang ada pada user yang login saat ini pada folder rootnya.
         Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
