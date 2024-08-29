@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-class LoginController extends Controller
+class AuthController extends Controller
 {
-    public function index(Request $request)
+    public function login(Request $request)
     {
         // Validasi input
         $validator = Validator::make($request->all(), [
@@ -64,6 +64,23 @@ class LoginController extends Controller
             ])->withCookie($cookie);
         } catch (\Exception $e) {
             Log::error('Login error: '.$e->getMessage());
+            return response()->json(['errors' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
+        }
+    }
+
+    public function checkTokenValid(){
+        try {
+            if (auth()->guard('api')->check()) {
+                return response()->json([
+                    'token_valid' => true
+                ]);
+            } else {
+                return response()->json([
+                    'token_valid' => false
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Check token error: '.$e->getMessage());
             return response()->json(['errors' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
         }
     }
