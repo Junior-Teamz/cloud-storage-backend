@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\File;
 use App\Models\Folder;
 use App\Models\User;
+use App\Models\UserFolderPermission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -12,27 +13,51 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Hidehalo\Nanoid\Client;
 
 class FolderController extends Controller
 {
     /**
-     * Check the user role and permission.
+     * Check the user permission
      */
-    // private function checkPermission($role, $permission)
-    // {
-    //     $user = Auth::user();
+    private function checkPermissionFolder($folderId, $action)
+    {
+        $user = Auth::user();
+        $folder = Folder::find($folderId);
 
-    //     if ($user->hasRole($role)) {
-    //         if ($user->cannot($permission)) {
-    //             return response()->json([
-    //                 'errors' => 'This user does not have permission to ' . str_replace('folders.', '', $permission) . '.'
-    //             ], 403);
-    //         }
-    //     }
+        // If folder not found, return 404 error and stop the process
+        if (!$folder) {
+            return response()->json([
+                'errors' => 'Folder dengan Folder ID yang anda masukan tidak ditemukan, Silahkan periksa kembali Folder ID yang anda masukan.'
+            ], 404); // Setting status code to 404 Not Found
+        }
 
-    //     return null;
-    // }
+        // Step 1: Check if the folder belongs to the logged-in user
+        if ($folder->user_id === $user->id) {
+            return true; // The owner has all permissions
+        }
+
+        // step ???? cek apakah user yang login adalah admin dan memiliki privilege SUPERADMIN
+        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
+            return true;
+        }
+        // jika hanya admin dan tidak ada privilege SUPERADMIN, kembalikan false (tidak diizinkan) 
+        else if ($user->hasRole('admin')){
+            return false;
+        }
+
+        // step 2 tentang group berisi user dengan permission setiap user pada group berbeda beda, masih coming soon...
+
+        // Step 3: Check if user has granted permission with the folder
+        $userFolderPermission = UserFolderPermission::where('user_id', $user->id)->where('folder_id', $folder->id)->first();
+        if ($userFolderPermission) {
+            $checkPermission = $userFolderPermission->permissions;
+            if (in_array($action, $checkPermission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public function index(Request $request)
     {
@@ -88,13 +113,20 @@ class FolderController extends Controller
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while fetching the folders and files.',
+                'errors' => 'Terjadi kesalahan saat mendapatkan folder dan file.',
             ], 500);
         }
     }
 
     public function info($id)
     {
+        $permission = $this->checkPermissionFolder($id, 'folder_read');
+        if (!$permission) {
+            return response()->json([
+                'errors' => 'Anda tidak memiliki izin untuk melihat folder  ini.',
+            ], 403);
+        }
+
         try {
             // Cari folder dengan ID yang diberikan dan sertakan subfolder jika ada
             $folder = Folder::with(['subfolders', 'files'])->find($id);
@@ -143,7 +175,7 @@ class FolderController extends Controller
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while fetching the folder info.',
+                'errors' => 'Terjadi kesalahan saat mendapatkan informasi folder.',
             ], 500);
         }
     }
@@ -175,16 +207,18 @@ class FolderController extends Controller
 
             // Periksa apakah parent_id ada pada request? , jika tidak ada maka gunakan id dari folder root user default
             // Jika ada, gunakan parent_id dari request.
-            if ($request->parent_id === null || $request->parent_id === 0 || $request->parent_id === '') {
+            if ($request->parent_id === null) {
                 $parentId = $folderRootUser->id;
-            } else {
-                $parentId = $request->parent_id;
-            }
-
-            // Pastikan parent_id adalah integer atau null
-            if (!is_null($parentId) && !is_numeric($parentId)) {
-                Log::error('Invalid parent_id value: ' . $parentId);
-                throw new \Exception('Invalid parent_id value.');
+            } else if ($request->parent_id) {
+                // check if parent_id is another user folder, then check if user login right now have the permission to edit folder on that folder. checked with checkPermission.
+                $permission = $this->checkPermissionFolder($request->parent_id, 'folder_edit');
+                if (!$permission) {
+                    return response()->json([
+                        'errors' => 'Anda tidak memiliki izin untuk membuat folder pada parent_folder yang anda masukan.',
+                    ], 403);
+                } else {
+                    $parentId = $request->parent_id;
+                }
             }
 
             // Create folder in database
@@ -218,7 +252,7 @@ class FolderController extends Controller
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while creating the folder.',
+                'errors' => 'Terjadi kesalahan saat membuat folder.',
             ], 500);
         }
     }
@@ -228,6 +262,13 @@ class FolderController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $permissionCheck = $this->checkPermissionFolder($id, 'folder_edit');
+        if (!$permissionCheck) {
+            return response()->json([
+                'errors' => 'Anda tidak memiliki izin untuk mengubah nama folder ini.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string',
         ]);
@@ -254,14 +295,14 @@ class FolderController extends Controller
             }
 
             return response()->json([
-                'message' => 'Folder name updated successfully.',
+                'message' => 'Nama folder berhasil diubah.',
                 'data' => [
                     'folder' => $folder
                 ]
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'errors' => 'Folder not found.',
+                'errors' => 'Folder tidak ditemukan.',
             ], 404);
         } catch (Exception $e) {
             Log::error('Error occurred on updating folder name: ' . $e->getMessage(), [
@@ -271,7 +312,7 @@ class FolderController extends Controller
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while updating the folder name.',
+                'errors' => 'Terjadi kesalahan saat mengubah nama folder.',
             ], 500);
         }
     }
@@ -281,6 +322,13 @@ class FolderController extends Controller
      */
     public function delete($id)
     {
+        $permissionCheck = $this->checkPermissionFolder($id, 'folder_delete');
+        if (!$permissionCheck) {
+            return response()->json([
+                'errors' => 'Anda tidak mempunyai izin untuk menghapus folder ini.',
+            ], 403);
+        }
+
         try {
             $folder = Folder::findOrFail($id);
 
@@ -296,7 +344,7 @@ class FolderController extends Controller
             }
 
             return response()->json([
-                'message' => 'Folder deleted successfully'
+                'message' => 'Folder berhasil di hapus.',
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -309,16 +357,25 @@ class FolderController extends Controller
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while deleting the folder.',
+                'errors' => 'Terjadi kesalahan saat menghapus folder.',
             ], 500);
         }
     }
 
     /**
-     * Move a folder to another parent folder.
+     * Move a folder to another folder with parent_id folder technique.
      */
     public function move(Request $request)
     {
+        $user = Auth::user();
+
+        $permissionCheck = $this->checkPermissionFolder($request->folder_id, 'folder_edit');
+        if (!$permissionCheck) {
+            return response()->json([
+                'errors' => 'Anda tidak mempunyai izin untuk memindahkan folder ini.',
+            ], 403);
+        }
+
         $validator = Validator::make(
             $request->all(),
             [
@@ -334,6 +391,16 @@ class FolderController extends Controller
         try {
             $folder = Folder::findOrFail($request->folder_id);
             $oldParentId = $folder->parent_id;
+            //periksa apakah new_parent_id (folder tujuan yang dipilih) pada request adalah milik user sendiri atau milik user lain. jika dimiliki oleh user lain, periksa apakah user saat ini memiliki izin untuk memindahkan ke folder milik orang lain itu.
+            $checkIfNewParentIdIsBelongsToUser = Folder::where('id', $request->new_parent_id)->where('user_id', $user->id)->exists();
+            if (!$checkIfNewParentIdIsBelongsToUser) {
+                $permissionCheck = $this->checkPermissionFolder($request->new_parent_id, 'folder_edit');
+                if (!$permissionCheck) {
+                    return response()->json([
+                        'errors' => 'Anda tidak mendapatkan izin pada folder yang anda tuju untuk memindahkan folder ini.',
+                    ], 403);
+                }
+            }
             $folder->parent_id = $request->new_parent_id;
             $folder->save();
 
@@ -348,7 +415,7 @@ class FolderController extends Controller
             }
 
             return response()->json([
-                'message' => 'Folder moved successfully.',
+                'message' => 'Folder berhasil di pindahkan.',
                 'data' => [
                     'folder' => $folder
                 ]
@@ -359,13 +426,13 @@ class FolderController extends Controller
             ], 404);
         } catch (Exception $e) {
             Log::error('Error occurred on moving folder: ' . $e->getMessage(), [
-                'folderId' => $id,
+                'folderId' => $request->folder_id,
                 'newParentId' => $request->new_parent_id,
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while moving the folder.',
+                'errors' => 'Terjadi kesalahan saat memindahkan folder.',
             ], 500);
         }
     }
@@ -415,7 +482,7 @@ class FolderController extends Controller
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while fetching the folder path.',
+                'errors' => 'Terjadi kesalahan saat mendapatkan path folder.',
             ], 500);
         }
     }

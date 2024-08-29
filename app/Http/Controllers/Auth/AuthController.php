@@ -56,13 +56,27 @@ class AuthController extends Controller
             // Simpan token JWT di cookie HTTP-only
             $cookie = Cookie::make('token', $token, 30, null, null, false, true);
 
+<<<<<<< HEAD
             // Masukkan token di field accessToken
             return response()->json([
+=======
+            // Inisialisasi array respons
+            $responseData = [
+>>>>>>> 0d4be3b9a34e97d00cc72c0df6339f31c1816b78
                 'success' => true,
                 'user' => $userData,
                 'roles' => $roles,
                 'permissions' => $user->getPermissionArray(),
-            ])->withCookie($cookie);
+            ];
+
+            // Jika user adalah is_superadmin, tambahkan is_superadmin ke dalam respons JSON
+            if ($user->is_superadmin == 1) {
+                $responseData['is_superadmin'] = true;
+            }
+
+            // Kembalikan respons JSON dengan cookie
+            return response()->json($responseData)->withCookie($cookie);
+            
         } catch (\Exception $e) {
             Log::error('Login error: ' . $e->getMessage());
             return response()->json(['errors' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
