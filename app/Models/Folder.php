@@ -14,8 +14,6 @@ class Folder extends Model
 {
     use HasFactory;
 
-    protected $with = ['user:id,name,email', 'tags', 'instances'];
-
     protected $fillable = [
         'nanoid',
         'name',

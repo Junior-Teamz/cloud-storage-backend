@@ -39,7 +39,7 @@ class AdminController extends Controller
 
         try {
 
-            $admin = User::where('id', $user->id)->first();
+            $admin = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
 
             $admin['role'] = $admin->roles->pluck('name');
 
@@ -75,7 +75,7 @@ class AdminController extends Controller
 
                 $keywordName = $request->query('name');
 
-                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->paginate(10);
+                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->with('instances:id,name,address')->paginate(10);
 
                 $allUser['role'] = $allUser->roles->pluck('name');
 
@@ -89,7 +89,7 @@ class AdminController extends Controller
 
                 $keywordEmail = $request->query('email');
 
-                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->paginate(10);
+                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->with('instances:id,name,address')->paginate(10);
 
                 $allUser['role'] = $allUser->roles->pluck('name');
 
@@ -99,7 +99,7 @@ class AdminController extends Controller
                 return response()->json($allUser, 200);  // Kembalikan hasil pagination tanpa membungkus lagi
             } else {
                 // Mengambil semua data pengguna dengan pagination
-                $allUser = User::with('roles')->paginate(10);
+                $allUser = User::with('instances:id,name,address', 'roles')->paginate(10);
 
                 // Iterasi setiap user dalam koleksi paginasi dan lakukan transformasi
                 $allUser->getCollection()->transform(function ($user) {
@@ -139,7 +139,7 @@ class AdminController extends Controller
 
         try {
 
-            $user = User::where('id', $id)->first();
+            $user = User::where('id', $id)->with('instances:id,name,address')->first();
 
             $user['role'] = $user->roles->pluck('name');
 

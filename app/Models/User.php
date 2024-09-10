@@ -21,9 +21,6 @@ class User extends Authenticatable implements JWTSubject
 
     protected $guard_name = 'api';
 
-    // Tambahkan relasi yang ingin selalu di-eager load
-    protected $with = ['instances'];
-
     /**
      * The attributes that are mass assignable.
      *

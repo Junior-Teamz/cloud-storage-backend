@@ -136,17 +136,71 @@ class FolderController extends Controller
                 ], 200);
             }
 
-            // Iterasi setiap folder dalam subfolders dan tambahkan total_size
-            $userFolders->each(function ($folder) {
-                $folder['total_size'] = $this->calculateFolderSize($folder); // Hitung total ukuran folder
+            // Iterasi setiap folder dalam subfolders untuk menyiapkan respons
+            $respondFolders = $userFolders->map(function ($folder) {
+                return [
+                    'folder_id' => $folder->id,
+                    'name' => $folder->name,
+                    'total_size' => $this->calculateFolderSize($folder), // Hitung total ukuran folder
+                    'type' => $folder->type,
+                    'created_at' => $folder->created_at,
+                    'updated_at' => $folder->updated_at,
+                    'user' => [
+                        'id' => $folder->user->id,
+                        'name' => $folder->user->name,
+                        'email' => $folder->user->email
+                    ],
+                    'tags' => $folder->tags->map(function ($tag) {
+                        return [
+                            'id' => $tag->id,
+                            'name' => $tag->name
+                        ];
+                    }),
+                    'instance' => $folder->instances->map(function ($instance) {
+                        return [
+                            'id' => $instance->id,
+                            'name' => $instance->name,
+                            'address' => $instance->address
+                        ];
+                    })
+                ];
             });
 
-            $userFolders->makeHidden(['nanoid', 'files', 'subfolders']);
+            $filesResponse = $files->map(function ($file) {
+                return [
+                    'id' => $file->id,
+                    'name' => $file->name,
+                    'public_path' => $file->public_path,
+                    'size' => $file->size,
+                    'type' => $file->type,
+                    'created_at' => $file->created_at,
+                    'updated_at' => $file->updated_at,
+                    'folder_id' => $file->folder_id,
+                    'user' => [
+                        'id' => $file->user->id,
+                        'name' => $file->user->name,
+                        'email' => $file->user->email
+                    ],
+                    'tags' => $file->tags->map(function ($tag) {
+                        return [
+                            'id' => $tag->id,
+                            'name' => $tag->name
+                        ];
+                    }),
+                    'instance' => $file->instances->map(function ($instance) {
+                        return [
+                            'id' => $instance->id,
+                            'name' => $instance->name,
+                            'address' => $instance->address
+                        ];
+                    })
+                ];
+            });
 
             return response()->json([
                 'data' => [
-                    'folders' => $userFolders, // Sekarang berisi array folder dan tags
-                    'files' => $files
+                    'folders' => $respondFolders, // Sekarang berisi array folder dan tags
+                    'files' => $filesResponse
                 ]
             ], 200);
         } catch (Exception $e) {
@@ -174,7 +228,7 @@ class FolderController extends Controller
 
         try {
             // Cari folder dengan ID yang diberikan dan sertakan subfolder jika ada
-            $folder = Folder::with(['user', 'subfolders', 'files'])->find($id);
+            $folder = Folder::with(['user', 'subfolders', 'files', 'tags', 'instances'])->find($id);
 
             // Jika folder tidak ditemukan, kembalikan pesan kesalahan
             if (!$folder) {
@@ -183,7 +237,31 @@ class FolderController extends Controller
                 ], 404);
             }
 
-            $folder['total_size'] =  $this->calculateFolderSize($folder);
+            // Persiapkan respon untuk folder
+            $folderResponse = [
+                'folder_id' => $folder->id,
+                'name' => $folder->name,
+                'total_size' => $this->calculateFolderSize($folder),
+                'type' => $folder->type,
+                'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
+                'user' => [
+                    'id' => $folder->user->id,
+                    'name' =>  $folder->user->name,
+                    'email' =>  $folder->user->email
+                ],
+                'instances' => $folder->instances->map(function ($instance) {
+                    return [
+                        'id' => $instance->id,
+                        'name' => $instance->name
+                    ];
+                }),
+                'tags' => $folder->tags->map(function ($tag) {
+                    return [
+                        'id' => $tag->id,
+                        'name' => $tag->name
+                    ];
+                })
+            ];
 
             // Persiapkan respon untuk files
             $files = $folder->files;
@@ -197,11 +275,9 @@ class FolderController extends Controller
                 }
             }
 
-            $folder->makeHidden(['nanoid', 'files', 'subfolders']);
-
             return response()->json([
                 'data' => [
-                    'folder_info' => $folder,
+                    'folder_info' => $folderResponse,
                     'subfolders' => $folder->subfolders,
                     'files' => $fileResponse,
                 ],

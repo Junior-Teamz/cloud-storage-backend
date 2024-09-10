@@ -20,8 +20,8 @@ class ValidateAdmin
     {
         $user = Auth::user();
 
-        // Mengecek apakah user memiliki role admin dan is_superadmin bernilai 1
-        if (!($user->hasRole('admin') && $user->is_superadmin == 1)) {
+        // Mengecek apakah user memiliki role admin atau role admin dengan is_superadmin == 1
+        if ( !($user->hasRole('admin')) || !($user->hasRole('admin') && $user->is_superadmin == 1) ) {
             return response()->json([
                 'error' => 'Anda tidak diizinkan untuk mengakses halaman ini.',
             ], 403); // 403 Forbidden

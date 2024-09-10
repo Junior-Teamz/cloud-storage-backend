@@ -10,9 +10,6 @@ class File extends Model
 {
     use HasFactory;
 
-    // Tambahkan relasi yang ingin selalu di-eager load
-    protected $with = ['user:id,name,email', 'tags', 'instances'];
-
     protected $fillable = [
         'name',
         'nanoid',

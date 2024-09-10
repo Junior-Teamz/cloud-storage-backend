@@ -140,7 +140,11 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::find($id);
+            $file = File::with([
+                'user:id,name,email',
+                'tags',
+                'instances:id,name'
+            ])->find($id);
 
             if (!$file) {
                 return response()->json([
@@ -179,7 +183,7 @@ class FileController extends Controller
 
         try {
             // Ambil semua file dari database
-            $files = File::where('user_id', $user->id)->get();
+            $files = File::where('user_id', $user->id)->with(['user:id,name,email', 'tags', 'instances:id,name'])->get();
 
             // Hitung total ukuran semua file
             $totalSize = $files->sum('size');
