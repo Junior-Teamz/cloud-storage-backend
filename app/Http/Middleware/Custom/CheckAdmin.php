@@ -21,7 +21,7 @@ class CheckAdmin
         $user = Auth::user();
 
         // Mengecek apakah user memiliki role admin atau memiliki role admin dan is_superadmin bernilai 1
-        if ($user->hasRole('admin') || ($user->hasRole('admin') && $user->is_superadmin == 1)) {
+        if (($user->hasRole('admin') && $user->is_superadmin == 0) || ($user->hasRole('admin') && $user->is_superadmin == 1)) {
             return response()->json([
                 'error' => 'Anda seharusnya tidak menggunakan route ini, Gunakan route dengan prefix "admin".',
             ], 403);

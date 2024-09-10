@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware\Custom;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,13 +21,16 @@ class ValidateAdmin
     {
         $user = Auth::user();
 
-        // Mengecek apakah user memiliki role admin atau role admin dengan is_superadmin == 1
-        if ( !($user->hasRole('admin')) || !($user->hasRole('admin') && $user->is_superadmin == 1) ) {
-            return response()->json([
-                'error' => 'Anda tidak diizinkan untuk mengakses halaman ini.',
-            ], 403); // 403 Forbidden
+        $userData = User::where('id', $user->id)->first();
+
+        if($userData->hasRole('admin') && $userData->is_superadmin == 1){
+            return $next($request);
+        } elseif( $userData->hasRole('admin') && $userData->is_superadmin == 0){
+            return $next($request);
         }
 
-        return $next($request);
+        return response()->json([
+            'error' => 'Anda tidak diizinkan untuk mengakses halaman ini.',
+        ], 403); // 403 Forbidden
     }
 }
