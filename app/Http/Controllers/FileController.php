@@ -15,11 +15,20 @@ use App\Models\Tags;
 use App\Models\User;
 use App\Models\UserFilePermission;
 use App\Models\UserFolderPermission;
+use App\Services\CheckFolderPermissionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class FileController extends Controller
 {
+    protected $checkPermissionFolderService;
+
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
+    {
+        // Simpan service ke dalam property
+        $this->checkPermissionFolderService = $checkPermissionFolderService;
+    }
+
     /**
      * Check the user permission for file
      */
@@ -31,7 +40,7 @@ class FileController extends Controller
         // If file not found, return 404 error and stop the process
         if (!$file) {
             return response()->json([
-                'errors' => 'Folder with Folder ID you entered not found, Please check your Folder ID and try again.'
+                'errors' => 'File with File ID you entered not found, Please check your File ID and try again.'
             ], 404); // Setting status code to 404 Not Found
         }
 
@@ -40,23 +49,19 @@ class FileController extends Controller
             return true; // The owner has all permissions
         }
 
-        // step ???? cek apakah user yang login adalah admin dan memiliki privilege SUPERADMIN
+        // Step 2: Check if user is admin with SUPERADMIN privilege
         if ($user->hasRole('admin') && $user->is_superadmin == 1) {
             return true;
-        }
-        // jika hanya admin dan tidak ada privilege SUPERADMIN, kembalikan false (tidak diizinkan) 
-        else if ($user->hasRole('admin')) {
-            return false;
+        } else if ($user->hasRole('admin')) {
+            return false; // Regular admin without SUPERADMIN privilege
         }
 
-        // step 2 tentang group berisi user dengan permission setiap user pada group berbeda beda, masih coming soon...
-
-        // Step 3: Check if user has granted permission with the file
+        // Step 3: Check if user has explicit permission to the file
         $userFilePermission = UserFilePermission::where('user_id', $user->id)->where('file_id', $file->id)->first();
         if ($userFilePermission) {
             $checkPermission = $userFilePermission->permissions;
 
-            // Jika $actions adalah string, ubah menjadi array agar lebih mudah diperiksa
+            // Jika $actions adalah string, ubah menjadi array
             if (!is_array($actions)) {
                 $actions = [$actions];
             }
@@ -67,40 +72,21 @@ class FileController extends Controller
             }
         }
 
-        // Step 4 check if user has permission on folder where file is located
-        $folder = Folder::find($file->folder_id);
-        if ($folder) {
-            $folderPermission = UserFolderPermission::where('user_id', $user->id)->where('folder_id', $folder->id)->first();
-            if ($folderPermission) {
-                $checkPermission = $folderPermission->permissions;
-
-                if (!is_array($actions)) {
-                    $actions = [$actions];
-                }
-
-                if (in_array($checkPermission, $actions)) {
-                    return true;
-                }
-            }
-        }
-
-        // return false if all steps are not passed
-        return false;
+        // Step 4: Check permission for folder where file is located, including parent folders
+        return $this->checkPermissionFolderRecursive($file->folder_id, $actions);
     }
 
     /**
-     * Check user permission for folder
+     * Recursive function to check permission on parent folders
      */
-    private function checkPermissionFolder($folderId, $action)
+    private function checkPermissionFolderRecursive($folderId, $actions)
     {
         $user = Auth::user();
         $folder = Folder::find($folderId);
 
-        // If folder not found, return 404 error and stop the process
+        // If folder not found, return false
         if (!$folder) {
-            return response()->json([
-                'errors' => 'Folder with Folder ID you entered not found, Please check your Folder ID and try again.'
-            ], 404); // Setting status code to 404 Not Found
+            return false;
         }
 
         // Step 1: Check if the folder belongs to the logged-in user
@@ -108,26 +94,35 @@ class FileController extends Controller
             return true; // The owner has all permissions
         }
 
-        // step ???? cek apakah user yang login adalah admin dan memiliki privilege SUPERADMIN
+        // Step 2: Check if user is admin with SUPERADMIN privilege
         if ($user->hasRole('admin') && $user->is_superadmin == 1) {
             return true;
-        }
-        // jika hanya admin dan tidak ada privilege SUPERADMIN, kembalikan false (tidak diizinkan) 
-        else if ($user->hasRole('admin')) {
+        } else if ($user->hasRole('admin')) {
             return false;
         }
 
-        // step 2 tentang group berisi user dengan permission setiap user pada group berbeda beda, masih coming soon...
-
-        // Step 3: Check if user has granted permission with the folder
+        // Step 3: Check if user has explicit permission to the folder
         $userFolderPermission = UserFolderPermission::where('user_id', $user->id)->where('folder_id', $folder->id)->first();
         if ($userFolderPermission) {
             $checkPermission = $userFolderPermission->permissions;
-            if (in_array($action, $checkPermission)) {
+
+            // Jika $actions adalah string, ubah menjadi array
+            if (!is_array($actions)) {
+                $actions = [$actions];
+            }
+
+            // Periksa apakah izin pengguna ada di array $actions
+            if (in_array($checkPermission, $actions)) {
                 return true;
             }
         }
 
+        // Step 4: Check if the folder has a parent folder
+        if ($folder->parent_id) {
+            return $this->checkPermissionFolderRecursive($folder->parent_id, $actions); // Recursive call to check parent folder
+        }
+
+        // Return false if no permissions are found
         return false;
     }
 
@@ -145,11 +140,7 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::with([
-                'user:id,name,email',
-                'tags',
-                'instances:id,name'
-            ])->find($id);
+            $file = File::find($id);
 
             if (!$file) {
                 return response()->json([
@@ -188,7 +179,7 @@ class FileController extends Controller
 
         try {
             // Ambil semua file dari database
-            $files = File::where('user_id', $user->id)->with(['user:id,name,email', 'tags', 'instances:id,name'])->get();
+            $files = File::where('user_id', $user->id)->get();
 
             // Hitung total ukuran semua file
             $totalSize = $files->sum('size');
@@ -237,7 +228,7 @@ class FileController extends Controller
             $folderId = $request->folder_id;
 
             // Periksa apakah user memiliki izin ke folder tujuan
-            $permissionCheck = $this->checkPermissionFolder($folderId, 'folder_edit');
+            $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($folderId, 'folder_edit');
             if (!$permissionCheck) {
                 return response()->json([
                     'errors' => 'You do not have permission to upload files to the destination folder.',
@@ -640,7 +631,7 @@ class FileController extends Controller
         }
 
         // Periksa apakah user memiliki izin ke folder tujuan
-        $permissionFolderCheck = $this->checkPermissionFolder($request->new_folder_id, 'folder_edit');
+        $permissionFolderCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->new_folder_id, 'folder_edit');
         if (!$permissionFolderCheck) {
             return response()->json([
                 'errors' => 'You do not have permission on the destination folder.',

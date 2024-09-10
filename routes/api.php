@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 
 
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
+
 Route::post('/login', [AuthController::class, 'login']); // login user
 
 Route::post('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // TODO: periksa apakah token jwt masih valid atau tidak

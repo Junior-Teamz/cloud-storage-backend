@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Folder;
 use App\Models\Tags;
 use App\Models\User;
-use App\Models\UserFolderPermission;
+use App\Services\CheckFolderPermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -17,54 +17,12 @@ use Illuminate\Support\Facades\DB;
 
 class FolderController extends Controller
 {
-    /**
-     * Check the user permission
-     */
-    private function checkPermissionFolder($folderId, $actions)
+    protected $checkPermissionFolderService;
+
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
     {
-        $user = Auth::user();
-        $folder = Folder::find($folderId);
-
-        // If folder not found, return 404 error and stop the process
-        if (!$folder) {
-            return response()->json([
-                'errors' => 'Folder with Folder ID you entered not found, Please check your Folder ID and try again.'
-            ], 404); // Setting status code to 404 Not Found
-        }
-
-        // Step 1: Check if the folder belongs to the logged-in user
-        if ($folder->user_id === $user->id) {
-            return true; // The owner has all permissions
-        }
-
-        // step ???? cek apakah user yang login adalah admin dan memiliki privilege SUPERADMIN
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
-            return true;
-        }
-        // jika hanya admin dan tidak ada privilege SUPERADMIN, kembalikan false (tidak diizinkan) 
-        else if ($user->hasRole('admin')) {
-            return false;
-        }
-
-        // step 2 tentang group berisi user dengan permission setiap user pada group berbeda beda, masih coming soon...
-
-        // Step 3: Check if user has granted permission with the folder
-        $userFolderPermission = UserFolderPermission::where('user_id', $user->id)->where('folder_id', $folder->id)->first();
-        if ($userFolderPermission) {
-            $checkPermission = $userFolderPermission->permissions;
-
-            // Jika $actions adalah string, ubah menjadi array agar lebih mudah diperiksa
-            if (!is_array($actions)) {
-                $actions = [$actions];
-            }
-
-            // Periksa apakah izin pengguna ada di array $actions
-            if (in_array($checkPermission, $actions)) {
-                return true;
-            }
-        }
-
-        return false;
+        // Simpan service ke dalam property
+        $this->checkPermissionFolderService = $checkPermissionFolderService;
     }
 
     /**
@@ -190,18 +148,6 @@ class FolderController extends Controller
                         'name' =>  $folder->user->name,
                         'email' =>  $folder->user->email
                     ],
-                    'instance' => $folder->instances->map(function ($instance) {
-                        return [
-                            'id' => $instance->id,
-                            'name' => $instance->name
-                        ];
-                    }),
-                    'tags' => $folder->tags->map(function ($tag) {
-                        return [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    })
                 ];
             });
 
@@ -226,7 +172,7 @@ class FolderController extends Controller
     public function info($id)
     {
         // periksa apakah user memiliki izin antara read atau write
-        $permission = $this->checkPermissionFolder($id, ['read', 'write']);
+        $permission = $this->checkPermissionFolderService->checkPermissionFolder($id, ['read', 'write']);
 
         if (!$permission) {
             return response()->json([
@@ -236,7 +182,7 @@ class FolderController extends Controller
 
         try {
             // Cari folder dengan ID yang diberikan dan sertakan subfolder jika ada
-            $folder = Folder::with(['user', 'subfolders', 'files', 'tags', 'instances'])->find($id);
+            $folder = Folder::with(['user', 'subfolders', 'files'])->find($id);
 
             // Jika folder tidak ditemukan, kembalikan pesan kesalahan
             if (!$folder) {
@@ -257,18 +203,6 @@ class FolderController extends Controller
                     'name' =>  $folder->user->name,
                     'email' =>  $folder->user->email
                 ],
-                'instances' => $folder->instances->map(function ($instance) {
-                    return [
-                        'id' => $instance->id,
-                        'name' => $instance->name
-                    ];
-                }),
-                'tags' => $folder->tags->map(function ($tag) {
-                    return [
-                        'id' => $tag->id,
-                        'name' => $tag->name
-                    ];
-                })
             ];
 
             // Persiapkan respon untuk files
@@ -339,7 +273,7 @@ class FolderController extends Controller
                 $parentId = $folderRootUser->id;
             } else if ($request->parent_id) {
                 // check if parent_id is another user folder, then check if user login right now have the permission to edit folder on that folder. checked with checkPermission.
-                $permission = $this->checkPermissionFolder($request->parent_id, 'write');
+                $permission = $this->checkPermissionFolderService->checkPermissionFolder($request->parent_id, 'write');
                 if (!$permission) {
                     return response()->json([
                         'errors' => 'You do not have permission to create folder in this parent_id',
@@ -454,7 +388,7 @@ class FolderController extends Controller
         }
 
         // Periksa perizinan
-        $permissionCheck = $this->checkPermissionFolder($request->folder_id, 'write');
+        $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->folder_id, 'write');
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to add tag to this folder.',
@@ -529,7 +463,7 @@ class FolderController extends Controller
         }
 
         // Periksa perizinan
-        $permissionCheck = $this->checkPermissionFolder($request->folder_id, 'write'); // misalnya folder_edit adalah action untuk edit atau modifikasi
+        $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->folder_id, 'write'); // misalnya folder_edit adalah action untuk edit atau modifikasi
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to remove tag from this folder.',
@@ -586,7 +520,7 @@ class FolderController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $permissionCheck = $this->checkPermissionFolder($id, 'write');
+        $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($id, 'write');
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to edit this folder.',
@@ -705,7 +639,7 @@ class FolderController extends Controller
             $noPermissionFolders = [];
 
             foreach ($folders as $folder) {
-                if (!$this->checkPermissionFolder($folder->id, 'write')) {
+                if (!$this->checkPermissionFolderService->checkPermissionFolder($folder->id, 'write')) {
                     $noPermissionFolders[] = $folder->id;
                 }
             }
@@ -721,11 +655,11 @@ class FolderController extends Controller
             // Hapus data pivot yang terkait dengan setiap folder
             foreach ($folders as $folder) {
 
-                if($folder->tags()->exists()){
+                if ($folder->tags()->exists()) {
                     $folder->tags()->detach();
                 }
 
-                if($folder->instances()->exists()){
+                if ($folder->instances()->exists()) {
                     $folder->instances()->detach();
                 }
 
@@ -774,7 +708,7 @@ class FolderController extends Controller
     {
         $user = Auth::user();
 
-        $permissionCheck = $this->checkPermissionFolder($request->folder_id, 'write');
+        $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->folder_id, 'write');
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to move this folder.',
@@ -805,7 +739,7 @@ class FolderController extends Controller
 
             // jika tidak ada izin pada folder tujuan
             if (!$checkIfNewParentIdIsBelongsToUser) {
-                $permissionCheck = $this->checkPermissionFolder($request->new_parent_id, 'write');
+                $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->new_parent_id, 'write');
                 if (!$permissionCheck) {
                     return response()->json([
                         'errors' => 'You do not have permission on the folder you are trying to move this folder to.',

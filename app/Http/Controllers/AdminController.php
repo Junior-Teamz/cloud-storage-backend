@@ -39,7 +39,7 @@ class AdminController extends Controller
 
         try {
 
-            $admin = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
+            $admin = User::where('id', $user->id)->first();
 
             $admin['role'] = $admin->roles->pluck('name');
 
@@ -75,7 +75,7 @@ class AdminController extends Controller
 
                 $keywordName = $request->query('name');
 
-                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->with('instances:id,name,address')->paginate(10);
+                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->paginate(10);
 
                 $allUser['role'] = $allUser->roles->pluck('name');
 
@@ -89,7 +89,7 @@ class AdminController extends Controller
 
                 $keywordEmail = $request->query('email');
 
-                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->with('instances:id,name,address')->paginate(10);
+                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->paginate(10);
 
                 $allUser['role'] = $allUser->roles->pluck('name');
 
@@ -139,7 +139,7 @@ class AdminController extends Controller
 
         try {
 
-            $user = User::where('id', $id)->with('instances:id,name,address')->first();
+            $user = User::where('id', $id)->first();
 
             $user['role'] = $user->roles->pluck('name');
 
