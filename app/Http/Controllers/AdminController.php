@@ -99,7 +99,7 @@ class AdminController extends Controller
                 return response()->json($allUser, 200);  // Kembalikan hasil pagination tanpa membungkus lagi
             } else {
                 // Mengambil semua data pengguna dengan pagination
-                $allUser = User::with('instances:id,name,address', 'roles')->paginate(10);
+                $allUser = User::with('roles')->paginate(10);
 
                 // Iterasi setiap user dalam koleksi paginasi dan lakukan transformasi
                 $allUser->getCollection()->transform(function ($user) {
