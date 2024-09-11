@@ -150,12 +150,10 @@ class FolderController extends Controller
                         'name' => $folder->user->name,
                         'email' => $folder->user->email
                     ],
-                    'tags' => $folder->tags->map(function ($tag) {
-                        return [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    }),
+                    'tags' => [
+                        'id' => $folder->tags->pluck('id')->toArray(), // Array of tag ids
+                        'name' => $folder->tags->pluck('name')->toArray() // Array of tag names
+                    ],
                     'instance' => $folder->instances->map(function ($instance) {
                         return [
                             'id' => $instance->id,
@@ -181,12 +179,10 @@ class FolderController extends Controller
                         'name' => $file->user->name,
                         'email' => $file->user->email
                     ],
-                    'tags' => $file->tags->map(function ($tag) {
-                        return [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    }),
+                    'tags' => [
+                        'id' => $file->tags->pluck('id')->toArray(), // Array of tag ids
+                        'name' => $file->tags->pluck('name')->toArray() // Array of tag names
+                    ],
                     'instance' => $file->instances->map(function ($instance) {
                         return [
                             'id' => $instance->id,
