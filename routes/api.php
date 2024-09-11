@@ -63,13 +63,6 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
 
             Route::post('/upload', [FileController::class, 'upload']); // Mengunggah file
 
-            // Route::options('/upload', function() {
-            //     return response()->json(['status' => 'preflight OK'], 200)
-            //         ->header('Access-Control-Allow-Origin', 'http://localhost:3032')
-            //         ->header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE')
-            //         ->header('Access-Control-Allow-Headers', 'Accept, Content-Type, Authorization');
-            // }); // FOR FIXING CORS
-
             Route::put('/change_name/{id}', [FileController::class, 'updateFileName']); // Memperbarui nama file
 
             Route::post('/delete', [FileController::class, 'delete']); // Menghapus file

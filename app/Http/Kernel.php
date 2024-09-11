@@ -64,7 +64,6 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'hashid' => \App\Http\Middleware\Custom\HashIdMiddleware::class,
         'remove_nanoid' => \App\Http\Middleware\Custom\RemoveNanoidFromResponse::class,
         'protectRootFolder' => \App\Http\Middleware\Custom\ProtectRootFolder::class,
         'check_admin' => \App\Http\Middleware\Custom\CheckAdmin::class,

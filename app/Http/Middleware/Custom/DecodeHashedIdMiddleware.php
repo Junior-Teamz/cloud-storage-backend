@@ -15,33 +15,26 @@ class DecodeHashedIdMiddleware
         // Ambil semua parameter route
         $routeParameters = $request->route()->parameters();
 
+        // Decode route parameters
         foreach ($routeParameters as $key => $value) {
-            // Cek apakah key (parameter) mengandung 'id' (bisa folderId, userId, fileId, dll.)
             if (strpos(strtolower($key), 'id') !== false) {
                 $hashedId = $value;
 
                 try {
-                    // Decode hashed id
                     $decodedId = $this->decodeId($hashedId);
-
                     if (empty($decodedId)) {
-                        // Jika hasil decode kosong, return error response
                         return response()->json(['error' => 'Invalid ID'], 400);
                     }
 
-                    // Ganti hashed ID dengan decoded ID di route parameter
                     $request->route()->setParameter($key, $decodedId[0]);
-                    
-                    // Log untuk debugging
-                    Log::info('Decoded ID:', ['key' => $key, 'original' => $hashedId, 'decoded' => $decodedId[0]]);
+                    Log::info('Decoded route parameter ID:', ['key' => $key, 'original' => $hashedId, 'decoded' => $decodedId[0]]);
                 } catch (\Exception $e) {
-                    // Tangkap error jika gagal decode dan return response error
                     return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
                 }
             }
         }
 
-        // Rekursif decode semua ID yang ada dalam request
+        // Decode body parameters (including form-data, JSON, etc.)
         $decodedRequest = $this->decodeIdsInRequest($request->all());
 
         // Replace original request data dengan data yang sudah di-decode
@@ -54,15 +47,16 @@ class DecodeHashedIdMiddleware
     protected function decodeIdsInRequest($input)
     {
         foreach ($input as $key => $value) {
-            // Jika nilai adalah array atau object, rekursif
             if (is_array($value)) {
+                // Rekursif jika value adalah array
                 $input[$key] = $this->decodeIdsInRequest($value);
             } else {
                 // Jika key mengandung 'id' dan value bukan numeric, coba decode
-                if (strpos($key, 'id') !== false && !is_numeric($value)) {
-                    $input[$key] = $this->decodeId($value);
-                } elseif (!is_numeric($value)) {
-                    $input[$key] = $this->decodeId($value);
+                if (strpos(strtolower($key), 'id') !== false && !is_numeric($value)) {
+                    $decodedValue = $this->decodeId($value);
+                    if (!empty($decodedValue)) {
+                        $input[$key] = $decodedValue[0]; // Ambil hasil decoded ID
+                    }
                 }
             }
         }

@@ -15,7 +15,7 @@ class CheckAdminService
     {
         $user = Auth::user();
 
-        if ($user->hasRole('admin') || ($user->hasRole('admin') && $user->is_superadmin == 1)) {
+        if ((($user->hasRole('admin') && $user->is_superadmin == 0)) || ($user->hasRole('admin') && $user->is_superadmin == 1)) {
             return true;
         }
 
