@@ -71,5 +71,7 @@ class Kernel extends HttpKernel
         'validate_admin' => \App\Http\Middleware\Custom\ValidateAdmin::class,
         'hide_superadmin_flag' => \App\Http\Middleware\Custom\HideSuperadminFlag::class,
         'check_storage_limit' => \App\Http\Middleware\Custom\CheckStorageLimit::class,
+        'encode_id' => \App\Http\Middleware\Custom\EncodeIdMiddleware::class,
+        'decode_id' => \App\Http\Middleware\Custom\DecodeHashedIdMiddleware::class,
     ];
 }
