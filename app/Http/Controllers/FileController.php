@@ -233,7 +233,7 @@ class FileController extends Controller
             $folderId = $request->folder_id;
 
             // Periksa apakah user memiliki izin ke folder tujuan
-            $permissionCheck = $this->checkPermissionFolder($folderId, 'folder_edit');
+            $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($folderId, 'write');
             if (!$permissionCheck) {
                 return response()->json([
                     'errors' => 'You do not have permission to upload files to the destination folder.',
