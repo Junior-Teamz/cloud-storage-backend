@@ -26,7 +26,14 @@ class FolderController extends Controller
     }
 
     /**
-     * Menghitung total ukuran folder, termasuk semua subfolder dan file di dalamnya.
+     * Calculate the total size of a folder and all its subfolders and files.
+     *
+     * This function takes a folder object and recursively calculates the total size of the folder
+     * and all its subfolders and files. It returns the total size in bytes.
+     *
+     * @param \App\Models\Folder $folder The folder object to calculate the size for.
+     *
+     * @return int The total size of the folder in bytes.
      */
     private function calculateFolderSize(Folder $folder)
     {
@@ -34,7 +41,7 @@ class FolderController extends Controller
 
         // Hitung ukuran semua file di folder
         foreach ($folder->files as $file) {
-            $totalSize += $file->size; // Asumsi kolom 'size' ada di model File
+            $totalSize += $file->size;
         }
 
         // Rekursif menghitung ukuran semua subfolder
@@ -45,11 +52,16 @@ class FolderController extends Controller
         return $totalSize;
     }
 
+    
     /**
-     * Fungsi untuk mengonversi ukuran byte ke dalam format yang lebih mudah dibaca (KB, MB, GB).
+     * Format size units from bytes to human readable format.
      *
-     * @param int $bytes
-     * @return string
+     * This function takes a size in bytes and returns a string in the format of
+     * the largest unit of measurement that is greater than or equal to 1.
+     *
+     * @param int $bytes The size in bytes to format.
+     *
+     * @return string The formatted size string, e.g. 1.5 MB, 2.3 GB, etc.
      */
     private function formatSizeUnits($bytes)
     {
@@ -68,6 +80,16 @@ class FolderController extends Controller
         }
     }
 
+    /**
+     * Get the total size of all files in a folder and its subfolders.
+     * 
+     * This method calculates the total size of all files in a folder and its subfolders
+     * by recursively calling itself on each subfolder. It returns the total size in bytes.
+     * 
+     * @param \App\Models\Folder $folder The folder to calculate the size of.
+     * 
+     * @return int The total size of all files in the folder and its subfolders.
+     */
     public function storageSizeUsage()
     {
         $user = Auth::user();
@@ -95,7 +117,7 @@ class FolderController extends Controller
                     'formattedSize' => $formattedStorageSize
                 ]
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error occured while retrieving storage usage: ' . $e->getMessage());
 
             return response()->json([
@@ -104,6 +126,18 @@ class FolderController extends Controller
         }
     }
 
+    /**
+     * Get all folders and files for the current user.
+     * 
+     * This method retrieves all folders and files for the current user, including 
+     * subfolders and tags. It also includes the user information and instance address 
+     * for each folder and file.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with an array of folders and files.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the parent folder is not found.
+     * @throws \Exception For general exceptions that may occur during the process.
+     */
     public function index()
     {
         $user = Auth::user();
@@ -112,9 +146,6 @@ class FolderController extends Controller
             // Mendapatkan folder root (parent) dari user
             $parentFolder = Folder::where('user_id', $user->id)->whereNull('parent_id')->first();
 
-            /**
-             * Jika folder root tidak ditemukan, kembalikan pesan error
-             */
             if (!$parentFolder) {
                 return response()->json([
                     'message' => 'An error was occured. Please contact our support.'
@@ -215,6 +246,19 @@ class FolderController extends Controller
         }
     }
 
+    /**
+     * Get detailed information about a folder.
+     * 
+     * This method retrieves all the information about a folder, including its subfolders, files, tags, and instances.
+     * It also checks if the user has permission to access the folder and logs any errors that occur during the process.
+     * 
+     * @param int $id The ID of the folder to retrieve.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the folder information or an error message.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
+     * @throws \Exception For general exceptions that may occur during the process.
+     */
     public function info($id)
     {
         // periksa apakah user memiliki izin antara read atau write
@@ -268,16 +312,6 @@ class FolderController extends Controller
             $subfolders->makeHidden(['nanoid', 'files', 'subfolders']);
 
             $subfolders->load(['user:id,name,email', 'tags:id,name', 'instances:id,name']);
-            
-            $subfolderResponse = [];
-
-            if ($subfolders->isEmpty()) {
-                $subfolderResponse = []; // Jika tidak ada subfolder, kembalikan array kosong
-            } else {
-                foreach ($subfolders as $subfolder) {
-                    $subfolderResponse[] = $subfolder;
-                }
-            }
 
             // Persiapkan respon untuk files
             $files = $folder->files;
@@ -286,21 +320,11 @@ class FolderController extends Controller
 
             $files->makeHidden(['path', 'nanoid']);
 
-            $fileResponse = [];
-
-            if ($files->isEmpty()) {
-                $fileResponse = []; // Jika tidak ada file, kembalikan array kosong
-            } else {
-                foreach ($files as $file) {
-                    $fileResponse[] = $file;
-                }
-            }
-
             return response()->json([
                 'data' => [
                     'folder_info' => $folderResponse,
                     'subfolders' => $subfolders,
-                    'files' => $fileResponse,
+                    'files' => $files,
                 ],
             ], 200);
         } catch (Exception $e) {
@@ -317,6 +341,16 @@ class FolderController extends Controller
 
     /**
      * Create a new folder.
+     *
+     * This controller method will create a new folder based on the request data.
+     * It will check if the user has permission to create a folder in the specified parent folder.
+     *
+     * @param \Illuminate\Http\Request $request The incoming request containing 'name' and 'parent_id' and 'tags'.
+     *
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the new folder information or an error message.
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the parent folder is not found.
+     * @throws \Exception For general exceptions that may occur during the transaction.
      */
     public function create(Request $request)
     {
@@ -451,9 +485,17 @@ class FolderController extends Controller
 
     /**
      * Add a tag to a folder.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * 
+     * This function add a tag to a folder. It accepts a JSON request containing the folder ID and tag ID, 
+     * and checks if the user has permission to add the tag to the folder. If the user does not have permission, 
+     * it will return an error response. If the user has permission, it will add the tag to the folder.
+     * 
+     * @param \Illuminate\Http\Request $request The incoming request containing 'folder_id' and 'tag_id'.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the tag ID or an error message.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder or tag is not found.
+     * @throws \Exception For general exceptions that may occur during the process.
      */
     public function addTagToFolder(Request $request)
     {
@@ -524,11 +566,20 @@ class FolderController extends Controller
         }
     }
 
+
     /**
      * Remove a tag from a folder.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * 
+     * This method removes a tag from a folder. It accepts a JSON request containing the folder ID and tag ID, 
+     * and checks if the user has permission to remove the tag from the folder. If the user does not have permission, 
+     * it will return an error response. If the user has permission, it will remove the tag from the folder.
+     * 
+     * @param \Illuminate\Http\Request $request The incoming request containing 'folder_id' and 'tag_id'.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with success or error messages.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder or tag is not found.
+     * @throws \Exception For general exceptions that may occur during the process.
      */
     public function removeTagFromFolder(Request $request)
     {
@@ -594,8 +645,20 @@ class FolderController extends Controller
         }
     }
 
+
     /**
-     * Update the name of a folder.
+     * Update folder name and tags.
+     * 
+     * This method handles the folder name and tags update process, including validating the request data, 
+     * checking user permissions on the folder, and updating the folder in the database. 
+     * It ensures transactional integrity and logs any errors that occur during the process.
+     * 
+     * @param \Illuminate\Http\Request $request The incoming request containing 'name' and 'tags'.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with success or error messages.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
+     * @throws \Exception For general exceptions that may occur during the transaction.
      */
     public function update(Request $request, $id)
     {
@@ -690,9 +753,18 @@ class FolderController extends Controller
     }
 
 
-
     /**
-     * Delete one or multiple folders.
+     * Delete multiple folder.
+     * 
+     * This function accepts a JSON array of folder IDs and checks if the user has permission to delete the folder.
+     * If the user does not have permission, it will return an error response. If the user has permission, it will delete the folder.
+     * 
+     * @param \Illuminate\Http\Request $request The incoming request containing the folder IDs to delete.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the deleted folder ID or an error message.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
+     * @throws \Exception For general exceptions that may occur during the process.
      */
     public function delete(Request $request)
     {
@@ -780,8 +852,16 @@ class FolderController extends Controller
         }
     }
 
+
     /**
-     * Move a folder to another folder with parent_id folder technique.
+     * Move a folder to a new parent folder.
+     * 
+     * @param \Illuminate\Http\Request $request The incoming request containing 'folder_id' and 'new_parent_id'.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with success or error messages.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
+     * @throws \Exception For general exceptions that may occur during the transaction.
      */
     public function move(Request $request)
     {
@@ -866,8 +946,18 @@ class FolderController extends Controller
         }
     }
 
+
     /**
-     * Get folder path based on parent folder id.
+     * Get folder path in storage for a given folder id.
+     * 
+     * This method takes a folder ID and returns the path of the folder in storage.
+     * If the folder ID is null, it returns an empty string, which is the root directory.
+     * Otherwise, it uses a recursive approach to build the path from the folder to the root.
+     * It uses the folder's NanoID in the storage path.
+     * 
+     * @param int|null $parentId The ID of the folder to get the path for.
+     * 
+     * @return string The path of the folder in storage.
      */
     private function getFolderPath($parentId)
     {
@@ -884,9 +974,16 @@ class FolderController extends Controller
         return $path . '/' . $folderNameWithNanoId;
     }
 
+
     /**
-     * Get full path of folder and subfolder.
+     * Get full path of a folder for included in response.
+     *
+     * @param int $id The ID of the folder to get the full path for.
      * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the full path of the folder or an error message.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
+     * @throws \Exception For general exceptions that may occur during the process.
      */
     public function getPublicPath($id)
     {
@@ -912,7 +1009,21 @@ class FolderController extends Controller
         }
     }
 
-    // Untuk API path
+    /**
+     * Get full path of a folder.
+     * 
+     * This method takes a folder ID and returns JSON response of full path of the folder.
+     * The full path includes the folder's name and all its parents' names, separated by slashes.
+     * If the folder ID is not found, it returns a JSON response with an error message.
+     * If an error occurs during the process, it logs the error and returns a JSON response with an error message.
+     * 
+     * @param int $id The ID of the folder to get the full path for.
+     * 
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the full path of the folder or an error message.
+     * 
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
+     * @throws \Exception For general exceptions that may occur during the process.
+     */
     public function getFullPath($id)
     {
         try {

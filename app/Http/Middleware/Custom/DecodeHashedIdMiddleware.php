@@ -48,8 +48,19 @@ class DecodeHashedIdMiddleware
     {
         foreach ($input as $key => $value) {
             if (is_array($value)) {
-                // Rekursif jika value adalah array
-                $input[$key] = $this->decodeIdsInRequest($value);
+                // Jika key mengandung 'id' dan value adalah array, decode setiap item dalam array
+                if (strpos(strtolower($key), 'id') !== false) {
+                    $input[$key] = array_map(function($item) {
+                        if (!is_numeric($item)) {
+                            $decodedItem = $this->decodeId($item);
+                            return !empty($decodedItem) ? $decodedItem[0] : $item;
+                        }
+                        return $item;
+                    }, $value);
+                } else {
+                    // Rekursif jika value adalah array, tapi bukan array ID
+                    $input[$key] = $this->decodeIdsInRequest($value);
+                }
             } else {
                 // Jika key mengandung 'id' dan value bukan numeric, coba decode
                 if (strpos(strtolower($key), 'id') !== false && !is_numeric($value)) {
