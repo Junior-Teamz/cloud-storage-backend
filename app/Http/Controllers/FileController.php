@@ -143,7 +143,7 @@ class FileController extends Controller
             $file = File::with([
                 'user:id,name,email',
                 'tags',
-                'instances:id,name'
+                'instances:id,name,address'
             ])->find($id);
 
             if (!$file) {

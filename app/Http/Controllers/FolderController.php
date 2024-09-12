@@ -264,7 +264,7 @@ class FolderController extends Controller
             ];
 
             // Persiapkan respon untuk files
-            $files = $folder->files;
+            $files = $folder->files->with(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
             $files->makeHidden(['path', 'nanoid']);
 
