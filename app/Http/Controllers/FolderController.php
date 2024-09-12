@@ -265,6 +265,9 @@ class FolderController extends Controller
 
             // Persiapkan respon untuk files
             $files = $folder->files;
+
+            $files->makeHidden(['path', 'nanoid']);
+
             $fileResponse = [];
 
             if ($files->isEmpty()) {
