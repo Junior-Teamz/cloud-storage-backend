@@ -249,19 +249,33 @@ class FolderController extends Controller
                     'name' =>  $folder->user->name,
                     'email' =>  $folder->user->email
                 ],
-                'instances' => $folder->instances->map(function ($instance) {
-                    return [
-                        'id' => $instance->id,
-                        'name' => $instance->name
-                    ];
-                }),
                 'tags' => $folder->tags->map(function ($tag) {
                     return [
                         'id' => $tag->id,
                         'name' => $tag->name
                     ];
+                }),
+                'instances' => $folder->instances->map(function ($instance) {
+                    return [
+                        'id' => $instance->id,
+                        'name' => $instance->name
+                    ];
                 })
             ];
+
+            $subfolders = $folder->subfolders;
+
+            $subfolders->load(['user:id,name,email', 'tags:id,name', 'instances:id,name']);
+            
+            $subfolderResponse = [];
+
+            if ($subfolders->isEmpty()) {
+                $subfolderResponse = []; // Jika tidak ada subfolder, kembalikan array kosong
+            } else {
+                foreach ($subfolders as $subfolder) {
+                    $subfolderResponse[] = $subfolder;
+                }
+            }
 
             // Persiapkan respon untuk files
             $files = $folder->files;
@@ -283,7 +297,7 @@ class FolderController extends Controller
             return response()->json([
                 'data' => [
                     'folder_info' => $folderResponse,
-                    'subfolders' => $folder->subfolders,
+                    'subfolders' => $subfolders,
                     'files' => $fileResponse,
                 ],
             ], 200);
