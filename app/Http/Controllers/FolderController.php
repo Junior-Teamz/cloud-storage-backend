@@ -265,6 +265,8 @@ class FolderController extends Controller
 
             $subfolders = $folder->subfolders;
 
+            $subfolders->makeHidden(['nanoid', 'files', 'subfolders']);
+
             $subfolders->load(['user:id,name,email', 'tags:id,name', 'instances:id,name']);
             
             $subfolderResponse = [];
