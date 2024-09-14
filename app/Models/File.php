@@ -24,6 +24,17 @@ class File extends Model
         'folder_id'
     ];
 
+    // Accessor for file_path attribute
+    public function getFilePathAttribute($value)
+    {
+        if ($value) {
+            // If file_path exists, return the complete URL
+            return asset('storage/' . $value);
+        }
+        // If file_path doesn't exist, return null or a default URL as per your requirement
+        return null;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
