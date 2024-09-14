@@ -68,7 +68,7 @@ class FileImageURLPermissionCheck
             }
 
             return $next($request);
-            
+
         } catch (Exception $e) {
             if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException) {
                 return response()->json([
@@ -88,7 +88,7 @@ class FileImageURLPermissionCheck
             } else {
                 Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage());
                 return response()->json([
-                    'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
+                    'errors' => 'An error occured, possibly you have not login or invalid token.'
                 ], 500); // HTTP 500 Internal Server Error
             }
         }
