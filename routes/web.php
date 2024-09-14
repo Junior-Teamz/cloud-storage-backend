@@ -19,4 +19,4 @@ Route::get('/', function () {
     return view('app');
 });
 
-Route::get('/storage/file/{id}', [FileController::class, 'serveFile'])->name('serve.file');
+Route::get('/storage/file/{id}', [FileController::class, 'serveFile'])->name('serve.file')->middleware(['encode_id', 'decode_id']);

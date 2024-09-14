@@ -803,14 +803,6 @@ class FileController extends Controller
 
     public function serveFile($id)
     {
-        $user = Auth::user();
-
-        if(!$user){
-            return response()->json([
-                'errors' => "You're not autenticated"
-            ]);
-        }
-
         // Cari file berdasarkan ID
         $file = File::find($id);
 

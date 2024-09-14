@@ -1009,27 +1009,9 @@ class FolderController extends Controller
 
     private function generateUrlForImage($file_id)
     {
-        // Dapatkan token JWT dari user
-        $token = JWTAuth::parseToken();
-
-        // Dapatkan detail token JWT termasuk masa berlaku (expiry time)
-        $payload = $token->getPayload();
-
-        // Dapatkan waktu expire dari token JWT (in seconds)
-        $expiryTime = $payload->get('exp'); // UNIX timestamp
-
-        // Hitung sisa waktu sebelum token kadaluarsa
-        $remainingTime = $expiryTime - now()->timestamp;
-
-        // Jika token sudah kadaluarsa, set waktu default 0 (bisa juga 1 menit atau beri respon error)
-        if ($remainingTime <= 0) {
-            throw new Exception("Generate URL image error: JWT token user has expired.");
-        }
-
         // Buat signed URL yang hanya berlaku sesuai masa berlaku token JWT user.
-        $signedUrl = URL::temporarySignedRoute(
+        $signedUrl = URL::signedRoute(
             'serve.file',
-            now()->addSeconds($remainingTime),
             ['id' => $file_id]
         );
 
