@@ -72,18 +72,15 @@ class FileImageURLPermissionCheck
         } catch (Exception $e) {
             if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException) {
                 return response()->json([
-                    'token_valid' => false,
-                    'errors' => 'Token is Invalid'
+                    'errors' => 'Invalid authentication token.'
                 ], 401); // HTTP 401 Unauthorized
             } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenExpiredException) {
                 return response()->json([
-                    'token_valid' => false,
-                    'errors' => 'Token has Expired'
+                    'errors' => 'Expired authentication token.'
                 ], 401); // HTTP 401 Unauthorized
             } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenBlacklistedException) {
                 return response()->json([
-                    'token_valid' => false,
-                    'errors' => 'Token is Blacklisted'
+                    'errors' => 'Authentication token is blacklisted.'
                 ], 403); // HTTP 403 Forbidden
             } else {
                 Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage());
