@@ -133,7 +133,7 @@ class FileController extends Controller
      */
     public function info($id)
     {
-        $checkPermission = $this->checkPermissionFile($id, ['read', 'write']);
+        $checkPermission = $this->checkPermissionFile($id, ['read']);
 
         if (!$checkPermission) {
             return response()->json([
@@ -157,13 +157,15 @@ class FileController extends Controller
             // Sembunyikan kolom 'path' dan 'nanoid'
             $file->makeHidden(['path', 'nanoid']);
 
-            // Generate file URL if it exists in public disk
-            // $fileUrl = Storage::url($file->path);
+            $mimeType = Storage::mimeType($file->path);
+
+            if (Str::startsWith($mimeType, 'image')) {
+                $file->setAttribute('image_url', $this->generateUrlForImage($file->id));
+            }
 
             return response()->json([
                 'data' => [
                     'file' => $file,
-                    // 'fileUrl' => $fileUrl, // Add file URL to the response
                 ],
             ], 200);
         } catch (Exception $e) {
@@ -833,6 +835,23 @@ class FileController extends Controller
 
         // Kembalikan file sebagai respon
         return response()->file($file_path);
+    }
+
+    private function generateUrlForImage($file_id)
+    {
+        // Cari file berdasarkan ID
+        $file = File::find($file_id);
+
+        if (!$file) {
+            return null; // Jika file tidak ditemukan, kembalikan null
+        }
+
+        // Gunakan Sqids untuk menghasilkan hash dari ID
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
+        $hashedId = $sqids->encode([$file->id]);
+
+        // Buat URL yang diobfuscate menggunakan hashed ID
+        return url("/file/{$hashedId}");
     }
 
     public function generateFilePublicPath($folderId, $fileName)

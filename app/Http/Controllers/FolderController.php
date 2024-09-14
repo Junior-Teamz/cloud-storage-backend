@@ -241,7 +241,7 @@ class FolderController extends Controller
 
                 // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileResponse['temporary_url'] = $this->generateUrlForImage($fileId);
+                    $fileResponse['image_url'] = $this->generateUrlForImage($fileId);
                 }
 
                 return $fileResponse;
@@ -372,7 +372,7 @@ class FolderController extends Controller
                 ];
 
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['temporary_url'] = $this->generateUrlForImage($fileId);
+                    $fileData['image_url'] = $this->generateUrlForImage($fileId);
                 }
 
                 return $fileData;
