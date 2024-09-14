@@ -26,7 +26,7 @@ Route::post('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // 
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
 
-Route::get('/file/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url');
+Route::get('/file/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['file_image_url_check']);
 
 Route::middleware(['encode_id', 'decode_id'])->group(function () {
 
