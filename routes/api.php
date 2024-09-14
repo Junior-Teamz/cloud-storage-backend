@@ -23,6 +23,7 @@ Route::post('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // 
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
 
+// Middleware to restrict url image access
 Route::middleware(['file_image_url_check:read'])->group(function () {
     Route::get('/file/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url');
 });
