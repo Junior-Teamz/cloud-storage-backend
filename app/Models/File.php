@@ -44,7 +44,7 @@ class File extends Model
         }
 
         // Generate URL yang mengikuti expiry time dari JWT
-        return Storage::temporaryUrl($this->path, now()->addSeconds($remainingTime));
+        return Storage::url($this->path);
     }
 
     public function user()
