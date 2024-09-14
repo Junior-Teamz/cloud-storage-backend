@@ -25,7 +25,7 @@ class FileImageURLPermissionCheck
     public function handle($request, Closure $next)
     {
         // Ambil pengguna yang sedang login
-        $user = Auth::user();
+        $user = auth()->guard('api')->user();
 
         // Jika pengguna belum login, tolak akses
         if (!$user) {
