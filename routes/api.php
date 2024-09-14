@@ -10,8 +10,11 @@ use App\Http\Controllers\PermissionFileController;
 use App\Http\Controllers\PermissionFolderController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
+
+Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
 
@@ -23,7 +26,6 @@ Route::post('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // 
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
 
-// testing
 Route::get('/file/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['auth:api']);
 
 Route::middleware(['encode_id', 'decode_id'])->group(function () {
