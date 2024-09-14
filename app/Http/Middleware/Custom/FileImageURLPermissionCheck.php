@@ -30,7 +30,7 @@ class FileImageURLPermissionCheck
         $authorizationHeader = $request->header('Authorization');
 
         if (!$authorizationHeader) {
-            return response()->json(['errors' => 'Authorization header not found'], 401);
+            return response()->json(['errors' => 'Authorization header not found. You probably not login first.'], 401);
         }
 
         // Pastikan header Authorization memiliki format Bearer {token}
