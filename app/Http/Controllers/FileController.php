@@ -825,15 +825,6 @@ class FileController extends Controller
             return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
         }
 
-        // Cek perizinan akses file, misal: perizinan 'read'
-        $checkPermission = $this->checkPermissionFile($file_id, ['read']);
-
-        if (!$checkPermission) {
-            return response()->json([
-                'errors' => 'You do not have permission to access this file.'
-            ], 403);  // 403 Forbidden
-        }
-
         // Cek apakah file adalah gambar
         if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
             return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type

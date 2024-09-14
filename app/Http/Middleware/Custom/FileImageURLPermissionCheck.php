@@ -29,7 +29,7 @@ class FileImageURLPermissionCheck
 
         // Jika pengguna belum login, tolak akses
         if (!$user) {
-            return response()->json(['errors' => 'You need to login to access this resource.'], 401);
+            return response()->json(['errors' => 'You cannot access this URL. Please login first.'], 401);
         }
 
         // Ambil file ID dari parameter route atau request
@@ -48,7 +48,7 @@ class FileImageURLPermissionCheck
 
         // Periksa perizinan menggunakan fungsi checkPermissionFile
         if (!$this->checkPermissionFile($fileId, ['read'])) {
-            return response()->json(['errors' => 'You do not have permission to access this file.'], 403);
+            return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
         }
 
         return $next($request);
