@@ -812,15 +812,17 @@ class FileController extends Controller
         }
 
         // Tentukan disk yang digunakan untuk menyimpan file
-        $disk = Storage::disk('local');
-        $filePath = $file->path;
+        $disk = Storage::disk('local'); // Menggunakan disk lokal
+        $filePath = $file->path; // Mendapatkan path relatif dari database
 
         // Periksa apakah file ada di disk
         if ($disk->exists($filePath)) {
 
-            // Kembalikan file dengan respons sebagai file yang bisa diunduh atau ditampilkan langsung
-            return response()->file($filePath);
+            // Dapatkan path absolut ke file
+            $url = asset('storage/' . $filePath); // Pastikan folder 'storage' di-link ke public
 
+            // Kembalikan URL sebagai plain text
+            return response($url);
         }
 
         // Jika file tidak ditemukan di disk, kembalikan respons 404
