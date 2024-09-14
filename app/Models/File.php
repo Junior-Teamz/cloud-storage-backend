@@ -24,29 +24,6 @@ class File extends Model
         'folder_id'
     ];
 
-    public function generateTemporaryUrl()
-    {
-        // Dapatkan token JWT dari user
-        $token = JWTAuth::parseToken();
-
-        // Dapatkan detail token JWT termasuk masa berlaku (expiry time)
-        $payload = $token->getPayload();
-
-        // Dapatkan waktu expire dari token JWT (in seconds)
-        $expiryTime = $payload->get('exp'); // UNIX timestamp
-
-        // Hitung sisa waktu sebelum token kadaluarsa
-        $remainingTime = $expiryTime - now()->timestamp;
-
-        // Jika token sudah kadaluarsa, set waktu default 0 (bisa juga 1 menit atau beri respon error)
-        if ($remainingTime <= 0) {
-            $remainingTime = 0;
-        }
-
-        // Generate URL yang mengikuti expiry time dari JWT
-        return Storage::url($this->path);
-    }
-
     public function user()
     {
         return $this->belongsTo(User::class);

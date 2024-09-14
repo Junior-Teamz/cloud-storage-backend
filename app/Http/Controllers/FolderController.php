@@ -234,7 +234,7 @@ class FolderController extends Controller
 
                 // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileResponse['temporary_url'] = $file->generateTemporaryUrl();
+                    $fileResponse['temporary_url'] = $this->generateUrlForImage($file);
                 }
 
                 return $fileResponse;
@@ -361,9 +361,8 @@ class FolderController extends Controller
                     }),
                 ];
 
-                // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['temporary_url'] = $file->generateTemporaryUrl();
+                    $fileData['temporary_url'] = $this->generateUrlForImage($file);
                 }
 
                 return $fileData;
@@ -995,6 +994,12 @@ class FolderController extends Controller
                 'errors' => 'An error occurred on moving the folder.',
             ], 500);
         }
+    }
+
+
+    private function generateUrlForImage($file)
+    {
+        return Storage::url($file->path);
     }
 
 
