@@ -198,7 +198,7 @@ class FolderController extends Controller
                 ];
             });
 
-            $files->map(function ($file) {
+            $responseFile = $files->map(function ($file) {
 
                 $mimeType = Storage::mimeType($file->path);
 
@@ -243,7 +243,7 @@ class FolderController extends Controller
             return response()->json([
                 'data' => [
                     'folders' => $userFolders, // Sekarang berisi array folder dan tags
-                    'files' => $files
+                    'files' => $responseFile
                 ]
             ], 200);
         } catch (Exception $e) {
