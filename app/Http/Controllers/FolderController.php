@@ -1021,9 +1021,11 @@ class FolderController extends Controller
         // Jika token sudah kadaluarsa, set waktu default 0 (bisa juga 1 menit atau beri respon error)
         if ($remainingTime <= 0) {
             throw new Exception("Generate temporary URL Error: JWT Token has expired.");
+        }
 
         $disk = Storage::disk('local');
-        $disk->temporaryUrl($file_path, now()->addSeconds($remainingTime));
+
+        return $disk->temporaryUrl($file_path, now()->addSeconds($remainingTime));
     }
 
 
