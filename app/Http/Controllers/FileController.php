@@ -805,7 +805,7 @@ class FileController extends Controller
         }
     }
 
-    public function serveFileByHashedId($hashedId)
+    public function serveFileImageByHashedId($hashedId)
     {
         $user = Auth::user();
 
@@ -866,7 +866,7 @@ class FileController extends Controller
         $hashedId = $sqids->encode([$file->id]);
 
         // Buat URL yang diobfuscate menggunakan hashed ID
-        return url("/file/{$hashedId}");
+        return route('image.url', ['hashedId' => $hashedId]);
     }
 
     public function generateFilePublicPath($folderId, $fileName)

@@ -1020,7 +1020,7 @@ class FolderController extends Controller
         $hashedId = $sqids->encode([$file->id]);
 
         // Buat URL yang diobfuscate menggunakan hashed ID
-        return url("/file/{$hashedId}");
+        return route('image.url', ['hashedId' => $hashedId]);
     }
 
     /**
