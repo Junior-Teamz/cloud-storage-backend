@@ -801,6 +801,32 @@ class FileController extends Controller
         }
     }
 
+    public function serveFile($id)
+    {
+        // Cari file berdasarkan ID
+        $file = File::find($id);
+
+        // Jika file tidak ditemukan, kembalikan respons 404
+        if (!$file) {
+            return response()->json(['errors' => 'File not found.'], 404);
+        }
+
+        // Tentukan disk yang digunakan untuk menyimpan file
+        $disk = Storage::disk('local');
+        $filePath = $file->path;
+
+        // Periksa apakah file ada di disk
+        if ($disk->exists($filePath)) {
+
+            // Kembalikan file dengan respons sebagai file yang bisa diunduh atau ditampilkan langsung
+            return response()->file($filePath);
+
+        }
+
+        // Jika file tidak ditemukan di disk, kembalikan respons 404
+        return response()->json(['errors' => 'File not found in storage.'], 404);
+    }
+
     public function generateFilePublicPath($folderId, $fileName)
     {
         // Initialize an array to store the folder names

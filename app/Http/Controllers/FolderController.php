@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\File;
 use Exception;
 use App\Models\Tags;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\URL;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class FolderController extends Controller
@@ -201,12 +203,14 @@ class FolderController extends Controller
 
             $responseFile = $files->map(function ($file) {
 
+                $fileId = $file->id;
+
                 $file_path = $file->path;
 
                 $mimeType = Storage::mimeType($file_path);
 
                 $fileResponse = [
-                    'id' => $file->id,
+                    'id' => $fileId,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
@@ -237,7 +241,7 @@ class FolderController extends Controller
 
                 // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileResponse['temporary_url'] = $this->generateUrlForImage($file_path);
+                    $fileResponse['temporary_url'] = $this->generateUrlForImage($fileId);
                 }
 
                 return $fileResponse;
@@ -337,13 +341,15 @@ class FolderController extends Controller
 
             $files = $folder->files->map(function ($file) {
 
+                $fileId = $file->id;
+
                 $file_path = $file->path;
 
                 $mimeType = Storage::mimeType($file_path);
 
                 // Persiapkan data file
                 $fileData = [
-                    'id' => $file->id,
+                    'id' => $fileId,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
@@ -366,10 +372,8 @@ class FolderController extends Controller
                     }),
                 ];
 
-                $disk = Storage::disk('releases-local');
-
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['temporary_url'] = $this->generateUrlForImage($file_path);
+                    $fileData['temporary_url'] = $this->generateUrlForImage($fileId);
                 }
 
                 return $fileData;
@@ -1003,8 +1007,7 @@ class FolderController extends Controller
         }
     }
 
-
-    private function generateUrlForImage($file_path)
+    private function generateUrlForImage($file_id)
     {
         // Dapatkan token JWT dari user
         $token = JWTAuth::parseToken();
@@ -1020,14 +1023,18 @@ class FolderController extends Controller
 
         // Jika token sudah kadaluarsa, set waktu default 0 (bisa juga 1 menit atau beri respon error)
         if ($remainingTime <= 0) {
-            throw new Exception("Generate temporary URL Error: JWT Token has expired.");
+            throw new Exception("Generate URL image error: JWT token user has expired.");
         }
 
-        $disk = Storage::disk('local');
+        // Buat signed URL yang hanya berlaku selama 1 jam
+        $signedUrl = URL::temporarySignedRoute(
+            'serve.file',
+            now()->addSeconds($remainingTime),
+            ['id' => $file_id]
+        );
 
-        return $disk->temporaryUrl($file_path, now()->addSeconds($remainingTime));
+        return $signedUrl;
     }
-
 
     /**
      * Get folder path in storage for a given folder id.

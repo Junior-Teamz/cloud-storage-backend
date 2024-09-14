@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,8 +19,5 @@ Route::get('/', function () {
     return view('app');
 });
 
-Route::get('local/temp/{path}', function (string $path){
-    return Storage::disk('local')->download($path);
-})
-->middleware('signed')
-->name('local.temp');
+Route::get('/storage/file/{id}', [FileController::class, 'serveFile'])->name('serve.file');
+
