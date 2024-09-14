@@ -18,3 +18,5 @@ use Illuminate\Support\Facades\Storage;
 Route::get('/', function () {
     return view('app');
 });
+
+Route::get('/file/{hashedId}', [FileController::class, 'serveFileByHashedId']);

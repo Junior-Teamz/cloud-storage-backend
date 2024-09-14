@@ -2,22 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\File;
-use App\Models\Folder;
 use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use AMWScan\Scanner;
+use App\Models\File;
 use App\Models\Tags;
 use App\Models\User;
+use App\Models\Folder;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use App\Models\UserFilePermission;
-use App\Models\UserFolderPermission;
-use App\Services\CheckFolderPermissionService;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Models\UserFolderPermission;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use App\Services\CheckFolderPermissionService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Sqids\Sqids;
 
 class FileController extends Controller
 {
@@ -799,6 +801,38 @@ class FileController extends Controller
                 'errors' => 'An error occurred while deleting the file.',
             ], 500);
         }
+    }
+
+    public function serveFileByHashedId($hashedId)
+    {
+        // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
+        $fileIdArray = $sqids->decode($hashedId);
+
+        // Karena Sqids menghasilkan array, kita ambil elemen pertama (ID file asli)
+        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+            return response()->json(['error' => 'Invalid or non-existent file'], 404);
+        }
+
+        $file_id = $fileIdArray[0];
+
+        // Cari file berdasarkan ID yang telah didecode
+        $file = File::find($file_id);
+
+        if (!$file) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        // Cek apakah file adalah tipe gambar
+        if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
+            return response()->json(['error' => 'File is not an image'], 403);
+        }
+
+        // Ambil path file dari storage
+        $file_path = Storage::path($file->path);
+
+        // Kembalikan file sebagai respon
+        return response()->file($file_path);
     }
 
     public function generateFilePublicPath($folderId, $fileName)
