@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class FolderController extends Controller
 {
@@ -200,7 +201,9 @@ class FolderController extends Controller
 
             $responseFile = $files->map(function ($file) {
 
-                $mimeType = Storage::mimeType($file->path);
+                $file_path = $file->path;
+
+                $mimeType = Storage::mimeType($file_path);
 
                 $fileResponse = [
                     'id' => $file->id,
@@ -234,7 +237,7 @@ class FolderController extends Controller
 
                 // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileResponse['temporary_url'] = $this->generateUrlForImage($file);
+                    $fileResponse['temporary_url'] = $this->generateUrlForImage($file_path);
                 }
 
                 return $fileResponse;
@@ -334,7 +337,9 @@ class FolderController extends Controller
 
             $files = $folder->files->map(function ($file) {
 
-                $mimeType = Storage::mimeType($file->path);
+                $file_path = $file->path;
+
+                $mimeType = Storage::mimeType($file_path);
 
                 // Persiapkan data file
                 $fileData = [
@@ -361,8 +366,10 @@ class FolderController extends Controller
                     }),
                 ];
 
+                $disk = Storage::disk('releases-local');
+
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['temporary_url'] = $this->generateUrlForImage($file);
+                    $fileData['temporary_url'] = $this->generateUrlForImage($file_path);
                 }
 
                 return $fileData;
@@ -997,9 +1004,26 @@ class FolderController extends Controller
     }
 
 
-    private function generateUrlForImage($file)
+    private function generateUrlForImage($file_path)
     {
-        return Storage::url($file->path);
+        // Dapatkan token JWT dari user
+        $token = JWTAuth::parseToken();
+
+        // Dapatkan detail token JWT termasuk masa berlaku (expiry time)
+        $payload = $token->getPayload();
+
+        // Dapatkan waktu expire dari token JWT (in seconds)
+        $expiryTime = $payload->get('exp'); // UNIX timestamp
+
+        // Hitung sisa waktu sebelum token kadaluarsa
+        $remainingTime = $expiryTime - now()->timestamp;
+
+        // Jika token sudah kadaluarsa, set waktu default 0 (bisa juga 1 menit atau beri respon error)
+        if ($remainingTime <= 0) {
+            throw new Exception("Generate temporary URL Error: JWT Token has expired.");
+
+        $disk = Storage::disk('local');
+        $disk->temporaryUrl($file_path, now()->addSeconds($remainingTime));
     }
 
 
