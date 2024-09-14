@@ -47,6 +47,28 @@ class FileImageURLPermissionCheck
             // Set token secara manual ke JWTAuth dan coba autentikasi
             JWTAuth::parseToken()->authenticate();
 
+            // Setelah autentikasi berhasil, lanjutkan pengecekan izin file
+            // Ambil file ID dari parameter route atau request
+            $fileId = $request->route('hashedId');
+
+            // Decode hashed ID ke file ID menggunakan Sqids
+            $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
+            $fileIdArray = $sqids->decode($fileId);
+
+            // Jika hashed ID tidak valid atau tidak dapat didecode
+            if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+                return response()->json(['errors' => 'Invalid or non-existent file'], 404);
+            }
+
+            $fileId = $fileIdArray[0];
+
+            // Periksa perizinan menggunakan fungsi checkPermissionFile
+            if (!$this->checkPermissionFile($fileId, ['read'])) {
+                return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+            }
+
+            return $next($request);
+            
         } catch (Exception $e) {
             if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException) {
                 return response()->json([
@@ -70,28 +92,6 @@ class FileImageURLPermissionCheck
                 ], 500); // HTTP 500 Internal Server Error
             }
         }
-
-        // Setelah autentikasi berhasil, lanjutkan pengecekan izin file
-        // Ambil file ID dari parameter route atau request
-        $fileId = $request->route('hashedId');
-
-        // Decode hashed ID ke file ID menggunakan Sqids
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
-        $fileIdArray = $sqids->decode($fileId);
-
-        // Jika hashed ID tidak valid atau tidak dapat didecode
-        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-            return response()->json(['errors' => 'Invalid or non-existent file'], 404);
-        }
-
-        $fileId = $fileIdArray[0];
-
-        // Periksa perizinan menggunakan fungsi checkPermissionFile
-        if (!$this->checkPermissionFile($fileId, ['read'])) {
-            return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
-        }
-
-        return $next($request);
     }
 
     /**
