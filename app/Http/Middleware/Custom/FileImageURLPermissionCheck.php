@@ -47,7 +47,7 @@ class FileImageURLPermissionCheck
         $fileId = $fileIdArray[0];
 
         // Periksa perizinan menggunakan fungsi checkPermissionFile
-        if (!$this->checkPermissionFile($fileId, $permission)) {
+        if (!$this->checkPermissionFile($fileId, ['read'])) {
             return response()->json(['errors' => 'You do not have permission to access this file.'], 403);
         }
 
