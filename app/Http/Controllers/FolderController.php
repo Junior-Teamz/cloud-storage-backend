@@ -1026,7 +1026,7 @@ class FolderController extends Controller
             throw new Exception("Generate URL image error: JWT token user has expired.");
         }
 
-        // Buat signed URL yang hanya berlaku selama 1 jam
+        // Buat signed URL yang hanya berlaku sesuai masa berlaku token JWT user.
         $signedUrl = URL::temporarySignedRoute(
             'serve.file',
             now()->addSeconds($remainingTime),
