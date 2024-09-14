@@ -19,4 +19,4 @@ Route::get('/', function () {
     return view('app');
 });
 
-Route::get('/file/{hashedId}', [FileController::class, 'serveFileByHashedId']);
+Route::get('/file/{hashedId}', [FileController::class, 'serveFileByHashedId'])->middleware('auth:api');

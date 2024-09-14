@@ -807,9 +807,24 @@ class FileController extends Controller
 
     public function serveFileByHashedId($hashedId)
     {
+        $user = Auth::user();
+
+        if(!$user){
+            return response()->json([
+                'errors' => 'You cannot access this URL'
+            ]);
+        }
         // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
         $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
         $fileIdArray = $sqids->decode($hashedId);
+
+        $checkPermission = $this->checkPermissionFile($fileIdArray[0], ['read']);
+
+        if(!$checkPermission){
+            return response()->json([
+                'errors' => 'You do not have permission to access this URL.'
+            ]);
+        }
 
         // Karena Sqids menghasilkan array, kita ambil elemen pertama (ID file asli)
         if (empty($fileIdArray) || !isset($fileIdArray[0])) {
