@@ -8,7 +8,10 @@ use App\Models\UserFilePermission;
 use App\Models\UserFolderPermission;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 use Sqids\Sqids;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,19 +22,42 @@ class FileImageURLPermissionCheck
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
-     * @param  string  $permission
      * @return mixed
      */
     public function handle($request, Closure $next)
     {
-        // Ambil pengguna yang sedang login
-        $user = auth()->guard('api')->user();
+        // Ambil header Authorization secara manual
+        $authorizationHeader = $request->header('Authorization');
 
-        // Jika pengguna belum login, tolak akses
-        if (!$user) {
-            return response()->json(['errors' => 'You cannot access this URL. Please login first.'], 401);
+        if (!$authorizationHeader) {
+            return response()->json(['errors' => 'Authorization header not found'], 401);
         }
 
+        // Pastikan header Authorization memiliki format Bearer {token}
+        if (!preg_match('/Bearer\s(\S+)/', $authorizationHeader, $matches)) {
+            return response()->json(['errors' => 'Invalid Authorization format'], 401);
+        }
+
+        // Ambil token JWT dari header
+        $token = $matches[1];
+
+        try {
+            // Set token secara manual ke JWTAuth dan coba autentikasi
+            $user = JWTAuth::setToken($token)->authenticate();
+
+            if (!$user) {
+                return response()->json(['errors' => 'User not found'], 401);
+            }
+
+        } catch (TokenExpiredException $e) {
+            return response()->json(['errors' => 'Token has expired'], 401);
+        } catch (TokenInvalidException $e) {
+            return response()->json(['errors' => 'Token is invalid'], 401);
+        } catch (JWTException $e) {
+            return response()->json(['errors' => 'Token is missing or invalid'], 401);
+        }
+
+        // Setelah autentikasi berhasil, lanjutkan pengecekan izin file
         // Ambil file ID dari parameter route atau request
         $fileId = $request->route('hashedId');
 
@@ -59,7 +85,8 @@ class FileImageURLPermissionCheck
      */
     private function checkPermissionFile($fileId, $actions)
     {
-        $user = Auth::user();
+        $user = JWTAuth::user(); // Mengambil user dari JWT
+
         $file = File::find($fileId);
 
         // Jika file tidak ditemukan, kembalikan 404
@@ -104,27 +131,27 @@ class FileImageURLPermissionCheck
      */
     private function checkPermissionFolderRecursive($folderId, $actions)
     {
-        $user = Auth::user();
+        $user = JWTAuth::user(); // Mengambil user dari JWT
         $folder = Folder::find($folderId);
 
-        // If folder not found, return false
+        // Jika folder tidak ditemukan, kembalikan false
         if (!$folder) {
             return false;
         }
 
-        // Step 1: Check if the folder belongs to the logged-in user
+        // Step 1: Periksa apakah folder milik pengguna
         if ($folder->user_id === $user->id) {
-            return true; // The owner has all permissions
+            return true; // Pemilik folder memiliki semua perizinan
         }
 
-        // Step 2: Check if user is admin with SUPERADMIN privilege
+        // Step 2: Periksa apakah user adalah admin dengan SUPERADMIN
         if ($user->hasRole('admin') && $user->is_superadmin == 1) {
             return true;
         } else if ($user->hasRole('admin')) {
             return false;
         }
 
-        // Step 3: Check if user has explicit permission to the folder
+        // Step 3: Periksa apakah user memiliki izin eksplisit untuk folder tersebut
         $userFolderPermission = UserFolderPermission::where('user_id', $user->id)->where('folder_id', $folder->id)->first();
         if ($userFolderPermission) {
             $checkPermission = $userFolderPermission->permissions;
@@ -140,12 +167,12 @@ class FileImageURLPermissionCheck
             }
         }
 
-        // Step 4: Check if the folder has a parent folder
+        // Step 4: Periksa apakah folder memiliki folder induk
         if ($folder->parent_id) {
-            return $this->checkPermissionFolderRecursive($folder->parent_id, $actions); // Recursive call to check parent folder
+            return $this->checkPermissionFolderRecursive($folder->parent_id, $actions); // Panggil rekursif untuk folder induk
         }
 
-        // Return false if no permissions are found
+        // Kembalikan false jika tidak ada perizinan yang ditemukan
         return false;
     }
 }
