@@ -20,4 +20,3 @@ Route::get('/', function () {
 });
 
 Route::get('/storage/file/{id}', [FileController::class, 'serveFile'])->name('serve.file');
-

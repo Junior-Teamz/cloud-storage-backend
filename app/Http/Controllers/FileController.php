@@ -819,10 +819,10 @@ class FileController extends Controller
         if ($disk->exists($filePath)) {
 
             // Dapatkan path absolut ke file
-            $url = asset('storage/' . $filePath); // Pastikan folder 'storage' di-link ke public
+            $absolutePath = $disk->path($filePath); // Dapatkan path absolut
 
-            // Kembalikan URL sebagai plain text
-            return response($url);
+            // Kembalikan file sebagai respons HTTP (file disajikan)
+            return response()->file($absolutePath);
         }
 
         // Jika file tidak ditemukan di disk, kembalikan respons 404
