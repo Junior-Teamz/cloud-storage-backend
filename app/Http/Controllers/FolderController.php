@@ -239,10 +239,10 @@ class FolderController extends Controller
                     })
                 ];
 
-                // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
-                if (Str::startsWith($mimeType, 'image')) {
-                    $fileResponse['temporary_url'] = $this->generateUrlForImage($fileId);
-                }
+                // // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
+                // if (Str::startsWith($mimeType, 'image')) {
+                //     $fileResponse['temporary_url'] = $this->generateUrlForImage($fileId);
+                // }
 
                 return $fileResponse;
             });
@@ -372,9 +372,9 @@ class FolderController extends Controller
                     }),
                 ];
 
-                if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['temporary_url'] = $this->generateUrlForImage($fileId);
-                }
+                // if (Str::startsWith($mimeType, 'image')) {
+                //     $fileData['temporary_url'] = $this->generateUrlForImage($fileId);
+                // }
 
                 return $fileData;
             });
@@ -1009,13 +1009,7 @@ class FolderController extends Controller
 
     private function generateUrlForImage($file_id)
     {
-        // Buat signed URL yang hanya berlaku sesuai masa berlaku token JWT user.
-        $signedUrl = URL::signedRoute(
-            'serve.file',
-            ['id' => $file_id]
-        );
-
-        return $signedUrl;
+        // implementasi disini;
     }
 
     /**
