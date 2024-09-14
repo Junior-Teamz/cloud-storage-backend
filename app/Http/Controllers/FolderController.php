@@ -2,22 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Folder;
+use Exception;
 use App\Models\Tags;
 use App\Models\User;
-use App\Services\CheckFolderPermissionService;
+use App\Models\Folder;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Exception;
+use App\Services\CheckFolderPermissionService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\DB;
 
 class FolderController extends Controller
 {
     protected $checkPermissionFolderService;
+    protected $getNanoidFolderPath;
 
     public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
     {
@@ -52,7 +54,7 @@ class FolderController extends Controller
         return $totalSize;
     }
 
-    
+
     /**
      * Format size units from bytes to human readable format.
      *
@@ -167,8 +169,7 @@ class FolderController extends Controller
                 ], 200);
             }
 
-            // Iterasi setiap folder dalam subfolders untuk menyiapkan respons
-            $respondFolders = $userFolders->map(function ($folder) {
+            $userFolders->map(function ($folder) {
                 return [
                     'folder_id' => $folder->id,
                     'name' => $folder->name,
@@ -197,13 +198,17 @@ class FolderController extends Controller
                 ];
             });
 
-            $filesResponse = $files->map(function ($file) {
-                return [
+            $files->map(function ($file) {
+
+                $mimeType = Storage::mimeType($file->path);
+
+                $fileResponse = [
                     'id' => $file->id,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
+                    'temporary_url' => null,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder_id,
@@ -226,12 +231,19 @@ class FolderController extends Controller
                         ];
                     })
                 ];
+
+                // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
+                if (Str::startsWith($mimeType, 'image')) {
+                    $fileResponse['temporary_url'] = $file->generateTemporaryUrl();
+                }
+
+                return $fileResponse;
             });
 
             return response()->json([
                 'data' => [
-                    'folders' => $respondFolders, // Sekarang berisi array folder dan tags
-                    'files' => $filesResponse
+                    'folders' => $userFolders, // Sekarang berisi array folder dan tags
+                    'files' => $files
                 ]
             ], 200);
         } catch (Exception $e) {
@@ -313,12 +325,49 @@ class FolderController extends Controller
 
             $subfolders->load(['user:id,name,email', 'tags:id,name', 'instances:id,name']);
 
-            // Persiapkan respon untuk files
-            $files = $folder->files;
+            // // Persiapkan respon untuk files
+            // $files = $folder->files;
 
-            $files->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
+            // $files->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
-            $files->makeHidden(['path', 'nanoid']);
+            // $files->makeHidden(['path', 'nanoid']);
+
+            $files = $folder->files->map(function ($file) {
+
+                $mimeType = Storage::mimeType($file->path);
+
+                // Persiapkan data file
+                $fileData = [
+                    'id' => $file->id,
+                    'name' => $file->name,
+                    'public_path' => $file->public_path,
+                    'size' => $file->size,
+                    'type' => $file->type,
+                    'temporary_url' => null,
+                    'created_at' => $file->created_at,
+                    'updated_at' => $file->updated_at,
+                    'user' => [
+                        'id' => $file->user->id,
+                        'name' => $file->user->name,
+                        'email' => $file->user->email
+                    ],
+                    'tags' => $file->tags,
+                    'instance' => $file->instances->map(function ($instance) {
+                        return [
+                            'id' => $instance->id,
+                            'name' => $instance->name,
+                            'address' => $instance->address
+                        ];
+                    }),
+                ];
+
+                // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
+                if (Str::startsWith($mimeType, 'image')) {
+                    $fileData['temporary_url'] = $file->generateTemporaryUrl();
+                }
+
+                return $fileData;
+            });
 
             return response()->json([
                 'data' => [
@@ -370,9 +419,6 @@ class FolderController extends Controller
             ], 422);
         }
 
-        // MEMULAI TRANSACTION MYSQL
-        DB::beginTransaction();
-
         try {
             $userLogin = Auth::user();
             $userId = $userLogin->id;
@@ -395,6 +441,9 @@ class FolderController extends Controller
                     $parentId = $request->parent_id;
                 }
             }
+
+            // MEMULAI TRANSACTION MYSQL
+            DB::beginTransaction();
 
             // Create folder in database
             $newFolder = Folder::create([
@@ -516,8 +565,6 @@ class FolderController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $folder = Folder::findOrFail($request->folder_id);
             $tag = Tags::findOrFail($request->tag_id);
@@ -528,6 +575,8 @@ class FolderController extends Controller
                     'errors' => 'Tag already exists in folder.'
                 ], 409);
             }
+
+            DB::beginTransaction();
 
             // Menambahkan tag ke folder (tabel pivot folder_has_tags)
             $folder->tags()->attach($tag->id);
@@ -600,8 +649,6 @@ class FolderController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $folder = Folder::findOrFail($request->folder_id);
             $tag = Tags::findOrFail($request->tag_id);
@@ -612,6 +659,8 @@ class FolderController extends Controller
                     'errors' => 'Tag not found in folder.'
                 ], 404);
             }
+
+            DB::beginTransaction();
 
             // Menghapus tag dari folder (tabel pivot folder_has_tags)
             $folder->tags()->detach($tag->id);
@@ -679,14 +728,14 @@ class FolderController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        DB::beginTransaction();
-
         try {
             $folder = Folder::findOrFail($id);
 
             $oldNanoid = $folder->nanoid;
 
             $publicPath = $this->getPublicPath($folder->id);
+
+            DB::beginTransaction();
 
             $folder->update([
                 'name' => $request->name,
@@ -780,8 +829,6 @@ class FolderController extends Controller
 
         $folderIds = $request->folder_ids;
 
-        DB::beginTransaction();
-
         try {
             // Ambil semua folder yang sesuai
             $folders = Folder::whereIn('id', $folderIds)->get();
@@ -802,6 +849,8 @@ class FolderController extends Controller
                     'errors' => 'You do not have permission to delete some of the selected folders.',
                 ], 403);
             }
+
+            DB::beginTransaction();
 
             // Hapus data pivot yang terkait dengan setiap folder
             foreach ($folders as $folder) {
@@ -886,8 +935,6 @@ class FolderController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        DB::beginTransaction();
-
         try {
             $folder = Folder::findOrFail($request->folder_id);
 
@@ -905,8 +952,12 @@ class FolderController extends Controller
                     ], 403);
                 }
             }
+
+            DB::beginTransaction();
+
             $folder->parent_id = $request->new_parent_id;
             $folder->save();
+
             DB::commit();
 
             // Move folder in storage

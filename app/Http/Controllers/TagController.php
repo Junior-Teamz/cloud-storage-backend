@@ -15,7 +15,6 @@ class TagController extends Controller
 
     protected $checkAdminService;
 
-    // Inject RoleService ke dalam constructor
     public function __construct(CheckAdminService $checkAdminService)
     {
         $this->checkAdminService = $checkAdminService;
