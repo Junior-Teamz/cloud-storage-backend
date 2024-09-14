@@ -807,6 +807,15 @@ class FileController extends Controller
 
     public function serveFileImageByHashedId($hashedId)
     {
+        // Pastikan user sudah login
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'errors' => 'You cannot access this URL. Please login first.'
+            ], 401);  // 401 Unauthorized
+        }
+
         // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
         $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
         $fileIdArray = $sqids->decode($hashedId);
@@ -823,6 +832,15 @@ class FileController extends Controller
 
         if (!$file) {
             return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
+        }
+
+        // Cek perizinan akses file, misal: perizinan 'read'
+        $checkPermission = $this->checkPermissionFile($file_id, ['read']);
+
+        if (!$checkPermission) {
+            return response()->json([
+                'errors' => 'You do not have permission to access this file.'
+            ], 403);  // 403 Forbidden
         }
 
         // Cek apakah file adalah gambar
