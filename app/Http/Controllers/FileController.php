@@ -807,15 +807,6 @@ class FileController extends Controller
 
     public function serveFileImageByHashedId($hashedId)
     {
-        // Pastikan user sudah login
-        $user = Auth::user();
-
-        if (!$user) {
-            return response()->json([
-                'errors' => 'You cannot access this URL. Please login first.'
-            ], 401);  // 401 Unauthorized
-        }
-
         // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
         $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
         $fileIdArray = $sqids->decode($hashedId);
