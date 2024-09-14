@@ -7,7 +7,9 @@ use App\Models\Folder;
 use App\Models\UserFilePermission;
 use App\Models\UserFolderPermission;
 use Closure;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
@@ -26,35 +28,47 @@ class FileImageURLPermissionCheck
      */
     public function handle($request, Closure $next)
     {
-        // Ambil header Authorization secara manual
-        $authorizationHeader = $request->header('Authorization');
+        // // Ambil header Authorization secara manual
+        // $authorizationHeader = $request->header('Authorization');
 
-        if (!$authorizationHeader) {
-            return response()->json(['errors' => 'Authorization header not found. You probably not login first.'], 401);
-        }
+        // if (!$authorizationHeader) {
+        //     return response()->json(['errors' => 'Authorization header not found. You probably not login first.'], 401);
+        // }
 
-        // Pastikan header Authorization memiliki format Bearer {token}
-        if (!preg_match('/Bearer\s(\S+)/', $authorizationHeader, $matches)) {
-            return response()->json(['errors' => 'Invalid Authorization format'], 401);
-        }
+        // // Pastikan header Authorization memiliki format Bearer {token}
+        // if (!preg_match('/Bearer\s(\S+)/', $authorizationHeader, $matches)) {
+        //     return response()->json(['errors' => 'Invalid Authorization format'], 401);
+        // }
 
-        // Ambil token JWT dari header
-        $token = $matches[1];
+        // // Ambil token JWT dari header
+        // $token = $matches[1];
 
         try {
             // Set token secara manual ke JWTAuth dan coba autentikasi
-            $user = JWTAuth::setToken($token)->authenticate();
+            JWTAuth::parseToken()->authenticate();
 
-            if (!$user) {
-                return response()->json(['errors' => 'User not found'], 401);
+        } catch (Exception $e) {
+            if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException) {
+                return response()->json([
+                    'token_valid' => false,
+                    'errors' => 'Token is Invalid'
+                ], 401); // HTTP 401 Unauthorized
+            } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenExpiredException) {
+                return response()->json([
+                    'token_valid' => false,
+                    'errors' => 'Token has Expired'
+                ], 401); // HTTP 401 Unauthorized
+            } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenBlacklistedException) {
+                return response()->json([
+                    'token_valid' => false,
+                    'errors' => 'Token is Blacklisted'
+                ], 403); // HTTP 403 Forbidden
+            } else {
+                Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage());
+                return response()->json([
+                    'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
+                ], 500); // HTTP 500 Internal Server Error
             }
-
-        } catch (TokenExpiredException $e) {
-            return response()->json(['errors' => 'Token has expired'], 401);
-        } catch (TokenInvalidException $e) {
-            return response()->json(['errors' => 'Token is invalid'], 401);
-        } catch (JWTException $e) {
-            return response()->json(['errors' => 'Token is missing or invalid'], 401);
         }
 
         // Setelah autentikasi berhasil, lanjutkan pengecekan izin file
