@@ -64,6 +64,9 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
         });
 
         Route::prefix('file')->group(function () {
+
+            Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file user, tidak peduli dari folder apapun.
+
             Route::get('/{id}', [FileController::class, 'info']); // Mendapatkan informasi file
 
             Route::post('/upload', [FileController::class, 'upload']); // Mengunggah file
@@ -148,11 +151,16 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
         });
 
         Route::prefix('file')->group(function () {
+
+            Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file admin, tidak peduli dari folder apapun.
+
             Route::get('/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
 
             // Route::post('/create', [FileController::class, 'create']); // Membuat file baru
 
             Route::post('/upload', [FileController::class, 'upload']); // Mengunggah file
+
+            Route::post('/download', [FileController::class, 'downloadFile']); // Mendownload File
 
             Route::post('/addTag', [FileController::class, 'addTagToFile']); // Tambahkan tag ke file
 
