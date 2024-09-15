@@ -148,31 +148,29 @@ class FolderController extends Controller
         $user = Auth::user();
 
         try {
-            // Mendapatkan folder root (parent) dari user
-            $parentFolder = Folder::where('user_id', $user->id)->whereNull('parent_id')->first();
+            // Ambil folder root user dengan eager loading untuk subfolders dan files
+            $parentFolder = Folder::where('user_id', $user->id)
+                ->whereNull('parent_id')
+                ->with([
+                    'subfolders.user:id,name,email', // Ambil data user yang terkait dengan folder
+                    'subfolders.tags:id,name', // Ambil tags folder
+                    'subfolders.instances:id,name,address', // Ambil instances folder
+                    'files.user:id,name,email', // Ambil data user yang terkait dengan file
+                    'files.tags:id,name', // Ambil tags file
+                    'files.instances:id,name,address' // Ambil instances file
+                ])
+                ->select('id', 'name', 'created_at', 'updated_at', 'user_id') // Select only necessary columns
+                ->first();
 
+            // Cek apakah parent folder ditemukan
             if (!$parentFolder) {
                 return response()->json([
-                    'message' => 'An error was occured. Please contact our support.'
+                    'message' => 'An error occurred. Please contact our support.'
                 ], 404);
             }
 
-            // Mendapatkan subfolder dan file dari folder root
-            $userFolders = $parentFolder->subfolders;
-            $files = $parentFolder->files;
-
-            // Jika tidak ada subfolder dan file, kembalikan pesan bahwa folder atau file tidak ditemukan
-            if ($userFolders->isEmpty() && $files->isEmpty()) {
-                return response()->json([
-                    'message' => 'No folders or files found',
-                    'data' => [
-                        'folders' => $userFolders,
-                        'files' => $files
-                    ]
-                ], 200);
-            }
-
-            $userFolders->map(function ($folder) {
+            // Optimasi data subfolder
+            $userFolders = $parentFolder->subfolders->map(function ($folder) {
                 return [
                     'folder_id' => $folder->id,
                     'name' => $folder->name,
@@ -180,37 +178,16 @@ class FolderController extends Controller
                     'type' => $folder->type,
                     'created_at' => $folder->created_at,
                     'updated_at' => $folder->updated_at,
-                    'user' => [
-                        'id' => $folder->user->id,
-                        'name' => $folder->user->name,
-                        'email' => $folder->user->email
-                    ],
-                    'tags' => $folder->tags->map(function ($tag) {
-                        return [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    }),
-                    'instance' => $folder->instances->map(function ($instance) {
-                        return [
-                            'id' => $instance->id,
-                            'name' => $instance->name,
-                            'address' => $instance->address
-                        ];
-                    })
+                    'user' => $folder->user, // User sudah diambil dengan select
+                    'tags' => $folder->tags, // Tags sudah diambil dengan select
+                    'instances' => $folder->instances // Instances sudah diambil dengan select
                 ];
             });
 
-            $responseFile = $files->map(function ($file) {
-
-                $fileId = $file->id;
-
-                $file_path = $file->path;
-
-                $mimeType = Storage::mimeType($file_path);
-
+            // Optimasi data file
+            $responseFile = $parentFolder->files->map(function ($file) {
                 $fileResponse = [
-                    'id' => $fileId,
+                    'id' => $file->id,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
@@ -218,29 +195,14 @@ class FolderController extends Controller
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder_id,
-                    'user' => [
-                        'id' => $file->user->id,
-                        'name' => $file->user->name,
-                        'email' => $file->user->email
-                    ],
-                    'tags' => $file->tags->map(function ($tag) {
-                        return [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    }),
-                    'instance' => $file->instances->map(function ($instance) {
-                        return [
-                            'id' => $instance->id,
-                            'name' => $instance->name,
-                            'address' => $instance->address
-                        ];
-                    })
+                    'user' => $file->user, // User sudah diambil dengan select
+                    'tags' => $file->tags, // Tags sudah diambil dengan select
+                    'instances' => $file->instances // Instances sudah diambil dengan select
                 ];
 
                 // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
-                if (Str::startsWith($mimeType, 'image')) {
-                    $fileResponse['image_url'] = $this->generateImageUrlService->generateUrlForImage($fileId);
+                if (Str::startsWith(Storage::mimeType($file->path), 'image')) {
+                    $fileResponse['image_url'] = $this->generateImageUrlService->generateUrlForImage($file->id);
                 }
 
                 return $fileResponse;
@@ -279,8 +241,8 @@ class FolderController extends Controller
      */
     public function info($id)
     {
-        // periksa apakah user memiliki izin antara read atau write
-        $permission = $this->checkPermissionFolderService->checkPermissionFolder($id, ['read', 'write']);
+        // periksa apakah user memiliki izin read.
+        $permission = $this->checkPermissionFolderService->checkPermissionFolder($id, ['read']);
 
         if (!$permission) {
             return response()->json([
@@ -289,15 +251,14 @@ class FolderController extends Controller
         }
 
         try {
-            // Cari folder dengan ID yang diberikan dan sertakan subfolder jika ada
-            $folder = Folder::with(['user', 'subfolders', 'files', 'tags', 'instances'])->find($id);
-
-            // Jika folder tidak ditemukan, kembalikan pesan kesalahan
-            if (!$folder) {
-                return response()->json([
-                    'errors' => 'Folder not found.',
-                ], 404);
-            }
+            // Cari folder dengan ID yang diberikan dan sertakan subfolder, file, tags, dan instances yang relevan
+            $folder = Folder::with([
+                'user:id,name,email',
+                'subfolders:id,parent_id,name,type,created_at,updated_at,user_id',
+                'files:id,folder_id,name,path,size,type,created_at,updated_at,user_id',
+                'tags:id,name',
+                'instances:id,name,address'
+            ])->findOrFail($id);
 
             // Persiapkan respon untuk folder
             $folderResponse = [
@@ -308,47 +269,37 @@ class FolderController extends Controller
                 'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
                 'user' => [
                     'id' => $folder->user->id,
-                    'name' =>  $folder->user->name,
-                    'email' =>  $folder->user->email
+                    'name' => $folder->user->name,
+                    'email' => $folder->user->email
                 ],
-                'tags' => $folder->tags->map(function ($tag) {
-                    return [
-                        'id' => $tag->id,
-                        'name' => $tag->name
-                    ];
-                }),
-                'instances' => $folder->instances->map(function ($instance) {
-                    return [
-                        'id' => $instance->id,
-                        'name' => $instance->name
-                    ];
-                })
+                'tags' => $folder->tags->pluck('id', 'name'),
+                'instances' => $folder->instances->pluck('id', 'name', 'address')
             ];
 
-            $subfolders = $folder->subfolders;
+            // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
+            $subfolders = $folder->subfolders->map(function ($subfolder) {
+                return [
+                    'id' => $subfolder->id,
+                    'name' => $subfolder->name,
+                    'type' => $subfolder->type,
+                    'created_at' => $subfolder->created_at,
+                    'updated_at' => $subfolder->updated_at,
+                    'user' => [
+                        'id' => $subfolder->user->id,
+                        'name' => $subfolder->user->name,
+                        'email' => $subfolder->user->email
+                    ],
+                    'tags' => $subfolder->tags->pluck('id', 'name'),
+                    'instances' => $subfolder->instances->pluck('id', 'name', 'address')
+                ];
+            });
 
-            $subfolders->makeHidden(['nanoid', 'files', 'subfolders']);
-
-            $subfolders->load(['user:id,name,email', 'tags:id,name', 'instances:id,name']);
-
-            // // Persiapkan respon untuk files
-            // $files = $folder->files;
-
-            // $files->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
-
-            // $files->makeHidden(['path', 'nanoid']);
-
+            // Ambil files dan buat hidden beberapa atribut yang tidak diperlukan
             $files = $folder->files->map(function ($file) {
+                $mimeType = Storage::mimeType($file->path);
 
-                $fileId = $file->id;
-
-                $file_path = $file->path;
-
-                $mimeType = Storage::mimeType($file_path);
-
-                // Persiapkan data file
                 $fileData = [
-                    'id' => $fileId,
+                    'id' => $file->id,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
@@ -360,18 +311,13 @@ class FolderController extends Controller
                         'name' => $file->user->name,
                         'email' => $file->user->email
                     ],
-                    'tags' => $file->tags,
-                    'instance' => $file->instances->map(function ($instance) {
-                        return [
-                            'id' => $instance->id,
-                            'name' => $instance->name,
-                            'address' => $instance->address
-                        ];
-                    }),
+                    'tags' => $file->tags->pluck('id', 'name'),
+                    'instances' => $file->instances->pluck('id', 'name', 'address')
                 ];
 
+                // Tambahkan URL gambar jika file berupa gambar
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['image_url'] = $this->generateImageUrlService->generateUrlForImage($fileId);
+                    $fileData['image_url'] = $this->generateImageUrlService->generateUrlForImage($file->id);
                 }
 
                 return $fileData;
@@ -448,6 +394,17 @@ class FolderController extends Controller
                 } else {
                     $parentId = $request->parent_id;
                 }
+            }
+
+            // Mendapatkan konfigurasi tingkat kedalaman subfolder dari .env (default=5)
+            $subfolderDepth = env('SUBFOLDER_DEPTH', 5);
+
+            // Cek kedalaman folder, batasi hingga level yang ditentukan
+            $depth = $this->getFolderDepth($parentId);
+            if ($depth >= $subfolderDepth) {
+                return response()->json([
+                    'errors' => 'You cannot create more than ' . $subfolderDepth . ' subfolder levels.',
+                ], 403);
             }
 
             // MEMULAI TRANSACTION MYSQL
@@ -1108,5 +1065,24 @@ class FolderController extends Controller
                 'errors' => 'An error occurred on getting folder path.',
             ], 500);
         }
+    }
+
+    /**
+     * Hitung kedalaman folder
+     * @param int|null $parentId
+     * @return int
+     */
+    private function getFolderDepth($parentId)
+    {
+        $depth = 0;
+        while ($parentId) {
+            $folder = Folder::find($parentId);
+            if (!$folder) {
+                break;
+            }
+            $parentId = $folder->parent_id;
+            $depth++;
+        }
+        return $depth;
     }
 }
