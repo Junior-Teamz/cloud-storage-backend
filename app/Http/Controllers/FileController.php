@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateImageURLService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Sqids\Sqids;
 
@@ -413,8 +414,12 @@ class FileController extends Controller
                 // Mengirimkan file tunggal untuk di-download
                 return response()->download($filePath, $file->name);
             } else {
-                // Jika lebih dari satu file, buat file .zip
-                $zipFileName = 'files_' . time() . '.zip';
+
+                // Mendapatkan waktu saat ini dengan zona waktu Jakarta
+                $now = Carbon::now('Asia/Jakarta');
+
+                // Membuat format nama file dengan format d-m-Y_s:i:H
+                $zipFileName = 'files_' . $now->format('d-m-Y_s:i:H') . '.zip';
                 $zipFilePath = storage_path('app/temp/' . $zipFileName);
 
                 // Create ZipArchive
