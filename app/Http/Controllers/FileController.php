@@ -18,17 +18,20 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
+use App\Services\GenerateImageURLService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Sqids\Sqids;
 
 class FileController extends Controller
 {
     protected $checkPermissionFolderService;
+    protected $generateImageUrlService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateImageURLService $generateImageUrlService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
+        $this->generateImageUrlService = $generateImageUrlService;
     }
 
     /**
@@ -160,7 +163,7 @@ class FileController extends Controller
             $mimeType = Storage::mimeType($file->path);
 
             if (Str::startsWith($mimeType, 'image')) {
-                $file->setAttribute('image_url', $this->generateUrlForImage($file->id));
+                $file->setAttribute('image_url', $this->generateImageUrlService->generateUrlForImage($file->id));
             }
 
             return response()->json([

@@ -15,20 +15,19 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
+use App\Services\GenerateImageURLService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\URL;
-use Sqids\Sqids;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class FolderController extends Controller
 {
     protected $checkPermissionFolderService;
-    protected $getNanoidFolderPath;
+    protected $generateImageUrlService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateImageURLService $generateImageUrlService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
+        $this->generateImageUrlService = $generateImageUrlService;
     }
 
     /**
@@ -241,7 +240,7 @@ class FolderController extends Controller
 
                 // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileResponse['image_url'] = $this->generateUrlForImage($fileId);
+                    $fileResponse['image_url'] = $this->generateImageUrlService->generateUrlForImage($fileId);
                 }
 
                 return $fileResponse;
@@ -372,7 +371,7 @@ class FolderController extends Controller
                 ];
 
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['image_url'] = $this->generateUrlForImage($fileId);
+                    $fileData['image_url'] = $this->generateImageUrlService->generateUrlForImage($fileId);
                 }
 
                 return $fileData;
@@ -1004,23 +1003,6 @@ class FolderController extends Controller
                 'errors' => 'An error occurred on moving the folder.',
             ], 500);
         }
-    }
-
-    private function generateUrlForImage($file_id)
-    {
-        // Cari file berdasarkan ID
-        $file = File::find($file_id);
-
-        if (!$file) {
-            return null; // Jika file tidak ditemukan, kembalikan null
-        }
-
-        // Gunakan Sqids untuk menghasilkan hash dari ID
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
-        $hashedId = $sqids->encode([$file->id]);
-
-        // Buat URL yang diobfuscate menggunakan hashed ID
-        return route('image.url', ['hashedId' => $hashedId]);
     }
 
     /**
