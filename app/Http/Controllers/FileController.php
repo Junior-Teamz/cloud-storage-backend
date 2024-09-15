@@ -183,7 +183,7 @@ class FileController extends Controller
     }
 
     // dapatkan semua file dan total filenya
-    public function getAllFilesAndTotalSize(Request $request)
+    public function getAllFilesAndTotalSize()
     {
         $user = Auth::user();
 

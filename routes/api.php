@@ -8,6 +8,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\PermissionFileController;
 use App\Http\Controllers\PermissionFolderController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SharingController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
@@ -32,6 +33,8 @@ Route::get('/image/{hashedId}', [FileController::class, 'serveFileImageByHashedI
 Route::middleware(['encode_id', 'decode_id'])->group(function () {
 
     Route::middleware(['auth:api', 'remove_nanoid', 'protectRootFolder', 'check_admin', 'hide_superadmin_flag'])->group(function () {
+
+        Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
 
         Route::prefix('user')->group(function () {
             Route::get('/index', [UserController::class, 'index']); // Mendapatkan informasi user
@@ -115,6 +118,8 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
     Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(function () {
 
         Route::get('/index', [AdminController::class, 'index']); // dapatkan informasi tentang akun admin yang sedang login saat ini.
+
+        Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
 
         Route::prefix('users')->group(function () {
             Route::get('/list', [AdminController::class, 'listUser']); // dapatkan list user (bisa juga menggunakan query seperti ini: /list?name=namauseryangingindicari)
