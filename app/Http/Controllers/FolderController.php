@@ -272,8 +272,8 @@ class FolderController extends Controller
                     'name' => $folder->user->name,
                     'email' => $folder->user->email
                 ],
-                'tags' => $folder->tags->pluck('id', 'name'),
-                'instances' => $folder->instances->pluck('id', 'name', 'address')
+                'tags' => $folder->tags->pluck('name', 'id'),
+                'instances' => $folder->instances->pluck('address', 'name', 'id')
             ];
 
             // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
