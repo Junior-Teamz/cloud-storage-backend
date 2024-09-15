@@ -807,34 +807,47 @@ class FileController extends Controller
 
     public function serveFileImageByHashedId($hashedId)
     {
-        // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
-        $fileIdArray = $sqids->decode($hashedId);
+        $user = Auth::user();
 
-        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-            return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
+        if ($user) {
+            // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
+            $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
+            $fileIdArray = $sqids->decode($hashedId);
+
+            if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+                return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
+            }
+
+            // Dapatkan file_id dari hasil decode
+            $file_id = $fileIdArray[0];
+
+            // Cari file berdasarkan ID
+            $file = File::find($file_id);
+
+            if (!$file) {
+                return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
+            }
+
+            // Cek apakah file adalah gambar
+            if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
+                return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
+            }
+
+            // Periksa perizinan menggunakan fungsi checkPermissionFile
+            if (!$this->checkPermissionFile($file->id, ['read'])) {
+                return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+            }
+
+            // Ambil path file dari storage
+            $file_path = Storage::path($file->path);
+
+            // Kembalikan file sebagai respon (mengirim file gambar)
+            return response()->file($file_path);
+        } else {
+            return response()->json([
+                'errors' => 'Unauthenticated.'
+            ]);
         }
-
-        // Dapatkan file_id dari hasil decode
-        $file_id = $fileIdArray[0];
-
-        // Cari file berdasarkan ID
-        $file = File::find($file_id);
-
-        if (!$file) {
-            return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
-        }
-
-        // Cek apakah file adalah gambar
-        if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
-            return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
-        }
-
-        // Ambil path file dari storage
-        $file_path = Storage::path($file->path);
-
-        // Kembalikan file sebagai respon (mengirim file gambar)
-        return response()->file($file_path);
     }
 
     private function generateUrlForImage($file_id)

@@ -9,11 +9,9 @@ use App\Models\UserFolderPermission;
 use Closure;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
-use Tymon\JWTAuth\Exceptions\TokenInvalidException;
-use Tymon\JWTAuth\Exceptions\JWTException;
 use Sqids\Sqids;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -28,67 +26,28 @@ class FileImageURLPermissionCheck
      */
     public function handle($request, Closure $next)
     {
-        // // Ambil header Authorization secara manual
-        // $authorizationHeader = $request->header('Authorization');
+        $user = auth()->guard('api')->user();
 
-        // if (!$authorizationHeader) {
-        //     return response()->json(['errors' => 'Authorization header not found. You probably not login first.'], 401);
-        // }
+        // Ambil file ID dari parameter route atau request
+        $fileId = $request->route('hashedId');
 
-        // // Pastikan header Authorization memiliki format Bearer {token}
-        // if (!preg_match('/Bearer\s(\S+)/', $authorizationHeader, $matches)) {
-        //     return response()->json(['errors' => 'Invalid Authorization format'], 401);
-        // }
+        // Decode hashed ID ke file ID menggunakan Sqids
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
+        $fileIdArray = $sqids->decode($fileId);
 
-        // // Ambil token JWT dari header
-        // $token = $matches[1];
-
-        try {
-            // Set token secara manual ke JWTAuth dan coba autentikasi
-            JWTAuth::parseToken()->authenticate();
-
-            // Setelah autentikasi berhasil, lanjutkan pengecekan izin file
-            // Ambil file ID dari parameter route atau request
-            $fileId = $request->route('hashedId');
-
-            // Decode hashed ID ke file ID menggunakan Sqids
-            $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
-            $fileIdArray = $sqids->decode($fileId);
-
-            // Jika hashed ID tidak valid atau tidak dapat didecode
-            if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-                return response()->json(['errors' => 'Invalid or non-existent file'], 404);
-            }
-
-            $fileId = $fileIdArray[0];
-
-            // Periksa perizinan menggunakan fungsi checkPermissionFile
-            if (!$this->checkPermissionFile($fileId, ['read'])) {
-                return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
-            }
-
-            return $next($request);
-
-        } catch (Exception $e) {
-            if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException) {
-                return response()->json([
-                    'errors' => 'Invalid authentication token.'
-                ], 401); // HTTP 401 Unauthorized
-            } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenExpiredException) {
-                return response()->json([
-                    'errors' => 'Expired authentication token.'
-                ], 401); // HTTP 401 Unauthorized
-            } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenBlacklistedException) {
-                return response()->json([
-                    'errors' => 'Authentication token is blacklisted.'
-                ], 403); // HTTP 403 Forbidden
-            } else {
-                Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage());
-                return response()->json([
-                    'errors' => 'An error occured, possibly you have not login or invalid token.'
-                ], 500); // HTTP 500 Internal Server Error
-            }
+        // Jika hashed ID tidak valid atau tidak dapat didecode
+        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+            return response()->json(['errors' => 'Invalid or non-existent file'], 404);
         }
+
+        $fileId = $fileIdArray[0];
+
+        // Periksa perizinan menggunakan fungsi checkPermissionFile
+        if (!$this->checkPermissionFile($fileId, ['read'])) {
+            return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+        }
+
+        return $next($request);
     }
 
     /**
