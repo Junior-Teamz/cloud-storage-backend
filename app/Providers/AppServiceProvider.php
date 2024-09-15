@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\CheckAdminService;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // FOR FIXING ERROR NO HINT PATH FOR ERRORS TEMPLATE
+        View::addNamespace('errors', resource_path('views/errors'));
     }
 }
