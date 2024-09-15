@@ -272,15 +272,20 @@ class FolderController extends Controller
                     'name' => $folder->user->name,
                     'email' => $folder->user->email
                 ],
-                'tags' => [
-                    'id' => $folder->tags->id,
-                    'name' => $folder->tags->name
-                ],
-                'instances' => [
-                    'id' => $folder->instances->id,
-                    'name' => $folder->instances->name,
-                    'address' => $folder->instances->address
-                ]
+                // Map tags and instances for folder
+                'tags' => $folder->tags->map(function ($tag) {
+                    return [
+                        'id' => $tag->id,
+                        'name' => $tag->name
+                    ];
+                }),
+                'instances' => $folder->instances->map(function ($instance) {
+                    return [
+                        'id' => $instance->id,
+                        'name' => $instance->name,
+                        'address' => $instance->address
+                    ];
+                })
             ];
 
             // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
@@ -296,15 +301,20 @@ class FolderController extends Controller
                         'name' => $subfolder->user->name,
                         'email' => $subfolder->user->email
                     ],
-                    'tags' => [
-                        'id' => $subfolder->tags->id,
-                        'name' => $subfolder->tags->name
-                    ],
-                    'instances' => [
-                        'id' => $subfolder->instances->id,
-                        'name' => $subfolder->instances->name,
-                        'address' => $subfolder->instances->address
-                    ]
+                    // Map tags and instances for folder
+                    'tags' => $subfolder->tags->map(function ($tag) {
+                        return [
+                            'id' => $tag->id,
+                            'name' => $tag->name
+                        ];
+                    }),
+                    'instances' => $subfolder->instances->map(function ($instance) {
+                        return [
+                            'id' => $instance->id,
+                            'name' => $instance->name,
+                            'address' => $instance->address
+                        ];
+                    })
                 ];
             });
 
@@ -325,15 +335,20 @@ class FolderController extends Controller
                         'name' => $file->user->name,
                         'email' => $file->user->email
                     ],
-                    'tags' => [
-                        'id' => $file->tags->id,
-                        'name' => $file->tags->name
-                    ],
-                    'instances' => [
-                        'id' => $file->instances->id,
-                        'name' => $file->instances->name,
-                        'address' => $file->instances->address
-                    ]
+                    // Map tags and instances for folder
+                    'tags' => $file->tags->map(function ($tag) {
+                        return [
+                            'id' => $tag->id,
+                            'name' => $tag->name
+                        ];
+                    }),
+                    'instances' => $file->instances->map(function ($instance) {
+                        return [
+                            'id' => $instance->id,
+                            'name' => $instance->name,
+                            'address' => $instance->address
+                        ];
+                    })
                 ];
 
                 // Tambahkan URL gambar jika file berupa gambar
