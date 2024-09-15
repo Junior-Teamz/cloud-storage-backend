@@ -190,7 +190,7 @@ class FileController extends Controller
 
         try {
             // Ambil semua file dari database
-            $files = File::where('user_id', $user->id)->with(['user:id,name,email', 'tags', 'instances:id,name'])->get();
+            $files = File::where('user_id', $user->id)->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address'])->get();
 
             // Hitung total ukuran semua file
             $totalSize = $files->sum('size');
@@ -226,8 +226,8 @@ class FileController extends Controller
             'file' => 'required|array',
             'file.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xlsx,pptx,ppt,txt,mp3,ogg,wav,aac,opus,mp4,hevc,mkv,mov,h264,h265,php,js,html,css',
             'folder_id' => 'nullable|integer|exists:folders,id',
-            'tags' => 'nullable|array',
-            'tags.*' => ['string', 'regex:/^[a-zA-Z\s]+$/'],
+            'tag_ids' => 'required|array',
+            'tag_ids.*' => ['integer', 'exists:tags,id'],
         ]);
 
         if ($validator->fails()) {
@@ -316,39 +316,13 @@ class FileController extends Controller
                     'nanoid' => $nanoid,
                 ]);
 
+                $file->tags()->sync($request->tag_ids);
+
                 $file->instances()->sync($userInstances);
-
-                if ($request->has('tags')) {
-                    // Proses tags
-                    $tagIds = [];
-
-                    foreach ($request->tags as $tagName) {
-                        // Periksa apakah tag sudah ada di database (case-insensitive)
-                        $tag = Tags::whereRaw('LOWER(name) = ?', [strtolower($tagName)])->first();
-
-                        if (!$tag) {
-                            // Jika tag belum ada, buat tag baru
-                            $tag = Tags::create(['name' => ucfirst($tagName)]);
-                        }
-
-                        // Ambil id dari tag (baik yang sudah ada atau baru dibuat)
-                        $tagIds[] = $tag->id;
-
-                        // Masukkan id dan name dari tag ke dalam array untuk response
-                        $tagsData[] = [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    }
-
-                    $file->tags()->sync($tagIds);
-
-                    $file['tags'] = $tagsData;
-                }
 
                 $file->makeHidden(['path', 'nanoid']);
 
-                $file->load(['user:id,name,email', 'instances:id,name']);
+                $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
 
                 // Tambahkan file ke dalam array yang akan dikembalikan
                 $filesData[] = $file;
@@ -386,6 +360,83 @@ class FileController extends Controller
             return response()->json([
                 'errors' => 'An error occurred while uploading the files.',
             ], 500);
+        }
+    }
+
+    public function downloadFile(Request $request)
+    {
+        // Validasi input request
+        $validate = Validator::make($request->all(), [
+            'file_ids' => 'required|array',
+            'file_ids.*' => 'required|exists:files,id',
+        ]);
+
+        if ($validate->fails()) {
+            return response()->json(['error' => $validate->errors()], 400);
+        }
+
+        // Ambil file_ids dari request
+        $fileIds = $request->file_ids;
+
+        foreach ($fileIds as $fileId){
+
+            $checkPermission = $this->checkPermissionFile($fileId, ['read']);
+
+            if(!$checkPermission){
+                return response()->json([
+                    'errors' => 'You do not have permission to download any of the files.'
+                ]);
+            }
+        }
+
+        try {
+            // Ambil files berdasarkan file_ids
+            $files = File::whereIn('id', $fileIds)->get();
+
+            if ($files->isEmpty()) {
+                return response()->json(['error' => 'Files not found'], 404);
+            }
+
+            if ($files->count() === 1) {
+                // Single file download
+                $file = $files->first();
+                $filePath = Storage::path($file->path); // Menggunakan Storage::path untuk mendapatkan full path
+
+                if (!Storage::exists($file->path)) {
+                    return response()->json(['error' => 'File not found'], 404);
+                }
+
+                // Mengirimkan file tunggal untuk di-download
+                return response()->download($filePath, $file->name);
+            } else {
+                // Jika lebih dari satu file, buat file .zip
+                $zipFileName = 'files_' . time() . '.zip';
+                $zipFilePath = storage_path('app/temp/' . $zipFileName);
+
+                // Create ZipArchive
+                $zip = new \ZipArchive();
+                if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
+                    foreach ($files as $file) {
+                        $filePath = Storage::path($file->path); // Menggunakan Storage::path
+
+                        if (Storage::exists($file->path)) {
+                            // Tambahkan file ke dalam arsip zip
+                            $zip->addFile($filePath, $file->name);
+                        }
+                    }
+                    $zip->close();
+                } else {
+                    return response()->json(['error' => 'Unable to create zip file'], 500);
+                }
+
+                // Mengirimkan file .zip untuk di-download dan menghapus file setelah dikirim
+                return response()->download($zipFilePath)->deleteFileAfterSend(true);
+            }
+        } catch (Exception $e) {
+
+            Log::error('Error occurred while downloading files: ' . $e->getMessage());
+
+            return response()->json(['error' => 'An error occurred while downloading files'], 500);
         }
     }
 
@@ -432,7 +483,7 @@ class FileController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name']);
+            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
             return response()->json([
                 'message' => 'Successfully added tag to file.',
@@ -506,7 +557,7 @@ class FileController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name']);
+            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
             return response()->json([
                 'message' => 'Successfully removed tag from file.',
@@ -599,7 +650,7 @@ class FileController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name']);
+            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
             $file->makeHidden(['path', 'nanoid']);
 
@@ -695,7 +746,7 @@ class FileController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name']);
+            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
             $file->makeHidden(['path', 'nanoid']);
 
@@ -851,23 +902,6 @@ class FileController extends Controller
                 'errors' => 'Unauthenticated.'
             ]);
         }
-    }
-
-    private function generateUrlForImage($file_id)
-    {
-        // Cari file berdasarkan ID
-        $file = File::find($file_id);
-
-        if (!$file) {
-            return null; // Jika file tidak ditemukan, kembalikan null
-        }
-
-        // Gunakan Sqids untuk menghasilkan hash dari ID
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
-        $hashedId = $sqids->encode([$file->id]);
-
-        // Buat URL yang diobfuscate menggunakan hashed ID
-        return route('image.url', ['hashedId' => $hashedId]);
     }
 
     public function generateFilePublicPath($folderId, $fileName)

@@ -8,6 +8,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\PermissionFileController;
 use App\Http\Controllers\PermissionFolderController;
+use App\Http\Controllers\SharingController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebhookController;
@@ -66,6 +67,8 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
             Route::get('/{id}', [FileController::class, 'info']); // Mendapatkan informasi file
 
             Route::post('/upload', [FileController::class, 'upload']); // Mengunggah file
+
+            Route::post('/download', [FileController::class, 'downloadFile']); // Mendownload File
 
             Route::put('/change_name/{id}', [FileController::class, 'updateFileName']); // Memperbarui nama file
 

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\File;
 use Exception;
 use App\Models\Tags;
 use App\Models\User;
@@ -384,7 +383,7 @@ class FolderController extends Controller
      * This controller method will create a new folder based on the request data.
      * It will check if the user has permission to create a folder in the specified parent folder.
      *
-     * @param \Illuminate\Http\Request $request The incoming request containing 'name' and 'parent_id' and 'tags'.
+     * @param \Illuminate\Http\Request $request The incoming request containing 'name' and 'parent_id' and 'tag_ids'.
      *
      * @return \Illuminate\Http\JsonResponse Returns a JSON response with the new folder information or an error message.
      *
@@ -398,8 +397,8 @@ class FolderController extends Controller
             [
                 'name' => 'required|string',
                 'parent_id' => 'nullable|integer|exists:folders,id',
-                'tags' => 'nullable|array',
-                'tags.*' => ['string', 'regex:/^[a-zA-Z\s]+$/'],
+                'tag_ids' => 'required|array',
+                'tag_ids.*' => ['integer', 'exists:tags,id'],  // Validate tag_ids as existing tag IDs
             ],
         );
 
@@ -413,29 +412,26 @@ class FolderController extends Controller
             $userLogin = Auth::user();
             $userId = $userLogin->id;
 
-            // Dapatkan folder root pengguna, jika tidak ada parent_id yang disediakan
+            // Get the user's root folder if no parent_id is provided
             $folderRootUser = Folder::where('user_id', $userId)->whereNull('parent_id')->first();
 
-            // Periksa apakah parent_id ada pada request? , jika tidak ada maka gunakan id dari folder root user default
-            // Jika ada, gunakan parent_id dari request.
+            // Check if parent_id is provided, else use the root folder's ID
             if ($request->parent_id === null) {
                 $parentId = $folderRootUser->id;
-            } else if ($request->parent_id) {
-                // check if parent_id is another user folder, then check if user login right now have the permission to edit folder on that folder. checked with checkPermission.
+            } else {
+                // Check user permission for the provided parent_id
                 $permission = $this->checkPermissionFolderService->checkPermissionFolder($request->parent_id, 'write');
                 if (!$permission) {
                     return response()->json([
-                        'errors' => 'You do not have permission to create folder in this parent_id',
+                        'errors' => 'You do not have permission to create a folder in this parent_id',
                     ], 403);
                 } else {
                     $parentId = $request->parent_id;
                 }
             }
 
-            // Mendapatkan konfigurasi tingkat kedalaman subfolder dari .env (default=5)
+            // Check folder depth limit
             $subfolderDepth = env('SUBFOLDER_DEPTH', 5);
-
-            // Cek kedalaman folder, batasi hingga level yang ditentukan
             $depth = $this->getFolderDepth($parentId);
             if ($depth >= $subfolderDepth) {
                 return response()->json([
@@ -443,72 +439,41 @@ class FolderController extends Controller
                 ], 403);
             }
 
-            // MEMULAI TRANSACTION MYSQL
+            // Start database transaction
             DB::beginTransaction();
 
-            // Create folder in database
+            // Create the folder
             $newFolder = Folder::create([
                 'name' => $request->name,
                 'user_id' => $userId,
                 'parent_id' => $parentId,
             ]);
 
-            $userData = User::where('id', $userId)->first();
+            // Sync the user's instances to the folder
+            $userInstance = User::find($userId)->instances->pluck('id')->toArray();
+            $newFolder->instances()->sync($userInstance);
 
-            $userInstance = $userData->instances->pluck('id')->toArray();  // Mengambil instance user
-            $newFolder->instances()->sync($userInstance);  // Sinkronisasi instance ke folder baru
+            // Sync the tags using tag_ids
+            $newFolder->tags()->sync($request->tag_ids);
 
-            if ($request->has('tags')) {
-                // Proses tags
-                $tagIds = [];
-
-                foreach ($request->tags as $tagName) {
-                    // Periksa apakah tag sudah ada di database (case-insensitive)
-                    $tag = Tags::whereRaw('LOWER(name) = ?', [strtolower($tagName)])->first();
-
-                    if (!$tag) {
-                        // Jika tag belum ada, buat tag baru
-                        $tag = Tags::create(['name' => ucfirst($tagName)]);
-                    }
-
-                    // Ambil id dari tag (baik yang sudah ada atau baru dibuat)
-                    $tagIds[] = $tag->id;
-
-                    // Masukkan id dan name dari tag ke dalam array untuk response
-                    $tagsData[] = [
-                        'id' => $tag->id,
-                        'name' => $tag->name
-                    ];
-                }
-
-                // Simpan tags ke tabel pivot folder_has_tags
-                $newFolder->tags()->sync($tagIds);
-            }
-
-            // Generate public path setelah folder dibuat
+            // Generate public path after folder creation
             $publicPath = $this->getPublicPath($newFolder->id);
-
-            // Simpan public path ke folder baru
             $newFolder->update(['public_path' => $publicPath]);
 
-            // COMMIT JIKA TIDAK ADA ERROR
+            // Commit the transaction if no errors
             DB::commit();
 
-            // Get NanoID folder
+            // Get the folder's NanoID for use in storage path
             $folderNameWithNanoId = $newFolder->nanoid;
-
-            // Create folder in storage
             $path = $this->getFolderPath($newFolder->parent_id);
             $fullPath = $path . '/' . $folderNameWithNanoId;
             Storage::makeDirectory($fullPath);
 
+            // Hide the nanoid from the response
             $newFolder->makeHidden(['nanoid']);
 
-            // inject data response tagsData ke response newFolder
-            $newFolder['tags'] = $tagsData;
-
-            // Load instances untuk dimasukkan ke dalam response
-            $newFolder->load('instances:id,name');
+            // Load instances and tags for the response
+            $newFolder->load('instances:id,name,address', 'tags:id,name');
 
             return response()->json([
                 'message' => $newFolder->parent_id ? 'Subfolder created successfully' : 'Folder created successfully',
@@ -517,7 +482,7 @@ class FolderController extends Controller
                 ]
             ], 201);
         } catch (Exception $e) {
-            // ROLLBACK JIKA ADA ERROR
+            // Rollback if any error occurs
             DB::rollBack();
 
             Log::error('Error occurred on creating folder: ' . $e->getMessage(), [
@@ -703,7 +668,7 @@ class FolderController extends Controller
      * checking user permissions on the folder, and updating the folder in the database. 
      * It ensures transactional integrity and logs any errors that occur during the process.
      * 
-     * @param \Illuminate\Http\Request $request The incoming request containing 'name' and 'tags'.
+     * @param \Illuminate\Http\Request $request The incoming request containing 'name' and 'tag_ids array'.
      * 
      * @return \Illuminate\Http\JsonResponse Returns a JSON response with success or error messages.
      * 
@@ -721,8 +686,8 @@ class FolderController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string',
-            'tags' => 'nullable|array',
-            'tags.*' => ['string', 'regex:/^[a-zA-Z\s]+$/'],
+            'tag_ids' => 'nullable|array',  // Expect tag_ids as an array
+            'tag_ids.*' => ['integer', 'exists:tags,id'],  // Validate each tag_id as an existing tag
         ]);
 
         if ($validator->fails()) {
@@ -743,25 +708,10 @@ class FolderController extends Controller
                 'public_path' => $publicPath
             ]);
 
-            if ($request->has('tags')) {
-                // Process tags
-                $tags = $request->tags;
-                $tagIds = [];
-
-                foreach ($tags as $tagName) {
-                    // Check if tag exists, case-insensitive
-                    $tag = Tags::whereRaw('LOWER(name) = ?', [strtolower($tagName)])->first();
-
-                    if (!$tag) {
-                        // If tag doesn't exist, create it
-                        $tag = Tags::create(['name' => ucfirst($tagName)]);
-                    }
-
-                    $tagIds[] = $tag->id;
-                }
-
-                // Sync the tags with the folder (in the pivot table)
-                $folder->tags()->sync($tagIds);
+            // Sync the tags with tag_ids if provided
+            if ($request->has('tag_ids')) {
+                // Sync the tags directly using tag_ids
+                $folder->tags()->sync($request->tag_ids);
             }
 
             DB::commit();
