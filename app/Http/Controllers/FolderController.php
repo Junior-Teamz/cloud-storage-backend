@@ -272,8 +272,15 @@ class FolderController extends Controller
                     'name' => $folder->user->name,
                     'email' => $folder->user->email
                 ],
-                'tags' => $folder->tags->pluck('name', 'id'),
-                'instances' => $folder->instances->pluck('address', 'name', 'id')
+                'tags' => [
+                    'id' => $folder->tags->id,
+                    'name' => $folder->tags->name
+                ],
+                'instances' => [
+                    'id' => $folder->instances->id,
+                    'name' => $folder->instances->name,
+                    'address' => $folder->instances->address
+                ]
             ];
 
             // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
@@ -289,8 +296,15 @@ class FolderController extends Controller
                         'name' => $subfolder->user->name,
                         'email' => $subfolder->user->email
                     ],
-                    'tags' => $subfolder->tags->pluck('id', 'name'),
-                    'instances' => $subfolder->instances->pluck('id', 'name', 'address')
+                    'tags' => [
+                        'id' => $subfolder->tags->id,
+                        'name' => $subfolder->tags->name
+                    ],
+                    'instances' => [
+                        'id' => $subfolder->instances->id,
+                        'name' => $subfolder->instances->name,
+                        'address' => $subfolder->instances->address
+                    ]
                 ];
             });
 
@@ -311,8 +325,15 @@ class FolderController extends Controller
                         'name' => $file->user->name,
                         'email' => $file->user->email
                     ],
-                    'tags' => $file->tags->pluck('id', 'name'),
-                    'instances' => $file->instances->pluck('id', 'name', 'address')
+                    'tags' => [
+                        'id' => $file->tags->id,
+                        'name' => $file->tags->name
+                    ],
+                    'instances' => [
+                        'id' => $file->instances->id,
+                        'name' => $file->instances->name,
+                        'address' => $file->instances->address
+                    ]
                 ];
 
                 // Tambahkan URL gambar jika file berupa gambar
