@@ -183,21 +183,25 @@ class FileController extends Controller
     }
 
     // dapatkan semua file dan total filenya
-    public function getAllFilesAndTotalSize()
+    public function getAllFilesAndTotalSize(Request $request)
     {
-
         $user = Auth::user();
 
         try {
-            // Ambil semua file dari database
-            $files = File::where('user_id', $user->id)->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address'])->get();
+            // Ambil semua file dari database dengan paginasi, termasuk user, tags, dan instances
+            $filesQuery = File::where('user_id', $user->id)
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
 
-            // Hitung total ukuran semua file
-            $totalSize = $files->sum('size');
+            // Hitung total ukuran file langsung dari query sebelum paginasi
+            $totalSize = $filesQuery->sum('size');
 
+            // Lakukan paginasi dari hasil query
+            $files = $filesQuery->paginate(10);
+
+            // Sembunyikan kolom 'path' dan 'nanoid' dari respon JSON
             $files->makeHidden(['path', 'nanoid']);
 
-            // Return daftar file dan total ukuran
+            // Return daftar file yang dipaginasi dan total ukuran
             return response()->json([
                 'data' => [
                     'total_size' => $totalSize,
@@ -378,11 +382,11 @@ class FileController extends Controller
         // Ambil file_ids dari request
         $fileIds = $request->file_ids;
 
-        foreach ($fileIds as $fileId){
+        foreach ($fileIds as $fileId) {
 
             $checkPermission = $this->checkPermissionFile($fileId, ['read']);
 
-            if(!$checkPermission){
+            if (!$checkPermission) {
                 return response()->json([
                     'errors' => 'You do not have permission to download any of the files.'
                 ]);
