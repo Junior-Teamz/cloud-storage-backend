@@ -52,8 +52,9 @@ class Handler extends ExceptionHandler
         // Jika route yang dipanggil adalah 'image.url' dan terjadi RouteNotFoundException
         if ($request->routeIs('image.url') && $exception instanceof RouteNotFoundException) {
             // Anda bisa mengganti 404 menjadi kode error lain yang lebih sesuai
-            return response()->json([
-                'erros' => 'Unauthenticated'
+            return response()->view('image_url_unauthenticated', [
+                'code' => 401,
+                'message' => 'Unauthorized.',
             ], 401);
         }
 
