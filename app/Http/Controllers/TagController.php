@@ -22,14 +22,6 @@ class TagController extends Controller
 
     public function index(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
-
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
-
         try {
             if ($request->query('name')) {
                 $keywordName = $request->query('name');
@@ -60,14 +52,6 @@ class TagController extends Controller
 
     public function getTagsInformation($id)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
-
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
-
         try {
 
             $tagData = Tags::where('id', $id)->first();
