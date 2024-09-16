@@ -87,6 +87,12 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
             Route::put('/move/{id}', [FileController::class, 'move']); // Memindahkan file ke folder lain atau ke root
         });
 
+        Route::prefix('tag')->group(function () {
+            Route::get('/index', [TagController::class, 'index']); // dapatkan semua list tag yang ada
+
+            Route::get('/getTagsInfo/{tagId}', [TagController::class, 'getTagsInformation']); // informasi tag spesifik
+        });
+
         Route::prefix('permission')->group(function () {
 
             Route::prefix('folder')->group(function () {
