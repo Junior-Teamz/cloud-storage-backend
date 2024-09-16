@@ -16,13 +16,11 @@ class GenerateImageURLService
             return null; // Jika file tidak ditemukan, kembalikan null
         }
 
-        $fileId = $file->id;
-
-        // // Gunakan Sqids untuk menghasilkan hash dari ID
-        // $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
-        // $hashedId = $sqids->encode([$file->id]);
+        // Gunakan Sqids untuk menghasilkan hash dari ID
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
+        $hashedId = $sqids->encode([$file->id]);
 
         // Buat URL yang diobfuscate menggunakan hashed ID
-        return route('image.url', ['id' => $fileId]);
+        return route('image.url', ['hashedId' => $hashedId]);
     }
 }
