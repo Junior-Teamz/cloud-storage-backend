@@ -93,6 +93,10 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
             Route::get('/getTagsInfo/{tagId}', [TagController::class, 'getTagsInformation']); // informasi tag spesifik
         });
 
+        Route::prefix('instance')->group(function () {
+            
+        });
+
         Route::prefix('permission')->group(function () {
 
             Route::prefix('folder')->group(function () {

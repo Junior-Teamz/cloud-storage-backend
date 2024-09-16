@@ -97,7 +97,7 @@ class UserController extends Controller
         $user = Auth::user();
 
         try {
-            $getUserData = User::where('id', $user->id)->first();
+            $getUserData = User::where('id', $user->id)->with('instances:id,name,address')->first();
 
             $getFolderRootId = Folder::where('user_id', $user->id)->first();
 
@@ -176,6 +176,8 @@ class UserController extends Controller
             $updatedUser->instances()->sync($request->instance_id);
 
             DB::commit();
+
+            $updatedUser->load('instances:id,name,address');
 
             return response()->json([
                 'message' => 'Data user berhasil diperbarui',
