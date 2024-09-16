@@ -36,12 +36,14 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
 
         Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
 
+        Route::get('/getSharedFolderAndFile', [SharingController::class, 'getSharedFolderAndFile']); // Mendapatkan semua folder dan file yang dibagikan kepada user
+
         Route::prefix('user')->group(function () {
             Route::get('/index', [UserController::class, 'index']); // Mendapatkan informasi user
 
-            Route::put('/update', [UserController::class, 'update']); // Update user
+            // Route::put('/update', [UserController::class, 'update']); // Update user
 
-            Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
+            // Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
         });
 
         Route::prefix('folder')->group(function () {
@@ -69,6 +71,8 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
         Route::prefix('file')->group(function () {
 
             Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file user, tidak peduli dari folder apapun.
+
+            Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
 
             Route::get('/{id}', [FileController::class, 'info']); // Mendapatkan informasi file
 
@@ -120,6 +124,8 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
         Route::get('/index', [AdminController::class, 'index']); // dapatkan informasi tentang akun admin yang sedang login saat ini.
 
         Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
+
+        Route::get('/getSharedFolderAndFile', [SharingController::class, 'getSharedFolderAndFile']); // Mendapatkan semua folder dan file yang dibagikan kepada user
 
         Route::prefix('users')->group(function () {
             Route::get('/list', [AdminController::class, 'listUser']); // dapatkan list user (bisa juga menggunakan query seperti ini: /list?name=namauseryangingindicari)
