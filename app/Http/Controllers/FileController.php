@@ -868,24 +868,24 @@ class FileController extends Controller
         }
     }
 
-    public function serveFileImageByHashedId($hashedId)
+    public function serveFileImageById($fileId)
     {
         $user = Auth::user();
 
         if ($user) {
-            // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
-            $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
-            $fileIdArray = $sqids->decode($hashedId);
+            // // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
+            // $sqids = new Sqids(env('SQIDS_ALPHABET'), 20);
+            // $fileIdArray = $sqids->decode($hashedId);
 
-            if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-                return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
-            }
+            // if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+            //     return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
+            // }
 
-            // Dapatkan file_id dari hasil decode
-            $file_id = $fileIdArray[0];
+            // // Dapatkan file_id dari hasil decode
+            // $file_id = $fileIdArray[0];
 
             // Cari file berdasarkan ID
-            $file = File::find($file_id);
+            $file = File::find($fileId);
 
             if (!$file) {
                 return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
