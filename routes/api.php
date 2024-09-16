@@ -41,6 +41,8 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
         Route::prefix('user')->group(function () {
             Route::get('/index', [UserController::class, 'index']); // Mendapatkan informasi user
 
+            Route::get('/search', [UserController::class, 'searchUser']); // Mencari user dengan name atau email
+
             // Route::put('/update', [UserController::class, 'update']); // Update user
 
             // Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
@@ -94,7 +96,7 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
         });
 
         Route::prefix('instance')->group(function () {
-            
+
         });
 
         Route::prefix('permission')->group(function () {
