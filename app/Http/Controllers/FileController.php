@@ -868,7 +868,7 @@ class FileController extends Controller
         }
     }
 
-    public function serveFileImageById($fileId)
+    public function serveFileImageById($id)
     {
         $user = Auth::user();
 
