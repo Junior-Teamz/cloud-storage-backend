@@ -419,7 +419,7 @@ class FileController extends Controller
                 $now = Carbon::now('Asia/Jakarta');
 
                 // Membuat format nama file dengan nama dan tanggal waktu
-                $zipFileName = 'files ' . $now->format('d-m-Y_H.i.s') . '.zip';
+                $zipFileName = 'files ' . $now->format('d/m/Y_His') . '.zip';
                 $zipFilePath = storage_path('app/temp/' . $zipFileName);
 
                 // Create ZipArchive
