@@ -122,7 +122,7 @@ class UserController extends Controller
 
                 $keywordName = $request->query('name');
 
-                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->with('instances:id,name,address')->paginate(10);
+                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->with('instances:id,name,address')->select('id', 'name', 'email')->paginate(10);
 
                 // Sembunyikan relasi roles dari hasil response
                 $allUser->makeHidden('roles');
@@ -134,7 +134,7 @@ class UserController extends Controller
 
                 $keywordEmail = $request->query('email');
 
-                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->with('instances:id,name,address')->paginate(10);
+                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->with('instances:id,name,address')->select('id', 'name', 'email')->paginate(10);
 
                 // Sembunyikan relasi roles dari hasil response
                 $allUser->makeHidden('roles');
