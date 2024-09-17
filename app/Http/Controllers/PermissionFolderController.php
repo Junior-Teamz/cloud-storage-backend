@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
+use App\Models\UserFilePermission;
 use App\Models\UserFolderPermission;
 use Exception;
 use Illuminate\Http\Request;
@@ -183,22 +184,27 @@ class PermissionFolderController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
-            $userFolderPermission = UserFolderPermission::where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
+            $checkUserFolderPermission = UserFolderPermission::where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
 
-            if ($userFolderPermission) {
+            if ($checkUserFolderPermission) {
                 return response()->json([
-                    'errors' => 'The user already has one of the permissions on the folder.'
+                    'errors' => 'The user already has one of the permissions on the folder. If you want to change permission, please use endpoint "changePermission".'
                 ], 409); // HTTP response konflik karena data perizinan user sudah ada sebelumnya.
             }
 
+            DB::beginTransaction();
+
+            // Berikan izin pada folder induk
             $userFolderPermission = UserFolderPermission::create([
                 'user_id' => $request->user_id,
                 'folder_id' => $request->folder_id,
                 'permissions' => $request->permissions
             ]);
+
+            // Terapkan izin pada subfolder dan file (kecuali file yang sudah ada izin)
+            $this->applyPermissionToSubfoldersAndFiles($folder, $request->user_id, $request->permissions);
+
             DB::commit();
 
             return response()->json([
@@ -212,6 +218,37 @@ class PermissionFolderController extends Controller
             return response()->json([
                 'errors' => 'An error occured while granting user permission.'
             ], 500);
+        }
+    }
+
+    private function applyPermissionToSubfoldersAndFiles($folder, $userId, $permissions)
+    {
+        // Terapkan izin pada subfolder
+        foreach ($folder->subfolders as $subfolder) {
+            // Cek apakah user sudah memiliki izin pada subfolder
+            $existingPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $subfolder->id)->first();
+            if (!$existingPermission) {
+                UserFolderPermission::create([
+                    'user_id' => $userId,
+                    'folder_id' => $subfolder->id,
+                    'permissions' => $permissions
+                ]);
+            }
+
+            // Rekursif untuk sub-subfolder
+            $this->applyPermissionToSubfoldersAndFiles($subfolder, $userId, $permissions);
+        }
+
+        // Terapkan izin pada file, kecuali file yang sudah ada izin
+        foreach ($folder->files as $file) {
+            $existingFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $file->id)->first();
+            if (!$existingFilePermission) {
+                UserFilePermission::create([
+                    'user_id' => $userId,
+                    'file_id' => $file->id,
+                    'permissions' => $permissions
+                ]);
+            }
         }
     }
 
@@ -248,20 +285,23 @@ class PermissionFolderController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $userFolderPermission = UserFolderPermission::where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
 
             if (!$userFolderPermission) {
                 return response()->json([
-                    'errors' => 'The user whose permissions you want to change is not registered in the permissions data.'
+                    'errors' => 'The user whose permissions you want to change is not registered in the permissions data. Please use endpoint "grantPermission" first.'
                 ], 404);
             }
 
-            // custom what permission to be revoked
+            DB::beginTransaction();
+
             $userFolderPermission->permissions = $request->permissions;
             $userFolderPermission->save();
+
+            // Terapkan perubahan izin pada subfolder dan file (kecuali file yang sudah ada izin)
+            $this->applyPermissionToSubfoldersAndFiles($folder, $request->user_id, $request->permissions);
+
             DB::commit();
 
             return response()->json([
@@ -310,8 +350,6 @@ class PermissionFolderController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $userFolderPermission = UserFolderPermission::where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
 
@@ -321,7 +359,13 @@ class PermissionFolderController extends Controller
                 ], 404);
             }
 
+            DB::beginTransaction();
+
             $userFolderPermission->delete();
+
+            // Cabut izin dari subfolder dan file (kecuali file yang sudah ada izin)
+            $this->removePermissionFromSubfoldersAndFiles($folder, $request->user_id);
+
             DB::commit();
 
             return response()->json([
@@ -334,6 +378,21 @@ class PermissionFolderController extends Controller
             return response()->json([
                 'errors' => 'An error occured while revoking user permission.'
             ], 500);
+        }
+    }
+
+
+    private function removePermissionFromSubfoldersAndFiles($folder, $userId)
+    {
+        // Hapus izin dari semua subfolder
+        foreach ($folder->subfolders as $subfolder) {
+            UserFolderPermission::where('user_id', $userId)->where('folder_id', $subfolder->id)->delete();
+            $this->removePermissionFromSubfoldersAndFiles($subfolder, $userId);
+        }
+
+        // Hapus izin dari file
+        foreach ($folder->files as $file) {
+            UserFilePermission::where('user_id', $userId)->where('file_id', $file->id)->delete();
         }
     }
 }

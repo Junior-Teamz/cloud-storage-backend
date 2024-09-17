@@ -102,7 +102,7 @@ class TagController extends Controller
             }
 
             $tag = Tags::create([
-                'name' => $request->name
+                'name' => ucwords($request->name)
             ]);
             DB::commit();
 
@@ -147,8 +147,6 @@ class TagController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
-        DB::beginTransaction();
         try {
 
             $tag = Tags::find($id);
@@ -159,8 +157,10 @@ class TagController extends Controller
                 ], 404);
             }
 
-            // Update the tag
-            $tag->name = $request->name;
+            DB::beginTransaction();
+
+            // update tag
+            $tag->name = ucwords($request->name);
             $tag->save();
             DB::commit();
 

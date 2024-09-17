@@ -240,7 +240,7 @@ class FolderController extends Controller
      */
     public function info($id)
     {
-        // periksa apakah user memiliki izin read.
+        // Periksa apakah user memiliki izin read.
         $permission = $this->checkPermissionFolderService->checkPermissionFolder($id, ['read']);
 
         if (!$permission) {
@@ -250,13 +250,16 @@ class FolderController extends Controller
         }
 
         try {
-            // Cari folder dengan ID yang diberikan dan sertakan subfolder, file, tags, dan instances yang relevan
+            $user = Auth::user();
+
+            // Cari folder dengan ID yang diberikan dan sertakan subfolder, file, tags, instances, dan userFolderPermissions yang relevan
             $folder = Folder::with([
                 'user:id,name,email',
                 'subfolders:id,parent_id,name,type,created_at,updated_at,user_id',
                 'files:id,folder_id,name,path,size,type,created_at,updated_at,user_id',
                 'tags:id,name',
-                'instances:id,name,address'
+                'instances:id,name,address',
+                'userFolderPermissions.user:id,name,email' // Menambahkan relasi untuk mengambil shared users
             ])->findOrFail($id);
 
             // Persiapkan respon untuk folder
@@ -271,7 +274,6 @@ class FolderController extends Controller
                     'name' => $folder->user->name,
                     'email' => $folder->user->email
                 ],
-                // Map tags and instances for folder
                 'tags' => $folder->tags->map(function ($tag) {
                     return [
                         'id' => $tag->id,
@@ -283,6 +285,14 @@ class FolderController extends Controller
                         'id' => $instance->id,
                         'name' => $instance->name,
                         'address' => $instance->address
+                    ];
+                }),
+                // Map shared users untuk folder
+                'shared_with' => $folder->userFolderPermissions->map(function ($permission) {
+                    return [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
                     ];
                 })
             ];
@@ -300,7 +310,6 @@ class FolderController extends Controller
                         'name' => $subfolder->user->name,
                         'email' => $subfolder->user->email
                     ],
-                    // Map tags and instances for folder
                     'tags' => $subfolder->tags->map(function ($tag) {
                         return [
                             'id' => $tag->id,
@@ -312,6 +321,14 @@ class FolderController extends Controller
                             'id' => $instance->id,
                             'name' => $instance->name,
                             'address' => $instance->address
+                        ];
+                    }),
+                    // Map shared users untuk subfolder
+                    'shared_with' => $subfolder->userFolderPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->user->id,
+                            'name' => $permission->user->name,
+                            'email' => $permission->user->email,
                         ];
                     })
                 ];
@@ -327,6 +344,7 @@ class FolderController extends Controller
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
+                    'image_url' => null,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
                     'user' => [
@@ -334,7 +352,6 @@ class FolderController extends Controller
                         'name' => $file->user->name,
                         'email' => $file->user->email
                     ],
-                    // Map tags and instances for folder
                     'tags' => $file->tags->map(function ($tag) {
                         return [
                             'id' => $tag->id,
@@ -346,6 +363,14 @@ class FolderController extends Controller
                             'id' => $instance->id,
                             'name' => $instance->name,
                             'address' => $instance->address
+                        ];
+                    }),
+                    // Map shared users untuk file
+                    'shared_with' => $file->userPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->user->id,
+                            'name' => $permission->user->name,
+                            'email' => $permission->user->email,
                         ];
                     })
                 ];
