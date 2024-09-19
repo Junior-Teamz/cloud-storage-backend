@@ -37,7 +37,7 @@ class WebhookController extends Controller
 
                 $pullProcess->run();
 
-                // Cek apakah git pull berhasil
+                // Cek apakah git pull berhasil tanpa throw error
                 if (!$pullProcess->isSuccessful()) {
                     Log::warning('Git Pull Failed', ['output' => $pullProcess->getErrorOutput()]);
                 }
