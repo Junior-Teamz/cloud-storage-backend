@@ -137,7 +137,7 @@ class FileController extends Controller
      */
     public function info($id)
     {
-        $checkPermission = $this->checkPermissionFile($id, ['read']);
+        $checkPermission = $this->checkPermissionFile($id, ['read', 'write']);
 
         if (!$checkPermission) {
             return response()->json([
@@ -253,10 +253,10 @@ class FileController extends Controller
             }
         }
 
-        // START MYSQL TRANSACTION
-        DB::beginTransaction();
-
         try {
+            // START MYSQL TRANSACTION
+            DB::beginTransaction();
+
             $filesData = []; // Array untuk menyimpan data file yang berhasil diunggah
 
             $userData = User::where('id', $user->id)->first();
@@ -474,8 +474,6 @@ class FileController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $file = File::findOrFail($request->file_id);
             $tag = Tags::findOrFail($request->tag_id);
@@ -486,6 +484,8 @@ class FileController extends Controller
                     'errors' => 'Tag already exists in folder.'
                 ], 409);
             }
+
+            DB::beginTransaction();
 
             // Menambahkan tag ke file (tabel pivot file_has_tags)
             $file->tags()->attach($tag->id);
@@ -548,8 +548,6 @@ class FileController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $file = File::findOrFail($request->file_id);
             $tag = Tags::findOrFail($request->tag_id);
@@ -560,6 +558,8 @@ class FileController extends Controller
                     'errors' => 'Tag not found in file.'
                 ], 404);
             }
+
+            DB::beginTransaction();
 
             // Menghapus tag dari file (tabel pivot file_has_tags)
             $file->tags()->detach($tag->id);
@@ -618,9 +618,9 @@ class FileController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
             $file = File::findOrFail($id);
 
             // Dapatkan ekstensi asli dari nama file yang ada
@@ -714,9 +714,9 @@ class FileController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
             $file = File::findOrFail($id);
             $oldPath = $file->path;
 
@@ -808,11 +808,10 @@ class FileController extends Controller
 
         $fileIds = $request->file_ids;
 
-        DB::beginTransaction();
-
         try {
-
             $files = File::whereIn('id', $fileIds);
+
+            DB::beginTransaction();
 
             foreach ($files as $file) {
                 if (!$this->checkPermissionFile($file->id, 'write')) {

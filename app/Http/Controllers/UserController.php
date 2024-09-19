@@ -204,9 +204,9 @@ class UserController extends Controller
             ], 422);
         }
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
             $updatedUser = User::where('id', $user->id)->update([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -244,11 +244,12 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
             // Hapus folder dan file terkait dari local storage
             $folders = Folder::where('user_id', $user->id)->get();
+            
             if(!$folders->isEmpty()){
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder);

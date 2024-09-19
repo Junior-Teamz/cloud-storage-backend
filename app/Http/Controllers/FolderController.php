@@ -241,7 +241,7 @@ class FolderController extends Controller
     public function info($id)
     {
         // Periksa apakah user memiliki izin read.
-        $permission = $this->checkPermissionFolderService->checkPermissionFolder($id, ['read']);
+        $permission = $this->checkPermissionFolderService->checkPermissionFolder($id, ['read', 'write']);
 
         if (!$permission) {
             return response()->json([

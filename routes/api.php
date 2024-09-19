@@ -30,9 +30,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 
 Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['auth:api']);
 
-Route::middleware(['encode_id', 'decode_id'])->group(function () {
+Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTag'])->group(function () {
 
-    Route::middleware(['auth:api', 'remove_nanoid', 'protectRootFolder', 'check_admin', 'hide_superadmin_flag'])->group(function () {
+    Route::middleware(['auth:api', 'remove_nanoid', 'check_admin','hide_superadmin_flag'])->group(function () {
 
         Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
 
@@ -82,6 +82,10 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
 
             Route::post('/download', [FileController::class, 'downloadFile']); // Mendownload File
 
+            Route::post('/addTag', [FileController::class, 'addTagToFile']); // Tambahkan tag ke file
+
+            Route::post('/removeTag', [FileController::class, 'removeTagFromFile']); // hapus tag dari file
+
             Route::put('/change_name/{id}', [FileController::class, 'updateFileName']); // Memperbarui nama file
 
             Route::post('/delete', [FileController::class, 'delete']); // Menghapus file
@@ -93,10 +97,6 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
             Route::get('/index', [TagController::class, 'index']); // dapatkan semua list tag yang ada
 
             Route::get('/getTagsInfo/{tagId}', [TagController::class, 'getTagsInformation']); // informasi tag spesifik
-        });
-
-        Route::prefix('instance')->group(function () {
-
         });
 
         Route::prefix('permission')->group(function () {
@@ -203,7 +203,13 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
 
             Route::get('/getTagsInfo/{tagId}', [TagController::class, 'getTagsInformation']); // informasi tag spesifik
 
+            Route::get('/getTagUsageStatistic', [TagController::class, 'getTagUsageStatistics']); // Mendapatkan statistik tag
+
+            Route::get('/countAll', [TagController::class, 'countAllTags']); // Mendapatkan total tag
+
             Route::post('/create', [TagController::class, 'store']); // Buat tag baru
+
+            Route::post('/import', [TagController::class, 'import']); // Mengimpor tag
 
             Route::put('/update/{tagId}', [TagController::class, 'update']); // Update tag yang ada sebelumnya
 
@@ -215,7 +221,13 @@ Route::middleware(['encode_id', 'decode_id'])->group(function () {
 
             Route::get('/search', [InstanceController::class, 'getInstanceWithName']); // Mendapatkan daftar ID instansi berdasarkan nama (contoh: /instance?name=instansi)
 
+            Route::get('/statistic', [InstanceController::class, 'getInstanceUsageStatistics']); // Mendapatkan statistik instansi
+
+            Route::get('/countAll', [InstanceController::class, 'countAllInstance']); // Mendapatkan total instansi
+
             Route::post('/create', [InstanceController::class, 'store']); // Membuat instansi baru
+
+            Route::post('/import', [InstanceController::class, 'import']); // Mengimpor instansi
 
             Route::put('/update/{id}', [InstanceController::class, 'update']); // Update instansi yang ada sebelumnya
 

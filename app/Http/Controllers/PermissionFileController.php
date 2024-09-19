@@ -24,7 +24,7 @@ class PermissionFileController extends Controller
         // If file not found, return 404 error and stop the process
         if (!$file) {
             return response()->json([
-                'errors' => 'file dengan file ID yang anda masukan tidak ditemukan, Silahkan periksa kembali file ID yang anda masukan.'
+                'errors' => 'File with File ID you entered not found, Please check your File ID and try again.'
             ], 404); // Setting status code to 404 Not Found
         }
 
@@ -161,8 +161,6 @@ class PermissionFileController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $userFilePermission = UserFilePermission::where('user_id', $request->user_id)->where('file_id', $request->file_id)->first();
 
@@ -172,11 +170,14 @@ class PermissionFileController extends Controller
                 ], 409); // HTTP response konflik karena data perizinan user sudah ada sebelumnya.
             }
 
+            DB::beginTransaction();
+
             $userFilePermission = UserFilePermission::create([
                 'user_id' => $request->user_id,
                 'file_id' => $request->file_id,
                 'permissions' => $request->permissions
             ]);
+
             DB::commit();
 
             return response()->json([
@@ -226,8 +227,6 @@ class PermissionFileController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $userFilePermission = UserFilePermission::where('user_id', $request->user_id)->where('file_id', $request->file_id)->first();
 
@@ -237,9 +236,12 @@ class PermissionFileController extends Controller
                 ], 404);
             }
 
+            DB::beginTransaction();
+
             // custom what permission to be revoked
             $userFilePermission->permissions = $request->permissions;
             $userFilePermission->save();
+
             DB::commit();
 
             return response()->json([
@@ -288,8 +290,6 @@ class PermissionFileController extends Controller
             ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
             $userFilePermission = UserFilePermission::where('user_id', $request->user_id)->where('file_id', $request->file_id)->first();
 
@@ -299,7 +299,10 @@ class PermissionFileController extends Controller
                 ], 404);
             }
 
+            DB::beginTransaction();
+
             $userFilePermission->delete();
+            
             DB::commit();
 
             return response()->json([

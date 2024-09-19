@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\FAQ;
 use App\Services\CheckAdminService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -22,30 +21,44 @@ class FAQController extends Controller
 
     public function index(Request $request)
     {
+        // Mengecek apakah pengguna adalah admin
         $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if(!$checkAdmin) {
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You do not have permission to fetch FAQs.'
             ], 403);
         }
 
         try {
-            $faqs = FAQ::all();
+            // Ambil query pencarian dari request jika ada
+            $searchQuery = $request->query('name');
 
+            $faqQuery = FAQ::query();
+
+            // Jika ada query pencarian, filter berdasarkan nama
+            if ($searchQuery) {
+                $faqs = $faqQuery->where('name', 'like', '%' . $searchQuery . '%')->paginate(10); // Filter by name with pagination
+            } else {
+                // Jika tidak ada query pencarian, tampilkan semua FAQ dengan pagination
+                $faqs = $faqQuery->paginate(10);
+            }
+
+            // Jika tidak ada FAQ yang ditemukan
             if ($faqs->isEmpty()) {
                 return response()->json([
-                    'message' => 'FAQ is empty'
+                    'message' => 'No FAQs found.'
                 ], 404);
             }
 
+            // Kembalikan response JSON dengan data FAQ yang ditemukan
             return response()->json([
                 'data' => $faqs
             ], 200);
-
         } catch (\Exception $e) {
+            // Log error jika terjadi exception
             Log::error('An error occurred while fetching FAQs: ' . $e->getMessage());
-            
+
             return response()->json([
                 'errors' => 'An error occurred while fetching FAQs.'
             ], 500);
@@ -56,12 +69,12 @@ class FAQController extends Controller
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if(!$checkAdmin) {
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You do not have permission to fetch FAQs.'
             ], 403);
         }
-        
+
         try {
 
             $faq = FAQ::find($id);
@@ -74,14 +87,12 @@ class FAQController extends Controller
             return response()->json([
                 'data' => $faq
             ], 200);
-
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Error occured while fetching spesific FAQ: ' . $e->getMessage());
 
             return response()->json([
                 'errors' => 'An error occurred while fetching spesific FAQ.'
             ], 500);
-
         }
     }
 
@@ -89,7 +100,7 @@ class FAQController extends Controller
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if(!$checkAdmin) {
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You do not have permission to create FAQs.'
             ], 403);
@@ -109,8 +120,8 @@ class FAQController extends Controller
             ], 422);
         }
 
-        DB::beginTransaction();
         try {
+            DB::beginTransaction();
 
             $faq = FAQ::create([
                 'question' => $request->question,
@@ -123,7 +134,6 @@ class FAQController extends Controller
                 'message' => 'FAQ created successfully',
                 'data' => $faq
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -139,7 +149,7 @@ class FAQController extends Controller
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if(!$checkAdmin) {
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You do not have permission to update FAQs.'
             ], 403);
@@ -147,7 +157,7 @@ class FAQController extends Controller
 
         $faq = FAQ::find($id);
 
-        if(!$faq) {
+        if (!$faq) {
             return response()->json([
                 'errors' => 'FAQ not found'
             ], 404);
@@ -167,18 +177,19 @@ class FAQController extends Controller
             ], 422);
         }
 
-        DB::beginTransaction();
         try {
-            $faq->question = $request->question;    
+            DB::beginTransaction();
+
+            $faq->question = $request->question;
             $faq->answer = $request->answer;
             $faq->save();
+
             DB::commit();
 
             return response()->json([
                 'message' => 'FAQ updated successfully',
                 'data' => $faq
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -194,7 +205,7 @@ class FAQController extends Controller
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if(!$checkAdmin) {
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You do not have permission to delete FAQs.'
             ], 403);
@@ -202,15 +213,17 @@ class FAQController extends Controller
 
         $faq = FAQ::find($id);
 
-        if(!$faq) {
+        if (!$faq) {
             return response()->json([
                 'errors' => 'FAQ not found'
             ], 404);
         }
 
-        DB::beginTransaction();
         try {
+            DB::beginTransaction();
+
             $faq->delete();
+            
             DB::commit();
 
             return response()->json([
@@ -221,7 +234,7 @@ class FAQController extends Controller
             DB::rollBack();
 
             Log::error('An error occurred while deleting FAQ: ' . $e->getMessage());
-            
+
             return response()->json([
                 'errors' => 'An error occurred while deleting FAQ.'
             ], 500);

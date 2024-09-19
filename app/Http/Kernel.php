@@ -37,6 +37,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ],
 
         'api' => [
@@ -66,6 +67,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'remove_nanoid' => \App\Http\Middleware\Custom\RemoveNanoidFromResponse::class,
         'protectRootFolder' => \App\Http\Middleware\Custom\ProtectRootFolder::class,
+        'protectRootTag' => \App\Http\Middleware\Custom\PreventRootTagModification::class,
         'check_admin' => \App\Http\Middleware\Custom\CheckAdmin::class,
         'validate_admin' => \App\Http\Middleware\Custom\ValidateAdmin::class,
         'hide_superadmin_flag' => \App\Http\Middleware\Custom\HideSuperadminFlag::class,

@@ -19,8 +19,8 @@ return new class extends Migration
             $table->string('public_path');
             $table->unsignedBigInteger('size');
             $table->string('type');
-            $table->foreignId('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreignId('folder_id')->nullable()->references('id')->on('folders')->cascadeOnDelete();
+            $table->foreignId('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignId('folder_id')->index()->nullable()->references('id')->on('folders')->cascadeOnDelete();
             $table->timestamps();
         });
     }

@@ -24,4 +24,16 @@ class Tags extends Model
     {
         return $this->belongsToMany(File::class, 'file_has_tags');
     }
+
+    public function getUsageCountAttribute()
+    {
+        // Hitung jumlah penggunaan tag pada files
+        $fileCount = $this->files()->count();
+
+        // Hitung jumlah penggunaan tag pada folders
+        $folderCount = $this->folders()->count();
+
+        // Gabungkan keduanya
+        return $fileCount + $folderCount;
+    }
 }

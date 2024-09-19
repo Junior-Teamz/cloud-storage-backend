@@ -74,51 +74,104 @@ class AdminController extends Controller
 
                 $keywordName = $request->query('name');
 
-                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->with('instances:id,name,address')->paginate(10);
+                // Cari user berdasarkan nama dengan relasi instances, roles, dan folder root
+                $allUser = User::where('name', 'like', '%' . $keywordName . '%')
+                    ->with([
+                        'instances:id,name,address',
+                        'folders' => function ($query) {
+                            $query->whereNull('parent_id')->select('id', 'name', 'public_path', 'user_id', 'parent_id'); // Ambil folder root dan hide nanoid
+                        }
+                    ])
+                    ->paginate(10);
 
-                $allUser['role'] = $allUser->roles->pluck('name');
+                // Tambahkan informasi role dan sembunyikan relasi roles
+                $allUser->getCollection()->transform(function ($user) {
+                    $user['role'] = $user->roles->pluck('name');
+                    $user->makeHidden('roles');
+                    return $user;
+                });
 
-                // Sembunyikan relasi roles dari hasil response
-                $allUser->makeHidden('roles');
-
-                return response()->json($allUser, 200);  // Kembalikan hasil pagination tanpa membungkus lagi
+                return response()->json($allUser, 200);
             }
             // Cari data berdasarkan Email User
             else if ($request->query('email')) {
 
                 $keywordEmail = $request->query('email');
 
-                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->with('instances:id,name,address')->paginate(10);
+                // Cari user berdasarkan email dengan relasi instances, roles, dan folder root
+                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')
+                    ->with([
+                        'instances:id,name,address',
+                        'folders' => function ($query) {
+                            $query->whereNull('parent_id')->select('id', 'name', 'public_path', 'user_id', 'parent_id', 'created_at', 'updated_at'); // Ambil folder root dan hide nanoid
+                        }
+                    ])
+                    ->paginate(10);
 
-                $allUser['role'] = $allUser->roles->pluck('name');
-
-                // Sembunyikan relasi roles dari hasil response
-                $allUser->makeHidden('roles');
-
-                return response()->json($allUser, 200);  // Kembalikan hasil pagination tanpa membungkus lagi
-            } else {
-                // Mengambil semua data pengguna dengan pagination
-                $allUser = User::with('instances:id,name,address', 'roles')->paginate(10);
-
-                // Iterasi setiap user dalam koleksi paginasi dan lakukan transformasi
+                // Tambahkan informasi role dan sembunyikan relasi roles
                 $allUser->getCollection()->transform(function ($user) {
-                    // Ambil hanya nama role
                     $user['role'] = $user->roles->pluck('name');
-
-                    // Sembunyikan relasi roles
                     $user->makeHidden('roles');
-
                     return $user;
                 });
 
+                return response()->json($allUser, 200);
+            } else {
+                // Ambil semua user dengan relasi instances, roles, dan folder root
+                $allUser = User::with([
+                    'instances:id,name,address',
+                    'folders' => function ($query) {
+                        $query->whereNull('parent_id')->select('id', 'name', 'public_path', 'user_id', 'parent_id', 'created_at', 'updated_at'); // Ambil folder root dan hide nanoid
+                    }
+                ])->paginate(10);
 
-                return response()->json($allUser, 200);  // Kembalikan hasil pagination tanpa membungkus lagi
+                // Iterasi setiap user dan tambahkan informasi role serta sembunyikan relasi roles
+                $allUser->getCollection()->transform(function ($user) {
+                    $user['role'] = $user->roles->pluck('name');
+                    $user->makeHidden('roles');
+                    return $user;
+                });
+
+                return response()->json($allUser, 200);
             }
         } catch (\Exception $e) {
             Log::error("Error occurred on getting user list: " . $e->getMessage());
 
             return response()->json([
                 'errors' => 'An error occurred on getting user list.',
+            ], 500);
+        }
+    }
+
+    public function countAllUser()
+    {
+        $checkAdmin = $this->checkAdminService->checkAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        try {
+            $userCount = User::count();
+
+            if ($userCount->isEmpty()) {
+                return response()->json([
+                    'message' => 'User registered is empty.',
+                    'user_count' => $userCount
+                ]);
+            }
+
+            return response()->json([
+                'user_count' => $userCount
+            ]);
+        } catch (Exception $e) {
+
+            Log::error('Error occurred on getting user count: ' . $e->getMessage());
+
+            return response()->json([
+                'errors' => 'An error occurred on getting user count.',
             ], 500);
         }
     }
@@ -213,9 +266,9 @@ class AdminController extends Controller
             ], 422);
         }
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
             $newUser = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -404,10 +457,11 @@ class AdminController extends Controller
                 ], 403);
             }
 
-            DB::beginTransaction();
-
             // Hapus folder dan file terkait dari local storage
             $folders = Folder::where('user_id', $userData->id)->get();
+
+            DB::beginTransaction();
+
             if (!$folders->isEmpty()) {
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder);
@@ -415,6 +469,7 @@ class AdminController extends Controller
             }
 
             $userData->delete();
+
             DB::commit();
 
             return response()->json([
@@ -438,20 +493,19 @@ class AdminController extends Controller
      */
     private function deleteFolderAndFiles(Folder $folder)
     {
-        DB::beginTransaction();
-
         try {
             // Hapus semua file dalam folder
             $files = $folder->files;
+            
+            DB::beginTransaction();
+
             foreach ($files as $file) {
                 try {
                     // Hapus file dari storage
                     Storage::delete($file->path);
                     // Hapus data file dari database
                     $file->delete();
-                    DB::commit();
                 } catch (\Exception $e) {
-                    DB::rollBack();
                     Log::error('Error occurred while deleting file with ID ' . $file->id . ': ' . $e->getMessage());
                     // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
                     throw $e;
@@ -479,14 +533,16 @@ class AdminController extends Controller
             // Hapus data folder dari database
             try {
                 $folder->delete();
-                DB::commit();
             } catch (\Exception $e) {
-                DB::rollBack();
                 Log::error('Error occurred while deleting folder record with ID ' . $folder->id . ': ' . $e->getMessage());
                 // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
                 throw $e;
             }
+
+            // Commit transaksi setelah semua operasi berhasil
+            DB::commit();
         } catch (\Exception $e) {
+            // Rollback transaksi jika terjadi kesalahan
             DB::rollBack();
             Log::error('Error occurred while processing folder with ID ' . $folder->id . ': ' . $e->getMessage());
             // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil

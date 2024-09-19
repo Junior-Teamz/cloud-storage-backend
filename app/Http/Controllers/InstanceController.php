@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\MissingColumnException;
+use App\Imports\InstanceImport;
 use App\Models\Instance;
 use App\Services\CheckAdminService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InstanceController extends Controller
 {
@@ -34,7 +38,7 @@ class InstanceController extends Controller
 
         if (!$checkAdmin) {
             return response()->json([
-                'errors' => 'Anda tidak memiliki izin untuk melihat semua instance.'
+                'errors' => 'You are not allowed to perform this action.'
             ], 403);
         }
 
@@ -47,7 +51,7 @@ class InstanceController extends Controller
 
                 if ($allInstance->isEmpty()) {
                     return response()->json([
-                        'errors' => 'Data instance tidak ditemukan.'
+                        'errors' => 'Instance data not found.'
                     ], 404);
                 }
 
@@ -58,12 +62,12 @@ class InstanceController extends Controller
 
                 return response()->json($allInstance, 200);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
-            Log::error('Terjadi kesalahan saat mendapatkan data instance: ' . $e->getMessage());
+            Log::error('Error occured while fetching instance data: ' . $e->getMessage());
 
             return response()->json([
-                'errors' => 'Terjadi kesalahan saat mendapatkan data instance.'
+                'errors' => 'An error occurred while fetching instance data.'
             ], 500);
         }
     }
@@ -80,7 +84,7 @@ class InstanceController extends Controller
 
         if (!$checkAdmin) {
             return response()->json([
-                'errors' => 'Anda tidak memiliki izin untuk melihat semua tag.'
+                'errors' => 'You are not allowed to perform this action.'
             ], 403);
         }
 
@@ -94,7 +98,7 @@ class InstanceController extends Controller
 
             if ($instanceId->isEmpty()) {
                 return response()->json([
-                    'errors' => 'Data instansi tidak ditemukan.'
+                    'errors' => 'Instance data not found.'
                 ], 404);
             }
 
@@ -102,10 +106,112 @@ class InstanceController extends Controller
             return response()->json([
                 'data' => $instanceId
             ], 200);
-        } catch (\Exception $e) {
-            Log::error('Terjadi kesalahan saat mendapatkan data tag: ' . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Error occured while fetching instance data: ' . $e->getMessage());
             return response()->json([
-                'errors' => 'Terjadi kesalahan saat mendapatkan data tag.'
+                'errors' => 'An error occurred while fetching instance data.'
+            ], 500);
+        }
+    }
+
+    public function countAllInstance()
+    {
+        $checkAdmin = $this->checkAdminService->checkAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        try {
+            $countInstance = Instance::count();
+
+            if ($countInstance->isEmpty()) {
+                return response()->json([
+                    'message' => 'Instance is empty.',
+                    'instance_count' => $countInstance
+                ], 404);
+            }
+
+            return response()->json([
+                'instance_count' => $countInstance
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error occured while fetching count all instance: ' . $e->getMessage());
+
+            return response()->json([
+                'errors' => 'An error occurred while fetching count all instance.'
+            ], 500);
+        }
+    }
+
+    public function getInstanceUsageStatistics(Request $request)
+    {
+        $checkAdmin = $this->checkAdminService->checkAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        try {
+            // Ambil semua instansi dengan pagination
+            $perPage = $request->query('per_page', 10); // Default paginate 10 item per halaman
+            $instances = Instance::paginate($perPage);
+
+            // Buat array untuk menampung data
+            $data = [];
+
+            // Loop melalui setiap instansi untuk menghitung statistik
+            foreach ($instances as $instance) {
+                // Hitung jumlah user yang menggunakan instansi ini
+                $userTotal = DB::table('user_has_instances')
+                    ->where('instance_id', $instance->id)
+                    ->distinct('user_id')
+                    ->count('user_id');
+
+                // Hitung jumlah folder yang menggunakan instansi ini
+                $folderTotal = DB::table('folder_has_instances')
+                    ->where('instance_id', $instance->id)
+                    ->distinct('folder_id')
+                    ->count('folder_id');
+
+                // Hitung jumlah file yang menggunakan instansi ini
+                $fileTotal = DB::table('file_has_instances')
+                    ->where('instance_id', $instance->id)
+                    ->distinct('file_id')
+                    ->count('file_id');
+
+                // Masukkan data ke dalam array
+                $data[] = [
+                    'id' => $instance->id,
+                    'name' => $instance->name,
+                    'address' => $instance->address,
+                    'user_total' => $userTotal,
+                    'folder_total' => $folderTotal,
+                    'file_total' => $fileTotal,
+                ];
+            }
+
+            // Gunakan pagination data dan tambahkan data statistik yang dihasilkan
+            $paginatedData = [
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $instances->currentPage(),
+                    'per_page' => $instances->perPage(),
+                    'total' => $instances->total(),
+                    'last_page' => $instances->lastPage(),
+                ]
+            ];
+
+            // Mengembalikan data dalam format JSON
+            return response()->json($paginatedData, 200);
+        } catch (Exception $e) {
+            Log::error('Error occurred while fetching instance usage statistics: ' . $e->getMessage());
+            return response()->json([
+                'errors' => 'An error occurred while fetching instance usage statistics.'
             ], 500);
         }
     }
@@ -122,7 +228,7 @@ class InstanceController extends Controller
 
         if (!$checkAdmin) {
             return response()->json([
-                'errors' => 'Anda tidak memiliki izin untuk membuat instance.'
+                'errors' => 'You are not allowed to perform this action.'
             ], 403);
         }
 
@@ -138,28 +244,92 @@ class InstanceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
+            $uppercasedInstanceName = ucwords($request->name);
+
             $instance = Instance::create([
-                'name' => $request->name,
+                'name' => $uppercasedInstanceName,
                 'address' => $request->address,
             ]);
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Instansi Berhasil Dibuat',
+                'message' => 'Instance created successfully.',
                 'data' => $instance
             ], 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             DB::rollBack();
 
-            Log::error('Terjadi kesalahan saat membuat instance: ' . $e->getMessage());
+            Log::error('Error occurred while creating instance: ' . $e->getMessage());
 
             return response()->json([
-                'errors' => 'Terjadi kesalahan saat membuat instance.'
+                'errors' => 'An error occurred while creating instance.'
+            ], 500);
+        }
+    }
+
+    public function import(Request $request)
+    {
+        $checkAdmin = $this->checkAdminService->checkAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        // Validasi file yang diupload
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        try {
+            DB::beginTransaction();
+            
+            // Inisialisasi objek InstanceImport
+            $instanceImport = new InstanceImport;
+
+            // Lakukan import menggunakan Laravel Excel
+            Excel::import($instanceImport, $request->file('file'));
+
+            // Ambil jumlah instansi yang invalid dan duplikat
+            $invalidCount = $instanceImport->getInvalidInstancesCount();
+            $duplicateCount = $instanceImport->getDuplicateInstancesCount();
+
+            DB::commit();
+
+            // Kembalikan respon sukses, dengan informasi mengenai instansi yang invalid dan duplikat
+            return response()->json([
+                'message' => ($invalidCount || $duplicateCount) ? 'The instance was successfully imported, but there are invalid or duplicate instance names.' : 'Instances imported successfully.',
+                'invalid_instances_total' => $invalidCount,
+                'duplicate_instances_total' => $duplicateCount
+            ], 200);
+        } catch (MissingColumnException $e) {
+            DB::rollBack();
+
+            // Tangani error ketika kolom tidak ditemukan
+            Log::error($e->getMessage());
+
+            return response()->json([
+                'errors' => $e->getMessage()
+            ], 400);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('Error occurred while importing instances: ' . $e->getMessage());
+
+            return response()->json([
+                'errors' => 'An error occurred while importing instances.'
             ], 500);
         }
     }
@@ -177,7 +347,7 @@ class InstanceController extends Controller
 
         if (!$checkAdmin) {
             return response()->json([
-                'errors' => 'Anda tidak memiliki izin untuk mengubah instance.'
+                'errors' => 'You are not allowed to perform this action.'
             ], 403);
         }
 
@@ -193,36 +363,38 @@ class InstanceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
+
             $instance = Instance::find($id);
 
             if (!$instance) {
                 return response()->json([
-                    'errors' => 'Instansi tidak ditemukan.'
+                    'errors' => 'Instance not found.'
                 ], 404);
             }
 
+            $uppercasedInstanceName = ucwords($request->name);
+
             $instance->update([
-                'name' => $request->name,
+                'name' => $uppercasedInstanceName,
                 'address' => $request->address,
             ]);
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Instansi Berhasil Diperbarui',
+                'message' => 'Instance updated successfully.',
                 'data' => $instance
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             DB::rollBack();
 
-            Log::error('Terjadi kesalahan saat memperbarui instance: ' . $e->getMessage());
+            Log::error('Error occurred while updating instance: ' . $e->getMessage());
 
             return response()->json([
-                'errors' => 'Terjadi kesalahan saat memperbarui instance.'
+                'errors' => 'An error occurred while updating instance.'
             ], 500);
         }
     }
@@ -242,7 +414,7 @@ class InstanceController extends Controller
 
         if (!$checkAdmin) {
             return response()->json([
-                'errors' => 'Anda tidak memiliki izin untuk menghapus instance.'
+                'errors' => 'You are not allowed to perform this action.'
             ], 403);
         }
 
@@ -258,23 +430,22 @@ class InstanceController extends Controller
         // Ambil daftar tag_ids dari request
         $instanceIds = $request->instance_ids;
 
-        DB::beginTransaction();
-
         try {
-
             // Gunakan whereIn untuk efisiensi dan menghapus dalam satu query
             $instances = Instance::whereIn('id', $instanceIds)->get();
 
-            foreach($instances as $instance){
-                if($instance->users()->exists()){
+            DB::beginTransaction();
+
+            foreach ($instances as $instance) {
+                if ($instance->users()->exists()) {
                     $instance->users()->detach();
                 }
 
-                if($instance->folders()->exists()){
+                if ($instance->folders()->exists()) {
                     $instance->folders()->detach();
                 }
 
-                if($instance->files()->exists()){
+                if ($instance->files()->exists()) {
                     $instance->files()->detach();
                 }
 
@@ -284,16 +455,16 @@ class InstanceController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Instansi Berhasil Dihapus',
+                'message' => 'Instances deleted successfully.',
             ], 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
 
             DB::rollBack();
 
-            Log::error('Terjadi kesalahan saat menghapus instance: ' . $e->getMessage());
+            Log::error('Error occurred while deleting instances: ' . $e->getMessage());
 
             return response()->json([
-                'errors' => 'Terjadi kesalahan saat menghapus instance.'
+                'errors' => 'An error occurred while deleting instances.'
             ], 500);
         }
     }

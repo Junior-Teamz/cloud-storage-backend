@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('type');
             $table->string('public_path');
-            $table->foreignId('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->references('id')->on('folders')->cascadeOnDelete();
+            $table->foreignId('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignId('parent_id')->index()->nullable()->references('id')->on('folders')->cascadeOnDelete();
             $table->timestamps();
         });
     }
