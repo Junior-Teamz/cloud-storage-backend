@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Config;
 
 class WebhookController extends Controller
 {
@@ -31,30 +30,33 @@ class WebhookController extends Controller
         // Pastikan event adalah push ke branch 'main'
         if ($request->input('ref') === 'refs/heads/main') {
             try {
-                // Lakukan reset --hard untuk memaksa semua perubahan lokal diabaikan
-                $resetProcess = new Process(['git', 'reset', '--hard']);
-                $resetProcess->run();
-
-                if (!$resetProcess->isSuccessful()) {
-                    Log::error('Git Reset Failed', ['output' => $resetProcess->getErrorOutput()]);
-                    throw new ProcessFailedException($resetProcess);
-                }
-
-                // Lakukan git pull dengan strategi `theirs` untuk memaksa menerima semua perubahan dari remote (GitHub)
+                // Lakukan git pull origin main
                 $pullProcess = new Process([
-                    'git', 'pull', 'origin', 'main', '--strategy=recursive', '--strategy-option=theirs'
+                    'git', 'pull', 'origin', 'main'
                 ], base_path());  // Jalankan perintah di direktori aplikasi
 
                 $pullProcess->run();
 
                 // Cek apakah git pull berhasil
                 if (!$pullProcess->isSuccessful()) {
-                    Log::error('Git Pull Failed', ['output' => $pullProcess->getErrorOutput()]);
-                    throw new ProcessFailedException($pullProcess);
+                    Log::warning('Git Pull Failed', ['output' => $pullProcess->getErrorOutput()]);
+                }
+
+                // Setelah git pull, lakukan git merge dengan strategi theirs
+                $mergeProcess = new Process([
+                    'git', 'merge', '--strategy-option=theirs'
+                ], base_path());
+
+                $mergeProcess->run();
+
+                // Cek apakah git merge berhasil
+                if (!$mergeProcess->isSuccessful()) {
+                    Log::error('Git Merge Failed', ['output' => $mergeProcess->getErrorOutput()]);
+                    throw new ProcessFailedException($mergeProcess);
                 }
 
                 // Log sukses jika git pull dan merge berhasil
-                Log::info('Git Pull and Force Merge (accept theirs) Successful');
+                Log::info('Git Pull and Merge (accept theirs) Successful');
 
                 return response('Webhook handled successfully', 200);
 
