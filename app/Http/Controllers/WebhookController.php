@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
+    // Handle webhook push from github repository.
     public function handle(Request $request)
     {
         // Secret yang diset di GitHub Webhook
