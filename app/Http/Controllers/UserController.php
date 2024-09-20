@@ -99,10 +99,6 @@ class UserController extends Controller
         try {
             $getUserData = User::where('id', $user->id)->with('instances:id,name,address')->first();
 
-            $getFolderRootId = Folder::where('user_id', $user->id)->first();
-
-            $getUserData['folder_root_id'] = $getFolderRootId->id;
-
             return response()->json([
                 'data' => $getUserData
             ], 200);

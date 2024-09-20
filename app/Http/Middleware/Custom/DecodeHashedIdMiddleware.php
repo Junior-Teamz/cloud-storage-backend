@@ -18,23 +18,25 @@ class DecodeHashedIdMiddleware
         // Decode route parameters
         foreach ($routeParameters as $key => $value) {
             if (strpos(strtolower($key), 'id') !== false) {
-                $hashedId = $value;
-
                 try {
-                    $decodedId = $this->decodeId($hashedId);
-                    if (empty($decodedId)) {
-                        return response()->json(['error' => 'Invalid ID'], 400);
+                    if (is_array($value)) {
+                        // Jika parameter adalah array, decode setiap elemen array
+                        $decodedIds = array_map(function ($item) {
+                            return $this->tryDecodeId($item);
+                        }, $value);
+                        $request->route()->setParameter($key, $decodedIds); // Set array hasil decode
+                    } else {
+                        // Jika parameter bukan array, decode langsung
+                        $decodedId = $this->tryDecodeId($value);
+                        $request->route()->setParameter($key, $decodedId);
                     }
-
-                    $request->route()->setParameter($key, $decodedId[0]);
-                    Log::info('Decoded route parameter ID:', ['key' => $key, 'original' => $hashedId, 'decoded' => $decodedId[0]]);
                 } catch (\Exception $e) {
                     return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
                 }
             }
         }
 
-        // Decode body parameters (including form-data, JSON, etc.)
+        // Decode body parameters (termasuk form-data, JSON, dll.)
         $decodedRequest = $this->decodeIdsInRequest($request->all());
 
         // Replace original request data dengan data yang sudah di-decode
@@ -43,31 +45,22 @@ class DecodeHashedIdMiddleware
         return $next($request);
     }
 
-    // Fungsi rekursif untuk mendecode ID di dalam array dan nested array
     protected function decodeIdsInRequest($input)
     {
         foreach ($input as $key => $value) {
             if (is_array($value)) {
-                // Jika key mengandung 'id' dan value adalah array, decode setiap item dalam array
                 if (strpos(strtolower($key), 'id') !== false) {
-                    $input[$key] = array_map(function($item) {
-                        if (!is_numeric($item)) {
-                            $decodedItem = $this->decodeId($item);
-                            return !empty($decodedItem) ? $decodedItem[0] : $item;
-                        }
-                        return $item;
+                    // Jika value adalah array dan key mengandung 'id', decode setiap item
+                    $input[$key] = array_map(function ($item) {
+                        return $this->tryDecodeId($item);
                     }, $value);
                 } else {
-                    // Rekursif jika value adalah array, tapi bukan array ID
+                    // Jika value adalah array, tapi bukan ID, lakukan rekursi
                     $input[$key] = $this->decodeIdsInRequest($value);
                 }
             } else {
-                // Jika key mengandung 'id' dan value bukan numeric, coba decode
-                if (strpos(strtolower($key), 'id') !== false && !is_numeric($value)) {
-                    $decodedValue = $this->decodeId($value);
-                    if (!empty($decodedValue)) {
-                        $input[$key] = $decodedValue[0]; // Ambil hasil decoded ID
-                    }
+                if (strpos(strtolower($key), 'id') !== false) {
+                    $input[$key] = $this->tryDecodeId($value);
                 }
             }
         }
@@ -75,9 +68,22 @@ class DecodeHashedIdMiddleware
         return $input;
     }
 
-    // Decode hashed ID menggunakan HashIdService
+    protected function tryDecodeId($hashedId)
+    {
+        // Fungsi untuk mencoba decode ID hanya jika itu bukan numeric dan string
+        if (!is_numeric($hashedId) && is_string($hashedId)) {
+            $decodedId = $this->decodeId($hashedId);
+            if (!empty($decodedId)) {
+                return $decodedId[0]; // Ambil ID yang di-decode jika valid
+            }
+        }
+
+        return $hashedId; // Jika tidak bisa di-decode, kembalikan nilai aslinya
+    }
+
     protected function decodeId($hashedId)
     {
+        // Decode hashed ID menggunakan HashIdService
         return app(HashIdService::class)->decodeId($hashedId);
     }
 }

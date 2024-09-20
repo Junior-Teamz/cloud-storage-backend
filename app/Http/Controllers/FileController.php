@@ -809,7 +809,8 @@ class FileController extends Controller
         $fileIds = $request->file_ids;
 
         try {
-            $files = File::whereIn('id', $fileIds);
+            $files = File::whereIn('id', $fileIds)->get(); // Tambahkan get() untuk mengeksekusi query
+            $noPermissionFile = []; // Inisialisasi array
 
             DB::beginTransaction();
 
@@ -819,11 +820,11 @@ class FileController extends Controller
                 }
             }
 
-            // Jika ada folder yang tidak memiliki izin
+            // Jika ada file yang tidak memiliki izin
             if (!empty($noPermissionFile)) {
                 Log::error('User attempted to delete file without permission: ' . implode(', ', $noPermissionFile));
                 return response()->json([
-                    'errors' => 'You do not have permission to delete some of the selected file.',
+                    'errors' => 'You do not have permission to delete some of the selected files.',
                 ], 403);
             }
 
