@@ -20,17 +20,22 @@ class ProtectRootFolder
     {
         // Hanya jalankan logika proteksi untuk metode yang memodifikasi data
         if (in_array($request->method(), ['POST', 'PUT', 'DELETE'])) {
-            // Ambil folder ID dari request (misalnya dari route parameter)
-            $folderId = $request->route('id');
+            
+            // Cek apakah route memiliki prefix 'folder' dan memiliki parameter 'id'
+            if ($request->route()->named('folder.*') && $request->route('id')) {
+                // Ambil folder ID dari parameter route 'id'
+                $folderId = $request->route('id');
 
-            // Cari folder tersebut
-            $folder = Folder::find($folderId);
+                // Cari folder berdasarkan ID
+                $folder = Folder::find($folderId);
 
-            // Cek jika folder adalah root (parent_id = null) dan blokir jika ditemukan
-            if ($folder && $folder->parent_id === null) {
-                return response()->json([
-                    'errors' => 'You cannot modify the root folder.'
-                ], Response::HTTP_FORBIDDEN);
+                // Cek jika folder adalah root folder (parent_id = null)
+                if ($folder && $folder->parent_id === null) {
+                    // Blokir operasi jika folder yang sedang dimodifikasi adalah root folder itu sendiri
+                    return response()->json([
+                        'errors' => 'You cannot modify the root folder itself.'
+                    ], Response::HTTP_FORBIDDEN);
+                }
             }
         }
 
