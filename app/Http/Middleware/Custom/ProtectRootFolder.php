@@ -33,7 +33,7 @@ class ProtectRootFolder
                 if ($folder && $folder->parent_id === null) {
                     // Blokir operasi jika folder yang sedang dimodifikasi adalah root folder itu sendiri
                     return response()->json([
-                        'errors' => 'You cannot modify the root folder itself.'
+                        'errors' => 'You cannot modify the root folder.'
                     ], Response::HTTP_FORBIDDEN);
                 }
             }
