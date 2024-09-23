@@ -15,6 +15,6 @@ class NewsTag extends Model
 
     public function news(): BelongsToMany
     {
-        return $this->belongsToMany(News::class, 'news_has_tags')->withTimestamps(); // menggunakan tabel pivot untuk menyalakan otomatisasi timestamp().
+        return $this->belongsToMany(News::class, 'news_has_tags')->withTimestamps();
     }
 }

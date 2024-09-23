@@ -79,7 +79,7 @@ class AdminController extends Controller
                     ->with([
                         'instances:id,name,address',
                         'folders' => function ($query) {
-                            $query->whereNull('parent_id')->select('id', 'name', 'public_path', 'user_id', 'parent_id'); // Ambil folder root dan hide nanoid
+                            $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                         }
                     ])
                     ->paginate(10);
@@ -103,7 +103,33 @@ class AdminController extends Controller
                     ->with([
                         'instances:id,name,address',
                         'folders' => function ($query) {
-                            $query->whereNull('parent_id')->select('id', 'name', 'public_path', 'user_id', 'parent_id', 'created_at', 'updated_at'); // Ambil folder root dan hide nanoid
+                            $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
+                        }
+                    ])
+                    ->paginate(10);
+
+                // Tambahkan informasi role dan sembunyikan relasi roles
+                $allUser->getCollection()->transform(function ($user) {
+                    $user['role'] = $user->roles->pluck('name');
+                    $user->makeHidden('roles');
+                    return $user;
+                });
+
+                return response()->json($allUser, 200);
+            }
+            // Cari berdasarkan nama instansi yang terdaftar pada user
+            else if ($request->query('instance')) {
+
+                $keywordInstance = $request->query('instance');
+
+                // Cari user berdasarkan nama instansi dengan relasi instances, roles, dan folder root
+                $allUser = User::whereHas('instances', function ($query) use ($keywordInstance) {
+                    $query->where('name', 'like', '%' . $keywordInstance . '%');
+                })
+                    ->with([
+                        'instances:id,name,address',
+                        'folders' => function ($query) {
+                            $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                         }
                     ])
                     ->paginate(10);
@@ -121,7 +147,7 @@ class AdminController extends Controller
                 $allUser = User::with([
                     'instances:id,name,address',
                     'folders' => function ($query) {
-                        $query->whereNull('parent_id')->select('id', 'name', 'public_path', 'user_id', 'parent_id', 'created_at', 'updated_at'); // Ambil folder root dan hide nanoid
+                        $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                     }
                 ])->paginate(10);
 
@@ -496,7 +522,7 @@ class AdminController extends Controller
         try {
             // Hapus semua file dalam folder
             $files = $folder->files;
-            
+
             DB::beginTransaction();
 
             foreach ($files as $file) {

@@ -280,6 +280,10 @@ class TagController extends Controller
             ]);
         }
 
+        // Simpan file ke storage/app/temp
+        $file = $request->file('file');
+        $path = $file->storeAs('temp', $file->getClientOriginalName());
+
         try {
             DB::beginTransaction();
 
@@ -287,13 +291,16 @@ class TagController extends Controller
             $tagImport = new TagImport;
 
             // Lakukan import menggunakan Laravel Excel
-            Excel::import($tagImport, $request->file('file'));
+            Excel::import($tagImport, storage_path('app/' . $path));
 
             // Ambil jumlah tag yang invalid dan duplikat
             $invalidCount = $tagImport->getInvalidTagsCount();
             $duplicateCount = $tagImport->getDuplicateTagsCount();
 
             DB::commit();
+
+            // Hapus file setelah proses import selesai
+            Storage::delete($path);
 
             // Kembalikan respon sukses, dengan informasi mengenai tag yang invalid dan duplikat
             return response()->json([
@@ -304,6 +311,9 @@ class TagController extends Controller
         } catch (MissingColumnException $e) {
             DB::rollBack();
 
+            // Hapus file meskipun terjadi error
+            Storage::delete($path);
+
             // Tangani error ketika kolom tidak ditemukan
             Log::error($e->getMessage());
 
@@ -312,6 +322,9 @@ class TagController extends Controller
             ], 400);
         } catch (Exception $e) {
             DB::rollBack();
+
+            // Hapus file meskipun terjadi error
+            Storage::delete($path);
 
             Log::error('Error occured while importing tags: ' . $e->getMessage());
 
