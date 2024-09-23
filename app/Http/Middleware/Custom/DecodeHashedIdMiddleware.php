@@ -16,7 +16,7 @@ class DecodeHashedIdMiddleware
 
         // Decode route parameters
         foreach ($routeParameters as $key => $value) {
-            if (strpos(strtolower($key), 'id') !== false) {
+            if ($this->isIdKey($key)) {
                 try {
                     $decodedId = $this->attemptDecode($value);
                     $request->route()->setParameter($key, $decodedId);
@@ -26,7 +26,11 @@ class DecodeHashedIdMiddleware
                         'decoded' => $decodedId
                     ]);
                 } catch (\Exception $e) {
-                    Log::error('Failed to decode route parameter ID:', ['key' => $key, 'value' => $value, 'error' => $e->getMessage()]);
+                    Log::error('Failed to decode route parameter ID:', [
+                        'key' => $key, 
+                        'value' => $value, 
+                        'error' => $e->getMessage()
+                    ]);
                     return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
                 }
             }
@@ -44,12 +48,23 @@ class DecodeHashedIdMiddleware
     protected function decodeIdsInRequest($input)
     {
         foreach ($input as $key => $value) {
+            // Jika key mengandung 'id' dan nilainya array, coba decode setiap item di dalamnya
             if (is_array($value)) {
-                // Rekursif untuk mendekode nested array
-                $input[$key] = $this->decodeIdsInRequest($value);
+                if ($this->isIdKey($key)) {
+                    $input[$key] = array_map(function ($item) {
+                        try {
+                            return $this->attemptDecode($item);
+                        } catch (\Exception $e) {
+                            Log::error('Failed to decode array item ID:', ['value' => $item, 'error' => $e->getMessage()]);
+                            return response()->json(['error' => 'Failed to decode one of the IDs'], 400);
+                        }
+                    }, $value);
+                } else {
+                    $input[$key] = $this->decodeIdsInRequest($value); // Rekursif untuk array dalam array
+                }
             } else {
                 // Jika key mengandung 'id', coba decode
-                if (strpos(strtolower($key), 'id') !== false) {
+                if ($this->isIdKey($key)) {
                     try {
                         $input[$key] = $this->attemptDecode($value);
                     } catch (\Exception $e) {
@@ -61,6 +76,14 @@ class DecodeHashedIdMiddleware
         }
 
         return $input;
+    }
+
+    /**
+     * Memeriksa apakah key terkait dengan 'id', 'ids', atau 'tag_ids', dst.
+     */
+    protected function isIdKey($key)
+    {
+        return preg_match('/id$/i', $key) || preg_match('/ids$/i', $key);
     }
 
     /**
