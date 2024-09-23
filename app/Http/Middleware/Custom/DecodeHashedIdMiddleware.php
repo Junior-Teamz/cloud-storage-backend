@@ -6,7 +6,6 @@ use App\Services\HashIdService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpFoundation\Response;
 
 class DecodeHashedIdMiddleware
 {
@@ -18,19 +17,16 @@ class DecodeHashedIdMiddleware
         // Decode route parameters
         foreach ($routeParameters as $key => $value) {
             if (strpos(strtolower($key), 'id') !== false) {
-                $hashedId = $value;
-
                 try {
-                    if (!is_array($hashedId)) { // Pastikan hashedId bukan array
-                        $decodedId = $this->decodeId($hashedId);
-                        if (empty($decodedId)) {
-                            return response()->json(['error' => 'Invalid ID'], 400);
-                        }
-
-                        $request->route()->setParameter($key, $decodedId[0]);
-                        Log::info('Decoded route parameter ID:', ['key' => $key, 'original' => $hashedId, 'decoded' => $decodedId[0]]);
-                    }
+                    $decodedId = $this->attemptDecode($value);
+                    $request->route()->setParameter($key, $decodedId);
+                    Log::info('Decoded route parameter ID:', [
+                        'key' => $key,
+                        'original' => $value,
+                        'decoded' => $decodedId
+                    ]);
                 } catch (\Exception $e) {
+                    Log::error('Failed to decode route parameter ID:', ['key' => $key, 'value' => $value, 'error' => $e->getMessage()]);
                     return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
                 }
             }
@@ -49,28 +45,47 @@ class DecodeHashedIdMiddleware
     {
         foreach ($input as $key => $value) {
             if (is_array($value)) {
-                if (strpos(strtolower($key), 'id') !== false) {
-                    $input[$key] = array_map(function ($item) {
-                        if (is_string($item)) { // Hanya decode jika item adalah string
-                            $decodedItem = $this->decodeId($item);
-                            return !empty($decodedItem) ? $decodedItem[0] : $item;
-                        }
-                        return $item;
-                    }, $value);
-                } else {
-                    $input[$key] = $this->decodeIdsInRequest($value);
-                }
+                // Rekursif untuk mendekode nested array
+                $input[$key] = $this->decodeIdsInRequest($value);
             } else {
-                if (strpos(strtolower($key), 'id') !== false && is_string($value)) {
-                    $decodedValue = $this->decodeId($value);
-                    if (!empty($decodedValue)) {
-                        $input[$key] = $decodedValue[0];
+                // Jika key mengandung 'id', coba decode
+                if (strpos(strtolower($key), 'id') !== false) {
+                    try {
+                        $input[$key] = $this->attemptDecode($value);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to decode body ID:', ['key' => $key, 'value' => $value, 'error' => $e->getMessage()]);
+                        return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
                     }
                 }
             }
         }
 
         return $input;
+    }
+
+    /**
+     * Coba decode ID apapun yang ada di request, baik dalam route maupun body.
+     * Jika nilai bukan string, ubah menjadi string terlebih dahulu sebelum decode.
+     *
+     * @param mixed $value Nilai yang akan di-decode
+     * @return mixed ID asli yang sudah di-decode, atau throw exception jika gagal
+     * @throws \Exception Jika decoding gagal
+     */
+    protected function attemptDecode($value)
+    {
+        // Ubah apapun menjadi string untuk dicoba di-decode
+        if (!is_string($value)) {
+            $value = (string) $value;
+        }
+
+        $decoded = $this->decodeId($value);
+
+        if (empty($decoded)) {
+            throw new \Exception('Decoding failed for value: ' . $value);
+        }
+
+        // Kembalikan nilai ID asli yang sudah di-decode
+        return $decoded[0];
     }
 
     protected function decodeId($hashedId)

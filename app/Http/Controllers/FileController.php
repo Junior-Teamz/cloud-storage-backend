@@ -786,88 +786,87 @@ class FileController extends Controller
      * DANGEROUS! 
      */
     public function delete(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'file_ids' => 'required|array',
-        'file_ids.*' => 'integer|exists:files,id',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 422);
-    }
-
-    // Periksa apakah user mendapatkan perizinan pada file
-    foreach ($request->file_ids as $fileId) {
-        $permissionCheck = $this->checkPermissionFile($fileId, 'write');
-        if (!$permissionCheck) {
-            return response()->json([
-                'errors' => 'You do not have permission to delete this file.',
-            ], 403);
-        }
-    }
-
-    $fileIds = $request->file_ids;
-
-    try {
-        $files = File::whereIn('id', $fileIds)->get(); // Tambahkan get() untuk mengeksekusi query
-        $noPermissionFile = []; // Inisialisasi array
-
-        DB::beginTransaction();
-
-        foreach ($files as $file) {
-            if (!$this->checkPermissionFile($file->id, 'write')) {
-                $noPermissionFile[] = $file->id;
-            }
-        }
-
-        // Jika ada file yang tidak memiliki izin
-        if (!empty($noPermissionFile)) {
-            Log::error('User attempted to delete file without permission: ' . implode(', ', $noPermissionFile));
-            return response()->json([
-                'errors' => 'You do not have permission to delete some of the selected files.',
-            ], 403);
-        }
-
-        foreach ($files as $file) {
-            if ($file->tags()->exists()) {
-                $file->tags()->detach();
-            }
-
-            if ($file->instances()->exists()) {
-                $file->instances()->detach();
-            }
-
-            $file->delete();
-        }
-
-        DB::commit();
-
-        foreach ($files as $file) {
-            if (Storage::exists($file->path)) {
-                Storage::delete($file->path);
-            }
-        }
-
-        return response()->json([
-            'message' => 'File(s) deleted successfully.',
-        ], 200);
-    } catch (ModelNotFoundException $e) {
-        return response()->json([
-            'errors' => 'File not found.',
-        ], 404);
-    } catch (Exception $e) {
-        DB::rollBack();
-
-        Log::error('Error occurred while deleting file: ' . $e->getMessage(), [
-            'fileId' => $fileIds,
-            'trace' => $e->getTraceAsString(),
+    {
+        $validator = Validator::make($request->all(), [
+            'file_ids' => 'required|array',
+            'file_ids.*' => 'integer|exists:files,id',
         ]);
-        return response()->json([
-            'errors' => 'An error occurred while deleting the file.',
-        ], 500);
-    }
-}
 
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Periksa apakah user mendapatkan perizinan pada file
+        foreach ($request->file_ids as $fileId) {
+            $permissionCheck = $this->checkPermissionFile($fileId, 'write');
+            if (!$permissionCheck) {
+                return response()->json([
+                    'errors' => 'You do not have permission to delete this file.',
+                ], 403);
+            }
+        }
+
+        $fileIds = $request->file_ids;
+
+        try {
+            $files = File::whereIn('id', $fileIds)->get(); // Tambahkan get() untuk mengeksekusi query
+            $noPermissionFile = []; // Inisialisasi array
+
+            DB::beginTransaction();
+
+            foreach ($files as $file) {
+                if (!$this->checkPermissionFile($file->id, 'write')) {
+                    $noPermissionFile[] = $file->id;
+                }
+            }
+
+            // Jika ada file yang tidak memiliki izin
+            if (!empty($noPermissionFile)) {
+                Log::error('User attempted to delete file without permission: ' . implode(', ', $noPermissionFile));
+                return response()->json([
+                    'errors' => 'You do not have permission to delete some of the selected files.',
+                ], 403);
+            }
+
+            foreach ($files as $file) {
+                if ($file->tags()->exists()) {
+                    $file->tags()->detach();
+                }
+
+                if ($file->instances()->exists()) {
+                    $file->instances()->detach();
+                }
+
+                $file->delete();
+            }
+
+            DB::commit();
+
+            foreach ($files as $file) {
+                if (Storage::exists($file->path)) {
+                    Storage::delete($file->path);
+                }
+            }
+
+            return response()->json([
+                'message' => 'File(s) deleted successfully.',
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'errors' => 'File not found.',
+            ], 404);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('Error occurred while deleting file: ' . $e->getMessage(), [
+                'fileId' => $fileIds,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'errors' => 'An error occurred while deleting the file.',
+            ], 500);
+        }
+    }
 
     public function serveFileImageByHashedId($hashedId)
     {
