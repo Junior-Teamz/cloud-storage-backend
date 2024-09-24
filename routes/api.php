@@ -32,21 +32,19 @@ Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageBy
 
 Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTag'])->group(function () {
 
-    Route::middleware(['auth:api', 'remove_nanoid', 'check_admin','hide_superadmin_flag'])->group(function () {
+    Route::middleware(['auth:api', 'remove_nanoid', 'check_admin', 'hide_superadmin_flag'])->group(function () {
+
+        Route::get('/index', [UserController::class, 'index']); // Mendapatkan informasi user
+
+        Route::get('/search', [UserController::class, 'searchUser']); // Mencari user dengan name atau email
+
+        // Route::put('/update', [UserController::class, 'update']); // Update user
+
+        // Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
 
         Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
 
         Route::get('/getSharedFolderAndFile', [SharingController::class, 'getSharedFolderAndFile']); // Mendapatkan semua folder dan file yang dibagikan kepada user
-
-        Route::prefix('user')->group(function () {
-            Route::get('/index', [UserController::class, 'index']); // Mendapatkan informasi user
-
-            Route::get('/search', [UserController::class, 'searchUser']); // Mencari user dengan name atau email
-
-            // Route::put('/update', [UserController::class, 'update']); // Update user
-
-            // Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
-        });
 
         Route::prefix('folder')->group(function () {
             Route::get('/', [FolderController::class, 'index']); // dapatkan list folder dan file yang ada pada user yang login saat ini pada folder rootnya.
