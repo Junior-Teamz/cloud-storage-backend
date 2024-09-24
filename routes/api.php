@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
+Route::post('/tes-csrf', function () {
+    return "de rekuez has ben suksesfuliy";
+});
+
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
 
 Route::post('/login', [AuthController::class, 'login']); // login user

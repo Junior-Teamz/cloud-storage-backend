@@ -789,7 +789,6 @@ class FileController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'file_ids' => 'required|array',
-            'file_ids.*' => 'integer|exists:files,id',
         ]);
 
         if ($validator->fails()) {
@@ -798,6 +797,15 @@ class FileController extends Controller
 
         // Periksa apakah user mendapatkan perizinan pada file
         foreach ($request->file_ids as $fileId) {
+
+            if (!is_int($fileId)) {
+                Log::error('Error occured: Invalid ID detected: ' . $fileId . ' , please check decode hashed id middleware!');
+
+                return response()->json([
+                    'errors' => "Internal server error, please try again later."
+                ], 500);
+            }
+
             $permissionCheck = $this->checkPermissionFile($fileId, 'write');
             if (!$permissionCheck) {
                 return response()->json([
@@ -810,6 +818,19 @@ class FileController extends Controller
 
         try {
             $files = File::whereIn('id', $fileIds)->get(); // Tambahkan get() untuk mengeksekusi query
+
+            // Periksa apakah ada file_id yang tidak ditemukan
+            if (count($files) != count($fileIds)) {
+                $foundFileIds = $files->pluck('id')->toArray();
+                $notFoundFileIds = array_diff($fileIds, $foundFileIds);
+
+                Log::error('File Delete: some file not found:' . $notFoundFileIds);
+
+                return response()->json([
+                    'errors' => 'Some files were not found',
+                ], 404);
+            }
+
             $noPermissionFile = []; // Inisialisasi array
 
             DB::beginTransaction();

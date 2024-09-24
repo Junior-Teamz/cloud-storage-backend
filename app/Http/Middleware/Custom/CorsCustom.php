@@ -21,7 +21,13 @@ class CorsCustom
         // List of allowed origins (you can modify this as needed)
         $allowedOrigins = config('frontend.urls'); // Sesuaikan dengan origin yang kamu izinkan
 
-        $origin = $request->header('Origin', '');
+         // Ambil origin dari header atau fallback ke host URL request
+         $origin = $request->header('Origin', '');
+        
+         // Jika header Origin kosong, ambil dari host URL request tanpa path tambahan
+         if (empty($origin)) {
+             $origin = $request->getSchemeAndHttpHost(); // Contoh: https://example.com atau http://localhost:8000
+         }
 
         // Tambahkan log untuk memverifikasi request yang masuk
         Log::info('CORS Middleware: Handling Request from Origin: ' . $origin);
