@@ -43,26 +43,6 @@ require __DIR__.'/../vendor/autoload.php';
 | to this client's browser, allowing them to enjoy our application.
 |
 */
-
-/**
- * FORCE ADDING HEADER CORS.
- */ 
-// Dapatkan origin yang datang dari request
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-// Daftar origin yang diizinkan
-$allowedOrigins = [env('FRONTEND_URL', 'http://localhost:3032')];
-
-// Validasi apakah origin yang datang diizinkan
-if (in_array($origin, $allowedOrigins)) {
-    // Tambahkan header CORS jika origin diizinkan
-    header('Access-Control-Allow-Origin: ' . $origin);
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Accept, Content-Type, Authorization');
-    header('Access-Control-Allow-Credentials: true');
-}
-
-
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
 $kernel = $app->make(Kernel::class);
