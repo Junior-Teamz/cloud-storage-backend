@@ -92,23 +92,30 @@ class UserController extends Controller
     //     }
     // }
 
-    public function index()
-    {
-        $user = Auth::user();
+   // Informasi tentang akun yang sedang login saat ini
+   public function index()
+   {
+       $user = Auth::user();
 
-        try {
-            $getUserData = User::where('id', $user->id)->with('instances:id,name,address')->first();
+       try {
 
-            return response()->json([
-                'data' => $getUserData
-            ], 200);
-        } catch (Exception $e) {
-            Log::error('Error occurred on getting user data: ' . $e->getMessage());
-            return response()->json([
-                'errors' => 'Terjadi kesalahan ketika mendapatkan mengambil data tentang user.',
-            ], 500);
-        }
-    }
+           $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
+
+           $userInfo['role'] = $userInfo->roles->pluck('name');
+
+           // Sembunyikan relasi roles dari hasil response
+           $userInfo->makeHidden('roles');
+
+           return response()->json([
+               'data' => $userInfo
+           ]);
+       } catch (Exception $e) {
+           Log::error('Error occurred on getting user information: ' . $e->getMessage());
+           return response()->json([
+               'errors' => 'An error occured on getting user information.',
+           ], 500);
+       }
+   }
 
     public function searchUser(Request $request)
     {

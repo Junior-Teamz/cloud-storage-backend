@@ -30,11 +30,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 
 Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['auth:api']);
 
+Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'remove_nanoid', 'hide_superadmin_flag']);
+
 Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTag'])->group(function () {
 
     Route::middleware(['auth:api', 'remove_nanoid', 'check_admin', 'hide_superadmin_flag'])->group(function () {
-
-        Route::get('/index', [UserController::class, 'index']); // Mendapatkan informasi user
 
         Route::get('/search', [UserController::class, 'searchUser']); // Mencari user dengan name atau email
 
@@ -130,8 +130,6 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
     // ROUTE KHUSUS UNTUK ADMIN
     Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(function () {
-
-        Route::get('/index', [AdminController::class, 'index']); // dapatkan informasi tentang akun admin yang sedang login saat ini.
 
         Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
 

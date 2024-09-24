@@ -23,39 +23,6 @@ class AdminController extends Controller
         $this->checkAdminService = $checkAdminService;
     }
 
-    // Informasi tentang akun Admin yang sedang login saat ini
-    public function index()
-    {
-        $user = Auth::user();
-
-        $checkAdmin = $this->checkAdminService->checkAdmin();
-
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
-
-        try {
-
-            $admin = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
-
-            $admin['role'] = $admin->roles->pluck('name');
-
-            // Sembunyikan relasi roles dari hasil response
-            $admin->makeHidden('roles');
-
-            return response()->json([
-                'data' => $admin
-            ]);
-        } catch (Exception $e) {
-            Log::error('Error occurred on getting admin information: ' . $e->getMessage());
-            return response()->json([
-                'errors' => 'An error occured on getting admin information.',
-            ], 500);
-        }
-    }
-
     public function listUser(Request $request)
     {
         $user = Auth::user();
