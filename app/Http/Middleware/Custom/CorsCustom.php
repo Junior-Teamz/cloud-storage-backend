@@ -23,11 +23,6 @@ class CorsCustom
 
          // Ambil origin dari header atau fallback ke host URL request
          $origin = $request->header('Origin', '');
-        
-         // Jika header Origin kosong, ambil dari host URL request tanpa path tambahan
-         if (empty($origin)) {
-             $origin = $request->getSchemeAndHttpHost(); // Contoh: https://example.com atau http://localhost:8000
-         }
 
         // Tambahkan log untuk memverifikasi request yang masuk
         Log::info('CORS Middleware: Handling Request from Origin: ' . $origin);
@@ -40,7 +35,7 @@ class CorsCustom
             $headers = [
                 'Access-Control-Allow-Origin' => $origin,
                 'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Accept, Content-Type, X-Auth-Token, Origin, Authorization',
+                'Access-Control-Allow-Headers' => 'Accept, Content-Type, X-Auth-Token, X-Csrf-Token, Origin, Authorization',
                 'Access-Control-Allow-Credentials' => 'true'
             ];
 
