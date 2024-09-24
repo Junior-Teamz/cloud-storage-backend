@@ -21,8 +21,6 @@ class CorsCustom
         // List of allowed origins (you can modify this as needed)
         $allowedOrigins = config('frontend.urls'); // Sesuaikan dengan origin yang kamu izinkan
 
-        Log::info('Allowed Origins (TESTING): ' . $allowedOrigins);
-
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
         // Tambahkan log untuk memverifikasi request yang masuk
