@@ -19,7 +19,7 @@ class CorsCustom
     public function handle(Request $request, Closure $next)
     {
         // List of allowed origins (you can modify this as needed)
-        $allowedOrigins = config('frontend.urls'); // Sesuaikan dengan origin yang kamu izinkan
+        $allowedOrigins = [config('frontend.urls')]; // Sesuaikan dengan origin yang kamu izinkan
 
         $origin = $request->headers->get('Origin');
 
