@@ -89,7 +89,7 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:user,id',
+                'user_id' => 'required|integer|exists:users,id',
                 'file_id' => 'required|integer|exists:files,id',
             ],
         );
@@ -133,7 +133,7 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:user,id',
+                'user_id' => 'required|integer|exists:users,id',
                 'file_id' => 'required|integer|exists:files,id',
                 'permissions' => 'required|in:read,write',
             ],
@@ -199,7 +199,7 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:user,id',
+                'user_id' => 'required|integer|exists:users,id',
                 'file_id' => 'required|integer|exists:files,id',
                 'permissions' => 'required|in:read,write',
             ],
