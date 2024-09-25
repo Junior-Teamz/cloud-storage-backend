@@ -21,8 +21,8 @@ class CorsCustom
         // List of allowed origins (you can modify this as needed)
         $allowedOrigins = config('frontend.urls'); // Sesuaikan dengan origin yang kamu izinkan
 
-         // Ambil origin dari header
-         $origin = $request->header('Origin', '');
+        // Ambil origin dari header
+        $origin = $request->header('Origin', '');
 
         // Tambahkan log untuk memverifikasi request yang masuk
         Log::info('CORS Middleware: Handling Request from Origin: ' . $origin);
@@ -47,17 +47,24 @@ class CorsCustom
             // Lanjutkan request dengan menambahkan header ke dalam response
             $response = $next($request);
 
+            // Cek apakah response adalah instance dari BinaryFileResponse
+            if (method_exists($response, 'withHeaders')) {
+                // Tambahkan header menggunakan withHeaders untuk memastikan kompatibilitas
+                return $response->withHeaders($headers);
+            }
+
+            // Jika tidak, tambahkan header secara manual
             foreach ($headers as $key => $value) {
-                $response->header($key, $value);
+                $response->headers->set($key, $value);
             }
 
             // Tambahkan log untuk memverifikasi header yang ditambahkan
-            Log::info('CORS Middleware: Adding headers to the response: ' . $response);
+            Log::info('CORS Middleware: Adding headers to the response.');
 
             return $response;
         }
 
-        // Tambahkan log untuk memverifikasi header yang ditambahkan
+        // Tambahkan log untuk memverifikasi origin yang tidak diizinkan
         Log::info('CORS Middleware: Origin not allowed: ' . $origin);
 
         // Jika origin tidak diizinkan, lanjutkan request tanpa header CORS

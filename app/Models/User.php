@@ -126,6 +126,16 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsToMany(Instance::class, 'user_has_instances')->withTimestamps();
     }
 
+    public function favoriteFolders(): BelongsToMany
+    {
+        return $this->belongsToMany(Folder::class, 'folder_user_favorited')->withTimestamps();
+    }
+
+    public function favoriteFiles(): BelongsToMany
+    {
+        return $this->belongsToMany(File::class, 'file_user_favorited')->withTimestamps();
+    }
+
     // // Tambahkan accessor untuk mengambil instansi terkait
     // public function getInstanceDataAttribute()
     // {
@@ -134,5 +144,5 @@ class User extends Authenticatable implements JWTSubject
 
     // // Append custom attribute `instance_data` ke model User
     // protected $appends = ['instance_data'];
-    
+
 }

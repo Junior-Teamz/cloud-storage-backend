@@ -5,7 +5,9 @@ use App\Http\Controllers\FolderController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\FolderFavoriteController;
 use App\Http\Controllers\InstanceController;
+use App\Http\Controllers\LegalBasisController;
 use App\Http\Controllers\PermissionFileController;
 use App\Http\Controllers\PermissionFolderController;
 use App\Http\Controllers\SearchController;
@@ -53,6 +55,14 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
             Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
 
+            Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFolderLink']);
+
+            Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
+
+            Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
+
+            Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
+
             Route::post('/create', [FolderController::class, 'create']);  // Membuat folder baru
 
             Route::put('/update/{id}', [FolderController::class, 'update']); // Memperbarui folder
@@ -73,6 +83,8 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
             Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file user, tidak peduli dari folder apapun.
 
             Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
+
+            Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFileLink']);
 
             Route::get('/{id}', [FileController::class, 'info']); // Mendapatkan informasi file
 
@@ -156,6 +168,12 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
             Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
 
+            Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
+
+            Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
+
+            Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
+
             Route::post('/addTag', [FolderController::class, 'addTagToFolder']); // Tambahkan tag ke folder
 
             Route::post('/removeTag', [FolderController::class, 'removeTagFromFolder']); // hapus tag dari folder
@@ -176,6 +194,12 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
             Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file admin, tidak peduli dari folder apapun.
 
             Route::get('/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
+
+            // Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
+
+            // Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
+
+            // Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
 
             // Route::post('/create', [FileController::class, 'create']); // Membuat file baru
 
@@ -217,7 +241,7 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
             Route::get('/search', [InstanceController::class, 'getInstanceWithName']); // Mendapatkan daftar ID instansi berdasarkan nama (contoh: /instance?name=instansi)
 
-            Route::get('/statistic', [InstanceController::class, 'getInstanceUsageStatistics']); // Mendapatkan statistik instansi
+            Route::get('/getInstanceUsageStatistic', [InstanceController::class, 'getInstanceUsageStatistics']); // Mendapatkan statistik instansi
 
             Route::get('/countAll', [InstanceController::class, 'countAllInstance']); // Mendapatkan total instansi
 
@@ -240,6 +264,17 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
             Route::put('/update/{id}', [FAQController::class, 'update']); // Update FAQ yang ada sebelumnya
 
             Route::delete('/delete/{id}', [FAQController::class, 'destroy']); // Hapus FAQ yang ada sebelumnya
+        });
+
+        Route::prefix('legal_basis')->group(function () {
+
+            Route::get('/all', [LegalBasisController::class, 'getAll']);
+
+            Route::post('/save', [LegalBasisController::class, 'save']);
+
+            Route::put('/update/{id}', [LegalBasisController::class, 'update']);
+
+            Route::delete('/delete/{id}', [LegalBasisController::class, 'delete']);
         });
 
         Route::prefix('permission')->group(function () {

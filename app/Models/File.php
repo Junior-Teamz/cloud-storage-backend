@@ -46,4 +46,9 @@ class File extends Model
     {
         return $this->belongsToMany(Instance::class, 'file_has_instances')->withTimestamps(); // menggunakan tabel pivot untuk menyalakan otomatisasi timestamp().
     }
+
+    public function favorite(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'file_has_favorited')->withTimestamps();
+    }
 }

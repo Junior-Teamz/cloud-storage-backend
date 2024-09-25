@@ -10,6 +10,6 @@ class LegalBasis extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'legal_type', 'description', 'file_name', 'file_path'
+        'name', 'file_name', 'file_path'
     ];
 }

@@ -48,22 +48,18 @@ class DecodeHashedIdMiddleware
     protected function decodeIdsInRequest($input)
     {
         foreach ($input as $key => $value) {
-            // Jika key mengandung 'id' dan nilainya array, coba decode setiap item di dalamnya
             if (is_array($value)) {
-                if ($this->isIdKey($key)) {
-                    $input[$key] = array_map(function ($item) {
-                        try {
-                            return $this->attemptDecode($item);
-                        } catch (\Exception $e) {
-                            Log::error('Failed to decode array item ID:', ['value' => $item, 'error' => $e->getMessage()]);
-                            return response()->json(['error' => 'Failed to decode one of the IDs'], 400);
-                        }
-                    }, $value);
-                } else {
-                    $input[$key] = $this->decodeIdsInRequest($value); // Rekursif untuk array dalam array
-                }
+                // Jika value adalah array, decode setiap item di dalamnya
+                $input[$key] = array_map(function ($item) {
+                    try {
+                        return is_array($item) ? $this->decodeIdsInRequest($item) : $this->attemptDecode($item);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to decode array item ID:', ['value' => $item, 'error' => $e->getMessage()]);
+                        return $item; // Kembalikan nilai asli jika gagal decode
+                    }
+                }, $value);
             } else {
-                // Jika key mengandung 'id', coba decode
+                // Jika key mengandung 'id' dan value adalah string atau bukan array, coba decode
                 if ($this->isIdKey($key)) {
                     try {
                         $input[$key] = $this->attemptDecode($value);
@@ -96,10 +92,22 @@ class DecodeHashedIdMiddleware
      */
     protected function attemptDecode($value)
     {
-        // Ubah apapun menjadi string untuk dicoba di-decode
-        if (!is_string($value)) {
-            $value = (string) $value;
+        // Jika nilai adalah array, lakukan decoding setiap elemen
+        if (is_array($value)) {
+            $decodedArray = [];
+            foreach ($value as $item) {
+                $decodedArray[] = $this->attemptDecode($item);
+            }
+            return $decodedArray;
         }
+
+        // Ubah apapun menjadi string jika bukan array atau objek
+        if (!is_scalar($value) && !is_null($value)) {
+            throw new \Exception('Cannot decode non-scalar value: ' . json_encode($value));
+        }
+
+        // Konversi ke string jika bukan null
+        $value = is_null($value) ? $value : (string) $value;
 
         $decoded = $this->decodeId($value);
 

@@ -799,10 +799,10 @@ class FileController extends Controller
         foreach ($request->file_ids as $fileId) {
 
             if (!is_int($fileId)) {
-                Log::error('Error occured: Invalid ID detected: ' . $fileId . ' , please check decode hashed id middleware!');
+                Log::error('Invalid File ID detected: ' . $fileId . ' , please check decode hashed id middleware!');
 
                 return response()->json([
-                    'errors' => "Internal server error, please try again later."
+                    'errors' => "Internal server error, please contact administrator of app."
                 ], 500);
             }
 

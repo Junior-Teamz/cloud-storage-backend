@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateImageURLService;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
+use Sqids\Sqids;
 
 class SharingController extends Controller
 {
@@ -93,47 +96,59 @@ class SharingController extends Controller
         $filePage = $request->get('file_page', 1);
 
         try {
-            // Ambil semua folder yang dibagikan kepada user login dengan pagination
+            // Ambil semua folder yang dibagikan kepada user login
             $sharedFolders = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address'])
-                ->paginate($perPage, ['*'], 'folder_page', $folderPage); // Pagination folder dengan halaman spesifik
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders'])
+                ->get();
+
+            // Filter folder induk yang dibagikan jika subfolder-nya juga dibagikan
+            $filteredFolders = $sharedFolders->filter(function ($folder) use ($sharedFolders) {
+                // Cek apakah subfolder dari folder ini dibagikan
+                $hasSharedSubfolders = $folder->subfolders->contains(function ($subfolder) use ($sharedFolders) {
+                    return $sharedFolders->contains('id', $subfolder->id);
+                });
+
+                // Jika ada subfolder yang dibagikan, jangan sertakan folder induk
+                return !$hasSharedSubfolders;
+            });
+
+            // Lakukan pagination setelah filtering
+            $paginatedFolders = new LengthAwarePaginator(
+                $filteredFolders->forPage($folderPage, $perPage),
+                $filteredFolders->count(),
+                $perPage,
+                $folderPage,
+                ['path' => Paginator::resolveCurrentPath()]
+            );
 
             // Ambil semua file yang dibagikan kepada user login dengan pagination
             $sharedFiles = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
                 ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address'])
-                ->paginate($perPage, ['*'], 'file_page', $filePage); // Pagination file dengan halaman spesifik
+                ->paginate($perPage, ['*'], 'file_page', $filePage);
 
             // Format response untuk folder
-            $formattedFolders = $sharedFolders->map(function ($folder) {
+            $formattedFolders = $paginatedFolders->map(function ($folder) use ($user) {
+
+                $favorite = $folder->favorite->where('user_id', $user->id)->first();
+                $isFavorite = !is_null($favorite);
+                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
                 return [
                     'id' => $folder->id,
                     'name' => $folder->name,
                     'public_path' => $folder->public_path,
                     'type' => $folder->type,
-                    'user' => [
-                        'id' => $folder->user->id,
-                        'name' => $folder->user->name,
-                        'email' => $folder->user->email,
-                    ],
+                    'user' => $folder->user,
+                    'is_favorite' => $isFavorite,
+                    'favorited_at' => $favoritedAt,
                     'created_at' => $folder->created_at,
                     'updated_at' => $folder->updated_at,
-                    'tags' => $folder->tags->map(function ($tag) {
-                        return [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    }),
-                    'instances' => $folder->instances->map(function ($instance) {
-                        return [
-                            'id' => $instance->id,
-                            'name' => $instance->name,
-                            'address' => $instance->address
-                        ];
-                    })
+                    'tags' => $folder->tags,
+                    'instances' => $folder->instances
                 ];
             });
 
@@ -145,26 +160,11 @@ class SharingController extends Controller
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
-                    'user' => [
-                        'id' => $file->user->id,
-                        'name' => $file->user->name,
-                        'email' => $file->user->email,
-                    ],
+                    'user' => $file->user,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
-                    'tags' => $file->tags->map(function ($tag) {
-                        return [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ];
-                    }),
-                    'instances' => $file->instances->map(function ($instance) {
-                        return [
-                            'id' => $instance->id,
-                            'name' => $instance->name,
-                            'address' => $instance->address
-                        ];
-                    }),
+                    'tags' => $file->tags,
+                    'instances' => $file->instances
                 ];
 
                 // Jika file adalah gambar, tambahkan URL gambar
@@ -181,10 +181,10 @@ class SharingController extends Controller
                 'folders' => [
                     'data' => $formattedFolders,
                     'pagination' => [
-                        'current_page' => $sharedFolders->currentPage(),
-                        'last_page' => $sharedFolders->lastPage(),
-                        'per_page' => $sharedFolders->perPage(),
-                        'total' => $sharedFolders->total(),
+                        'current_page' => $paginatedFolders->currentPage(),
+                        'last_page' => $paginatedFolders->lastPage(),
+                        'per_page' => $paginatedFolders->perPage(),
+                        'total' => $paginatedFolders->total(),
                     ]
                 ],
                 'files' => [
@@ -207,5 +207,47 @@ class SharingController extends Controller
                 'errors' => 'An error occurred while getting shared folders and files.',
             ], 500);
         }
+    }
+
+    /**
+     * Generate shareable hashed URL for folder.
+     *
+     * @return string
+     */
+    public function generateShareableFolderLink($folderId)
+    {
+        // Gunakan Sqids untuk menghasilkan hash dari ID
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
+        $hashedFolderId = $sqids->encode([$folderId]);
+
+        // Prefix "F" untuk Folder
+        $hashedId = base64_encode("F" . $hashedFolderId);
+
+        // Ambil URL frontend dari konfigurasi
+        $frontendUrl = config('frontend.url_for_share', 'http://localhost:3000');
+
+        // Format URL: {frontend_url}/share/{hashed_id}
+        return "{$frontendUrl}/share/{$hashedId}";
+    }
+
+    /**
+     * Generate shareable hashed URL for file.
+     *
+     * @return string
+     */
+    public function generateShareableFileLink($fileId)
+    {
+        // Gunakan Sqids untuk menghasilkan hash dari ID
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
+        $hashedFileId = $sqids->encode([$fileId]);
+
+        // Prefix "L" untuk File
+        $hashedId = base64_encode("L" . $hashedFileId);
+
+        // Ambil URL frontend dari konfigurasi
+        $frontendUrl = config('frontend.url_for_share', 'http://localhost:3000');
+
+        // Format URL: {frontend_url}/share/{hashed_id}
+        return "{$frontendUrl}/share/{$hashedId}";
     }
 }

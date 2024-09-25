@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('legal_bases', function (Blueprint $table) {
+        Schema::create('file_has_favorited', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('file_name');
-            $table->string('file_path');
+            $table->foreignId('file_id')->references('id')->on('files')->cascadeOnDelete();
+            $table->foreignId('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }
@@ -25,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('legal_bases');
+        Schema::dropIfExists('file_has_favorited');
     }
 };
