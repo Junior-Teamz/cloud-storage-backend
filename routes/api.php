@@ -121,7 +121,7 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
                 Route::put('/changePermission', [PermissionFolderController::class, 'changeFolderPermission']); // Change user permission on folder
 
-                Route::post('/revokeAllPermission', [PermissionFolderController::class, 'revokeAllFolderPermission']);
+                Route::post('/revokePermission', [PermissionFolderController::class, 'revokeFolderPermission']);
             });
 
             Route::prefix('file')->group(function () {
@@ -134,7 +134,7 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
                 Route::put('/changePermission', [PermissionFileController::class, 'changeFilePermission']);
 
-                Route::post('/revokeAllPermission', [PermissionFileController::class, 'revokeAllFilePermission']);
+                Route::post('/revokePermission', [PermissionFileController::class, 'revokeFilePermission']);
             });
         });
     });
