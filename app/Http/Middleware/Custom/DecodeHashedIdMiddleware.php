@@ -4,6 +4,7 @@ namespace App\Http\Middleware\Custom;
 
 use App\Services\HashIdService;
 use Closure;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -25,10 +26,10 @@ class DecodeHashedIdMiddleware
                         'original' => $value,
                         'decoded' => $decodedId
                     ]);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     Log::error('Failed to decode route parameter ID:', [
-                        'key' => $key,
-                        'value' => $value,
+                        'key' => $key, 
+                        'value' => $value, 
                         'error' => $e->getMessage()
                     ]);
                     return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
@@ -53,7 +54,7 @@ class DecodeHashedIdMiddleware
                 $input[$key] = array_map(function ($item) {
                     try {
                         return is_array($item) ? $this->decodeIdsInRequest($item) : $this->attemptDecode($item);
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         Log::error('Failed to decode array item ID:', ['value' => $item, 'error' => $e->getMessage()]);
                         return $item; // Kembalikan nilai asli jika gagal decode
                     }
@@ -63,7 +64,7 @@ class DecodeHashedIdMiddleware
                 if ($this->isIdKey($key)) {
                     try {
                         $input[$key] = $this->attemptDecode($value);
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         Log::error('Failed to decode body ID:', ['key' => $key, 'value' => $value, 'error' => $e->getMessage()]);
                         return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
                     }
@@ -88,7 +89,7 @@ class DecodeHashedIdMiddleware
      *
      * @param mixed $value Nilai yang akan di-decode
      * @return mixed ID asli yang sudah di-decode, atau throw exception jika gagal
-     * @throws \Exception Jika decoding gagal
+     * @throws Exception Jika decoding gagal
      */
     protected function attemptDecode($value)
     {
@@ -103,7 +104,7 @@ class DecodeHashedIdMiddleware
 
         // Ubah apapun menjadi string jika bukan array atau objek
         if (!is_scalar($value) && !is_null($value)) {
-            throw new \Exception('Cannot decode non-scalar value: ' . json_encode($value));
+            throw new Exception('Cannot decode non-scalar value: ' . json_encode($value));
         }
 
         // Konversi ke string jika bukan null
@@ -112,7 +113,7 @@ class DecodeHashedIdMiddleware
         $decoded = $this->decodeId($value);
 
         if (empty($decoded)) {
-            throw new \Exception('Decoding failed for value: ' . $value);
+            throw new Exception('Decoding failed for value: ' . $value);
         }
 
         // Kembalikan nilai ID asli yang sudah di-decode

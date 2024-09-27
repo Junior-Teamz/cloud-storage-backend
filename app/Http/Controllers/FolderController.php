@@ -398,7 +398,7 @@ class FolderController extends Controller
             $request->all(),
             [
                 'name' => 'required|string',
-                'parent_id' => 'nullable',
+                'parent_id' => 'nullable|integer|exists:folders,id',
                 'tag_ids' => 'required|array',
             ],
         );
@@ -409,54 +409,17 @@ class FolderController extends Controller
             ], 422);
         }
 
-        $parentFolderIdRequest = $request->parent_id;
-
-        try {
-            if (!is_int($parentFolderIdRequest)) {
-                Log::error('Invalid parent folderID detected: ' . $parentFolderIdRequest . ' , please check decode hashed id middleware!', [
-                    'context' => 'FolderController.php (create) parent folder ID is not integer.'
-                ]);
+        foreach ($request->tag_ids as $tagId) {
+            if (!is_int($tagId)) {
+                Log::error('Invalid Tag ID detected: ' . $tagId . ' , please check decode hashed id middleware!');
 
                 return response()->json([
                     'errors' => "Internal server error, please contact administrator of app."
                 ], 500);
             }
+        }
 
-            // Pastikan semua nilai dalam 'tag_ids' adalah integer
-            $invalidTagIds = array_filter($request->tag_ids, function ($tagId) {
-                return !is_int($tagId);  // Filter semua tag yang bukan integer
-            });
-
-            if (!empty($invalidTagIds)) {
-                Log::error('Invalid Tag IDs detected: ', [
-                    'context' => 'FolderController.php (create) Tag IDs are not integer.',
-                    'invalid_ids' => $invalidTagIds
-                ]);
-
-                return response()->json([
-                    'errors' => "Some Tag IDs are invalid. Please check the input.",
-                    'invalid_tag_ids' => $invalidTagIds
-                ], 400);
-            }
-
-            // Pastikan tag_ids ada di database
-            $tagIds = Tags::whereIn('id', $request->tag_ids)->pluck('id')->toArray();
-
-            // Cek apakah ada tag_ids yang tidak ditemukan di database
-            $missingTagIds = array_diff($request->tag_ids, $tagIds);
-
-            if (!empty($missingTagIds)) {
-                Log::error('Tag IDs not found in database: ', [
-                    'context' => 'FolderController.php (create)',
-                    'missing_tag_ids' => $missingTagIds
-                ]);
-
-                return response()->json([
-                    'errors' => "Some Tag IDs were not found in the database.",
-                    'missing_tag_ids' => $missingTagIds
-                ], 400);
-            }
-
+        try {
             $userLogin = Auth::user();
             $userId = $userLogin->id;
 
@@ -464,17 +427,17 @@ class FolderController extends Controller
             $folderRootUser = Folder::where('user_id', $userId)->whereNull('parent_id')->first();
 
             // Check if parent_id is provided, else use the root folder's ID
-            if ($parentFolderIdRequest === null) {
+            if ($request->parent_id === null) {
                 $parentId = $folderRootUser->id;
             } else {
                 // Check user permission for the provided parent_id
-                $permission = $this->checkPermissionFolderService->checkPermissionFolder($parentFolderIdRequest, 'write');
+                $permission = $this->checkPermissionFolderService->checkPermissionFolder($request->parent_id, 'write');
                 if (!$permission) {
                     return response()->json([
                         'errors' => 'You do not have permission to create a folder in this parent_id',
                     ], 403);
                 } else {
-                    $parentId = $parentFolderIdRequest;
+                    $parentId = $request->parent_id;
                 }
             }
 
@@ -517,11 +480,11 @@ class FolderController extends Controller
             $fullPath = $path . '/' . $folderNameWithNanoId;
             Storage::makeDirectory($fullPath);
 
-            // Load instances and tags for the response
-            $newFolder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
-
             // Hide the nanoid from the response
-            $newFolder->makeHidden(['nanoid', 'user_id']);
+            $newFolder->makeHidden(['nanoid']);
+
+            // Load instances and tags for the response
+            $newFolder->load('instances:id,name,address', 'tags:id,name');
 
             return response()->json([
                 'message' => $newFolder->parent_id ? 'Subfolder created successfully' : 'Folder created successfully',
@@ -544,6 +507,31 @@ class FolderController extends Controller
                 'errors' => 'An error occurred while creating folder.',
             ], 500);
         }
+    }
+
+    protected function attemptDecode($value)
+    {
+        // Jika nilai adalah array, lakukan decoding setiap elemen
+        if (is_array($value)) {
+            return array_map([$this, 'attemptDecode'], $value);
+        }
+
+        // Ubah apapun menjadi string jika bukan array atau objek
+        if (!is_scalar($value) && !is_null($value)) {
+            throw new \Exception('Cannot decode non-scalar value: ' . json_encode($value));
+        }
+
+        // Konversi ke string jika bukan null
+        $value = is_null($value) ? $value : (string) $value;
+
+        $decoded = $this->decodeId($value);
+
+        if (empty($decoded)) {
+            throw new \Exception('Decoding failed for value: ' . $value);
+        }
+
+        // Kembalikan nilai ID asli yang sudah di-decode
+        return $decoded[0];
     }
 
     /**
