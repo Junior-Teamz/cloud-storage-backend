@@ -17,7 +17,7 @@ class UserController extends Controller
     // public function register(Request $request)
     // {
     //     $validator = Validator::make($request->all(), [
-    //         'name' => ['required', 'string', 'max:100'],
+    //         'name' => ['required', 'string', 'max:255'],
     //         'email' => [
     //             'required',
     //             'email',
@@ -117,52 +117,12 @@ class UserController extends Controller
        }
    }
 
-    public function searchUser(Request $request)
-    {
-        try {
-            // Cari data berdasarkan Nama User
-            if ($request->query('name')) {
-
-                $keywordName = $request->query('name');
-
-                $allUser = User::where('name', 'like', '%' . $keywordName . '%')->with('instances:id,name,address')->select('id', 'name', 'email')->paginate(10);
-
-                // Sembunyikan relasi roles dari hasil response
-                $allUser->makeHidden('roles');
-
-                return response()->json($allUser, 200);  // Kembalikan hasil pagination tanpa membungkus lagi
-            }
-            // Cari data berdasarkan Email User
-            else if ($request->query('email')) {
-
-                $keywordEmail = $request->query('email');
-
-                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')->with('instances:id,name,address')->select('id', 'name', 'email')->paginate(10);
-
-                // Sembunyikan relasi roles dari hasil response
-                $allUser->makeHidden('roles');
-
-                return response()->json($allUser, 200);  // Kembalikan hasil pagination tanpa membungkus lagi
-            } else {
-                return response()->json([
-                    'errors' => 'Query parameter name or email is required.',
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error("Error occurred on getting user list: " . $e->getMessage());
-
-            return response()->json([
-                'errors' => 'An error occurred on getting user list.',
-            ], 500);
-        }
-    }
-
     public function update(Request $request)
     {
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:100'],
+            'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',

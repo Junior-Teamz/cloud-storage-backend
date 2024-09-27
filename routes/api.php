@@ -8,6 +8,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\FolderFavoriteController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\LegalBasisController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PermissionFileController;
 use App\Http\Controllers\PermissionFolderController;
 use App\Http\Controllers\SearchController;
@@ -34,11 +35,23 @@ Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageBy
 
 Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'remove_nanoid', 'hide_superadmin_flag']);
 
+Route::prefix('/legal_basis')->group(function () {
+    Route::get('/all', [LegalBasisController::class, 'getAll']);
+
+    Route::get('/file/{hashedId}', [LegalBasisController::class, 'serveFilePdfByHashedId'])->name('pdf.url');
+});
+
+Route::prefix('news')->group(function () {
+    Route::get('/all', [NewsController::class, 'getAllNewsForPublic']); // Mendapatkan semua berita untuk publik
+
+    Route::get('/{id}', [NewsController::class, 'getNewsById']); // lihat detail berita
+})->middleware(['encode_id', 'decode_id']);
+
 Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTag'])->group(function () {
 
     Route::middleware(['auth:api', 'remove_nanoid', 'check_admin', 'hide_superadmin_flag'])->group(function () {
 
-        Route::get('/search', [UserController::class, 'searchUser']); // Mencari user dengan name atau email
+        Route::get('/searchUser', [SearchController::class, 'searchUser']); // Mencari user dengan name atau email
 
         // Route::put('/update', [UserController::class, 'update']); // Update user
 
@@ -251,7 +264,7 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
             Route::put('/update/{id}', [InstanceController::class, 'update']); // Update instansi yang ada sebelumnya
 
-            Route::post('/delete', [InstanceController::class, 'destroy']); // Hapus instansi yang ada sebelumnya dengan array request body
+            Route::delete('/delete/{instanceId}', [InstanceController::class, 'destroy']); // Hapus instansi
         });
 
         Route::prefix('faq')->group(function () {
@@ -265,11 +278,22 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
             Route::delete('/delete/{id}', [FAQController::class, 'destroy']); // Hapus FAQ yang ada sebelumnya
         });
+        
+        Route::prefix('news')->group(function () {
+            Route::get('/getAllNews', [NewsController::class, 'getAllNews']);
+            
+            Route::get('/getNewsDetail/{newsId}', [NewsController::class, 'getNewsDetailForAdmin']);
+
+            Route::post('/create', [NewsController::class, 'createNews']); // Membuat berita baru
+
+            Route::put('/update', [NewsController::class, 'updateNews']); // Update berita yang ada sebelumnya
+
+            Route::put('/changeStatus/{newsId}', [NewsController::class, 'changeStatus']);
+
+            Route::delete('/delete', [NewsController::class, 'deleteNews']); // Hapus berita
+        });
 
         Route::prefix('legal_basis')->group(function () {
-
-            Route::get('/all', [LegalBasisController::class, 'getAll']);
-
             Route::post('/save', [LegalBasisController::class, 'save']);
 
             Route::put('/update/{id}', [LegalBasisController::class, 'update']);

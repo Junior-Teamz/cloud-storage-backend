@@ -6,7 +6,6 @@ use Exception;
 use App\Models\Tags;
 use App\Models\User;
 use App\Models\Folder;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,19 +13,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
-use App\Services\GenerateImageURLService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FolderController extends Controller
 {
     protected $checkPermissionFolderService;
-    protected $generateImageUrlService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateImageURLService $generateImageUrlService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
-        $this->generateImageUrlService = $generateImageUrlService;
     }
 
     /**
@@ -212,11 +208,6 @@ class FolderController extends Controller
                     'shared_with' => $file->userPermissions
                 ];
 
-                // Jika file adalah gambar (berdasarkan MIME type), buat URL sementara
-                if (Storage::exists($file->path) && Str::startsWith(Storage::mimeType($file->path), 'image')) {
-                    $fileResponse['image_url'] = $this->generateImageUrlService->generateUrlForImage($file->id);
-                }
-
                 return $fileResponse;
             });
 
@@ -344,8 +335,6 @@ class FolderController extends Controller
 
             // Ambil files dan buat hidden beberapa atribut yang tidak diperlukan
             $files = $folder->files->map(function ($file) {
-                $mimeType = Storage::mimeType($file->path);
-
                 $fileData = [
                     'id' => $file->id,
                     'name' => $file->name,
@@ -367,11 +356,6 @@ class FolderController extends Controller
                         ];
                     })
                 ];
-
-                // Tambahkan URL gambar jika file berupa gambar
-                if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['image_url'] = $this->generateImageUrlService->generateUrlForImage($file->id);
-                }
 
                 return $fileData;
             });
@@ -414,7 +398,7 @@ class FolderController extends Controller
             $request->all(),
             [
                 'name' => 'required|string',
-                'parent_id' => 'nullable|integer|exists:folders,id',
+                'parent_id' => 'nullable',
                 'tag_ids' => 'required|array',
             ],
         );
@@ -425,17 +409,31 @@ class FolderController extends Controller
             ], 422);
         }
 
-        foreach ($request->tag_ids as $tagId) {
-            if (!is_int($tagId)) {
-                Log::error('Invalid Tag ID detected: ' . $tagId . ' , please check decode hashed id middleware!');
+        $parentFolderIdRequest = $request->parent_id;
+
+        try {
+            if (!is_int($parentFolderIdRequest)) {
+                Log::error('Invalid parent folderID detected: ' . $parentFolderIdRequest . ' , please check decode hashed id middleware!', [
+                    'context' => 'FolderController.php (create) parent folder ID is not integer.'
+                ]);
 
                 return response()->json([
                     'errors' => "Internal server error, please contact administrator of app."
                 ], 500);
             }
-        }
 
-        try {
+            foreach ($request->tag_ids as $tagId) {
+                if (!is_int($tagId)) {
+                    Log::error('Invalid Tag ID detected: ' . $tagId . ' , please check decode hashed id middleware!', [
+                        'context' => 'FolderController.php (create) Tag ID is not integer.'
+                    ]);
+
+                    return response()->json([
+                        'errors' => "Internal server error, please contact administrator of app."
+                    ], 500);
+                }
+            }
+
             $userLogin = Auth::user();
             $userId = $userLogin->id;
 
@@ -443,17 +441,17 @@ class FolderController extends Controller
             $folderRootUser = Folder::where('user_id', $userId)->whereNull('parent_id')->first();
 
             // Check if parent_id is provided, else use the root folder's ID
-            if ($request->parent_id === null) {
+            if ($parentFolderIdRequest === null) {
                 $parentId = $folderRootUser->id;
             } else {
                 // Check user permission for the provided parent_id
-                $permission = $this->checkPermissionFolderService->checkPermissionFolder($request->parent_id, 'write');
+                $permission = $this->checkPermissionFolderService->checkPermissionFolder($parentFolderIdRequest, 'write');
                 if (!$permission) {
                     return response()->json([
                         'errors' => 'You do not have permission to create a folder in this parent_id',
                     ], 403);
                 } else {
-                    $parentId = $request->parent_id;
+                    $parentId = $parentFolderIdRequest;
                 }
             }
 
@@ -496,11 +494,11 @@ class FolderController extends Controller
             $fullPath = $path . '/' . $folderNameWithNanoId;
             Storage::makeDirectory($fullPath);
 
-            // Hide the nanoid from the response
-            $newFolder->makeHidden(['nanoid']);
-
             // Load instances and tags for the response
-            $newFolder->load('instances:id,name,address', 'tags:id,name');
+            $newFolder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
+
+            // Hide the nanoid from the response
+            $newFolder->makeHidden(['nanoid', 'user_id']);
 
             return response()->json([
                 'message' => $newFolder->parent_id ? 'Subfolder created successfully' : 'Folder created successfully',
@@ -576,9 +574,9 @@ class FolderController extends Controller
 
             DB::commit();
 
-            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $folder->makeHidden('nanoid');
+            $folder->makeHidden(['nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'Successfully added tag to folder.',
@@ -659,9 +657,9 @@ class FolderController extends Controller
 
             DB::commit();
 
-            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $folder->makeHidden('nanoid');
+            $folder->makeHidden(['nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'Successfully removed tag from folder.',
@@ -751,12 +749,14 @@ class FolderController extends Controller
 
             $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name', 'favorite']);
 
+            $folder->makeHidden(['nanoid', 'user_id']);
+
             $favorite = $folder->favorite->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
             $folder['is_favorite'] = $isFavorite;
-            $folder['favorited_at'] = $favoritedAt; 
+            $folder['favorited_at'] = $favoritedAt;
 
             return response()->json([
                 'message' => 'Folder name updated successfully.',
@@ -802,7 +802,6 @@ class FolderController extends Controller
         // Validasi bahwa folder_ids dikirim dalam request
         $validator = Validator::make($request->all(), [
             'folder_ids' => 'required|array',
-            'folder_ids.*' => 'integer|exists:folders,id',
         ]);
 
         if ($validator->fails()) {
@@ -812,46 +811,60 @@ class FolderController extends Controller
         $folderIds = $request->folder_ids;
 
         try {
+            // Pengecekan apakah ada ID yang bukan integer
+            $nonIntegerFolderIds = array_filter($folderIds, fn($id) => !is_int($id));
+            if (!empty($nonIntegerFolderIds)) {
+                Log::error('Invalid Folder IDs detected: ' . implode(', ', $nonIntegerFolderIds), [
+                    'context' => 'FolderController.php (delete) - invalid folder IDs.',
+                ]);
+                return response()->json([
+                    'errors' => 'Invalid folder IDs detected.',
+                    'invalid_ids' => $nonIntegerFolderIds
+                ], 422);
+            }
+
             // Ambil semua folder yang sesuai
             $folders = Folder::whereIn('id', $folderIds)->get();
 
-            // Cek izin untuk semua folder
-            $noPermissionFolders = [];
+            // Bandingkan ID yang ditemukan dengan yang diminta
+            $foundFolderIds = $folders->pluck('id')->toArray();
+            $notFoundFolderIds = array_diff($folderIds, $foundFolderIds);
 
-            foreach ($folders as $folder) {
-                if (!$this->checkPermissionFolderService->checkPermissionFolder($folder->id, 'write')) {
-                    $noPermissionFolders[] = $folder->id;
+            if (!empty($notFoundFolderIds)) {
+                Log::info('Attempt to delete non-existent folders: ' . implode(',', $notFoundFolderIds));
+                return response()->json([
+                    'errors' => 'Some folders were not found.',
+                    'missing_folder_ids' => $notFoundFolderIds,
+                ], 404);
+            }
+
+            // Periksa izin pengguna terhadap folder secara batch
+            $folderIdNoPermission = [];
+            foreach ($folderIds as $folderId) {
+                if (!$this->checkPermissionFolderService->checkPermissionFolder($folderId, 'write')) {
+                    $folderIdNoPermission[] = $folderId;
                 }
             }
 
-            // Jika ada folder yang tidak memiliki izin
-            if (!empty($noPermissionFolders)) {
-                Log::error('User attempted to delete folders without permission: ' . implode(', ', $noPermissionFolders));
+            // Jika ada folder yang tidak memiliki izin, kembalikan error
+            if (!empty($folderIdNoPermission)) {
+                Log::info('Attempt to delete folders without permission: ' . implode(',', $folderIdNoPermission));
                 return response()->json([
-                    'errors' => 'You do not have permission to delete some of the selected folders.',
+                    'errors' => 'You do not have permission to delete some folders.',
+                    'folder_ids_no_permission' => $folderIdNoPermission
                 ], 403);
             }
 
             DB::beginTransaction();
 
-            // Hapus data pivot yang terkait dengan setiap folder
-            foreach ($folders as $folder) {
+            // Hapus semua relasi yang berkaitan dengan folder yang dihapus.
+            DB::table('user_folder_permissions')->whereIn('folder_id', $foundFolderIds)->delete();
+            DB::table('folder_has_tags')->whereIn('folder_id', $foundFolderIds)->delete();
+            DB::table('folder_has_instances')->whereIn('folder_id', $foundFolderIds)->delete();
+            DB::table('folder_has_favorited')->whereIn('folder_id', $foundFolderIds)->delete();
 
-                if ($folder->tags()->exists()) {
-                    $folder->tags()->detach();
-                }
-
-                if ($folder->instances()->exists()) {
-                    $folder->instances()->detach();
-                }
-
-                if ($folder->favorite()->exists()) {
-                    $folder->favorite()->detach();
-                }
-
-                // Hapus folder dari database
-                $folder->delete();
-            }
+            // Hapus folder dari database
+            Folder::whereIn('id', $foundFolderIds)->delete();
 
             DB::commit();
 
@@ -868,25 +881,19 @@ class FolderController extends Controller
             return response()->json([
                 'message' => 'Folder(s) deleted successfully.',
             ], 200);
-        } catch (ModelNotFoundException $e) {
-            DB::rollBack();
-            return response()->json([
-                'errors' => 'Folder not found: ' . $e->getMessage(),
-            ], 404);
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred on deleting folder(s): ' . $e->getMessage(), [
+            Log::error('Error occurred while deleting folder(s): ' . $e->getMessage(), [
                 'folderIds' => $folderIds,
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred on deleting folder(s).',
+                'errors' => 'An error occurred while deleting folder(s).',
             ], 500);
         }
     }
-
 
     /**
      * Move a folder to a new parent folder.
@@ -912,8 +919,8 @@ class FolderController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'folder_id' => 'required|integer|exists:folders,id',
-                'new_parent_id' => 'required|integer|exists:folders,id',
+                'folder_id' => 'required',
+                'new_parent_id' => 'required',
             ],
         );
 
@@ -921,27 +928,64 @@ class FolderController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        try {
-            $folder = Folder::findOrFail($request->folder_id);
+        $folderIdRequest = $request->folder_id;
+        $newParentIdRequest = $request->new_parent_id;
 
+        try {
+            if (!is_int($folderIdRequest)) {
+                Log::error('Invalid folder ID detected: ' . $folderIdRequest . ' , please check decode hashed id middleware!', [
+                    'context' => 'FolderController.php (create) folder ID is not integer.'
+                ]);
+
+                return response()->json([
+                    'errors' => "Internal server error, please contact administrator of app."
+                ], 500);
+            }
+
+            if (!is_int($newParentIdRequest)) {
+                Log::error('Invalid new parent folderID detected: ' . $newParentIdRequest . ' , please check decode hashed id middleware!', [
+                    'context' => 'FolderController.php (create) new parent folder ID is not integer.'
+                ]);
+
+                return response()->json([
+                    'errors' => "Internal server error, please contact administrator of app."
+                ], 500);
+            }
+
+            // Periksa apakah folder yang ingin dipindahkan ada
+            $folder = Folder::where('id', $request->folder_id)->first();
+
+            if ($folder->isEmpty()) {
+                return response()->json([
+                    'error' => 'Folder was not found.'
+                ], 404);
+            }
+
+            // Ambil parent folder id yang lama dari folder yang ingin dipindahkan
             $oldParentId = $folder->parent_id;
 
-            //periksa apakah new_parent_id (folder tujuan yang dipilih) pada request adalah milik user sendiri atau milik user lain. jika dimiliki oleh user lain, periksa apakah user saat ini memiliki izin untuk memindahkan ke folder milik orang lain itu.
-            $checkIfNewParentIdIsBelongsToUser = Folder::where('id', $request->new_parent_id)->where('user_id', $user->id)->exists();
+            // Periksa apakah folder tujuan ada
+            $newParentFolder = Folder::where('id', $newParentIdRequest)->first();
 
-            // jika tidak ada izin pada folder tujuan
-            if (!$checkIfNewParentIdIsBelongsToUser) {
-                $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->new_parent_id, 'write');
-                if (!$permissionCheck) {
+            if($newParentFolder->isEmpty()) {
+                if ($folder->isEmpty()) {
                     return response()->json([
-                        'errors' => 'You do not have permission on the folder you are trying to move this folder to.',
-                    ], 403);
+                        'error' => 'New parent folder was not found.'
+                    ], 404);
                 }
+            }
+
+            // Periksa apakah user yang sedang login memiliki perizinan untuk memindahkan folder ke folder tujuan
+            $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($newParentIdRequest, 'write');
+            if (!$permissionCheck) {
+                return response()->json([
+                    'errors' => 'You do not have permission on the folder you are trying to move this folder to.',
+                ], 403);
             }
 
             DB::beginTransaction();
 
-            $folder->parent_id = $request->new_parent_id;
+            $folder->parent_id = $newParentIdRequest;
             $folder->save();
 
             DB::commit();
@@ -958,12 +1002,14 @@ class FolderController extends Controller
 
             $folder->load(['user:id,name,email', 'tags', 'instances:id,name', 'favorite']);
 
+            $folder->makeHidden(['nanoid', 'user_id']);
+
             $favorite = $folder->favorite->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
             $folder['is_favorite'] = $isFavorite;
-            $folder['favorited_at'] = $favoritedAt; 
+            $folder['favorited_at'] = $favoritedAt;
 
             return response()->json([
                 'message' => 'Folder moved successfully.',

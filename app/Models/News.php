@@ -12,9 +12,9 @@ class News extends Model
 
     protected $fillable = [
         'created_by',
-        'url_thumbnail',
-        'slug',
         'title',
+        'thumbnail',
+        'slug',
         'content',
         'viewer',
         'status'

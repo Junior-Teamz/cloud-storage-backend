@@ -187,12 +187,18 @@ class TagController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => [
                 'required',
+                'string',
                 // Custom uniqueness validation query to make it case-insensitive
                 Rule::unique('tags')->where(function ($query) {
                     return $query->whereRaw('LOWER(name) = ?', [strtolower(request('name'))]);
                 }),
                 'regex:/^[a-zA-Z\s]+$/',
+                'max:50'
             ],
+        ], [
+            'name.unique' => 'Tag name already exists.',
+            'name.regex' => 'Tag name can only contain letters and spaces.',
+            'name.max' => 'Tag name cannot exceed 50 characters.'
         ]);
 
         if ($validator->fails()) {
@@ -319,7 +325,7 @@ class TagController extends Controller
 
             return response()->json([
                 'errors' => $e->getMessage()
-            ], 400);
+            ], 422);
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -348,6 +354,7 @@ class TagController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => [
                 'required',
+                'string',
                 // Ignore the current tag's ID during the uniqueness check
                 Rule::unique('tags')->where(function ($query) use ($request, $id) {
                     return $query->whereRaw('LOWER(name) = ?', [strtolower($request->name)])
@@ -355,6 +362,9 @@ class TagController extends Controller
                 }),
                 'regex:/^[a-zA-Z\s]+$/', // Prevent mixed letters/numbers (can adjust if needed)
             ],
+        ], [
+            'name.unique' => 'Tag name already exists.',
+            'name.regex' => 'Tag name can only contain letters and spaces.'
         ]);
 
         if ($validator->fails()) {
@@ -409,10 +419,12 @@ class TagController extends Controller
             ], 403);
         }
 
-        // Jika tidak ada $id, validasi bahwa tag_ids dikirim dalam request
+        // Validasi bahwa tag_ids dikirim dalam request
         $validator = Validator::make($request->all(), [
             'tag_ids' => 'required|array',
-            'tag_ids.*' => 'integer|exists:tags,id',
+        ], [
+            'tag_ids.required' => 'tag_ids are required.',
+            'tag_ids.array' => 'tag_ids must be an array of tag ID.',
         ]);
 
         if ($validator->fails()) {
@@ -423,46 +435,59 @@ class TagController extends Controller
         $tagIds = $request->tag_ids;
 
         try {
-            $tags = Tags::whereIn('id', $tagIds)->get();
+            // Periksa apakah ID sudah di decode dengan benar oleh middleware decode hashed id
+            $nonIntegerIds = array_filter($tagIds, function ($tagId) {
+                return !is_int($tagId);
+            });
+
+            if (!empty($nonIntegerIds)) {
+                Log::error('Invalid tag IDs detected. Please check decode hashed id middleware!', [
+                    'context' => 'TagController.php (destroy) Tag ID is not an integer.',
+                    'tag_ids' => implode(',', $nonIntegerIds)
+                ]);
+
+                return response()->json([
+                    'errors' => 'Internal error has occurred. Please contact administrator of app.'
+                ], 500);
+            }
+
+            // Exclude "Root" tag dari query untuk menghindari penghapusan
+            $tags = Tags::whereIn('id', $tagIds)->where('name', '!=', 'Root')->get();
+
+            // Bandingkan ID yang ditemukan dengan yang diminta
+            $foundTagIds = $tags->pluck('id')->toArray();
+            $notFoundTagIds = array_diff($tagIds, $foundTagIds);
+
+            if (!empty($notFoundTagIds)) {
+                Log::info('Attempt to delete non-existent tags: ' . implode(',', $notFoundTagIds));
+
+                return response()->json([
+                    'errors' => 'Some tags were not found.',
+                    'missing_tag_ids' => $notFoundTagIds,
+                ], 404);
+            }
 
             DB::beginTransaction();
 
-            foreach ($tags as $tag) {
-                if ($tag->name == "Root") {
-                    return response()->json([
-                        'errors' => 'You cannot delete Root tag!',
-                        'root_tag' => [
-                            'id' => $tag->id,
-                            'name' => $tag->name
-                        ]
-                    ]);
-                }
+            // Detach hubungan untuk semua tag dalam satu batch operation
+            DB::table('folder_has_tags')->whereIn('tags_id', $foundTagIds)->delete(); // Detach all folder relations
+            DB::table('file_has_tags')->whereIn('tags_id', $foundTagIds)->delete();   // Detach all file relations
 
-                // Cek apakah ada data pivot untuk folders
-                if ($tag->folders()->exists()) {
-                    $tag->folders()->detach(); // Hapus relasi folder jika ada
-                }
-
-                // Cek apakah ada data pivot untuk files
-                if ($tag->files()->exists()) {
-                    $tag->files()->detach(); // Hapus relasi file jika ada
-                }
-
-                $tag->delete();
-            }
+            // Hapus semua tag sekaligus
+            Tags::whereIn('id', $foundTagIds)->delete();
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Tag deleted successfully.',
+                'message' => 'Tags deleted successfully.',
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occured while deleting tag: ' . $e->getMessage());
+            Log::error('Error occurred while deleting tags: ' . $e->getMessage());
 
             return response()->json([
-                'errors' => 'An error occurred while deleting tag.'
+                'errors' => 'An error occurred while deleting tags.'
             ], 500);
         }
     }

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
-use App\Services\GenerateImageURLService;
+use App\Services\GenerateURLService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Sqids\Sqids;
@@ -26,13 +26,13 @@ use Sqids\Sqids;
 class FileController extends Controller
 {
     protected $checkPermissionFolderService;
-    protected $generateImageUrlService;
+    protected $GenerateURLService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateImageURLService $generateImageUrlService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
-        $this->generateImageUrlService = $generateImageUrlService;
+        $this->GenerateURLService = $GenerateURLService;
     }
 
     /**
@@ -159,13 +159,7 @@ class FileController extends Controller
             }
 
             // Sembunyikan kolom 'path' dan 'nanoid'
-            $file->makeHidden(['path', 'nanoid']);
-
-            $mimeType = Storage::mimeType($file->path);
-
-            if (Str::startsWith($mimeType, 'image')) {
-                $file->setAttribute('image_url', $this->generateImageUrlService->generateUrlForImage($file->id));
-            }
+            $file->makeHidden(['path', 'nanoid', 'user_id']);
 
             return response()->json([
                 'data' => [
@@ -289,7 +283,7 @@ class FileController extends Controller
                         unlink($tempPath);
                     }
                     DB::rollBack();
-                    return response()->json(['errors' => 'File berisi konten berbahaya. File otomatis dihapus'], 422);
+                    return response()->json(['errors' => 'File detected as malware.'], 422);
                 }
 
                 // Pindahkan file yang telah discan ke storage utama
@@ -321,11 +315,20 @@ class FileController extends Controller
                     'nanoid' => $nanoid,
                 ]);
 
+                $mimeType = Storage::mimeType($path);
+
+                if (Str::startsWith($mimeType, 'image')) {
+                    $imageUrl = $this->GenerateURLService->generateUrlForImage($file->id);
+
+                    $file->image_url = $imageUrl;
+                    $file->save();
+                }
+
                 $file->tags()->sync($request->tag_ids);
 
                 $file->instances()->sync($userInstances);
 
-                $file->makeHidden(['path', 'nanoid']);
+                $file->makeHidden(['path', 'nanoid', 'user_id']);
 
                 $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
 
@@ -377,7 +380,7 @@ class FileController extends Controller
         ]);
 
         if ($validate->fails()) {
-            return response()->json(['error' => $validate->errors()], 400);
+            return response()->json(['error' => $validate->errors()], 422);
         }
 
         // Ambil file_ids dari request
@@ -661,7 +664,7 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
-            $file->makeHidden(['path', 'nanoid']);
+            $file->makeHidden(['path', 'nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'File name updated successfully.',
@@ -717,7 +720,14 @@ class FileController extends Controller
         try {
             DB::beginTransaction();
 
-            $file = File::findOrFail($id);
+            $file = File::where('id', $id)->first();
+
+            if($file->isEmpty()){
+                Log::warning('Attempt to move file on non-existence folder: ' . $id);
+                return response()->json([
+                    'errors' => 'Folder destination to move the file was not found.'
+                ], 404);
+            }
             $oldPath = $file->path;
 
             // Intinya, kode dibawah ini adalah persiapan untuk menyiapkan path baru.
@@ -732,19 +742,14 @@ class FileController extends Controller
 
             // Check if old file path exists
             if (!Storage::exists($oldPath)) {
-                return response()->json(['errors' => 'Old file path does not exist.'], 404);
+                Log::error('Error occured while moving file: Old file path does not exist.', [
+                    'new_folder_id' => $id,
+                    'old_file_path' => $oldPath
+                ]);
+                return response()->json(['errors' => 'Internal server error, please contact the administrator of app.'], 500);
             }
 
-            // Move file in storage
-            if (Storage::exists($oldPath)) {
-                // Ensure the new directory exists
-                $newDirectory = dirname($newPath);
-                if (!Storage::exists($newDirectory)) {
-                    Storage::makeDirectory($newDirectory);
-                }
-
-                Storage::move($oldPath, $newPath);
-            }
+            Storage::move($oldPath, $newPath);
 
             // Update file record in database
             $file->update([
@@ -757,7 +762,7 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
 
-            $file->makeHidden(['path', 'nanoid']);
+            $file->makeHidden(['path', 'nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'File moved successfully.',
@@ -787,82 +792,81 @@ class FileController extends Controller
      */
     public function delete(Request $request)
     {
+        // Validasi bahwa file_ids dikirim dalam request
         $validator = Validator::make($request->all(), [
             'file_ids' => 'required|array',
+        ], [
+            'file_ids.required' => 'file_ids are required.',
+            'file_ids.array' => 'file_ids must be an array of file ID.',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Periksa apakah user mendapatkan perizinan pada file
-        foreach ($request->file_ids as $fileId) {
-
-            if (!is_int($fileId)) {
-                Log::error('Invalid File ID detected: ' . $fileId . ' , please check decode hashed id middleware!');
-
-                return response()->json([
-                    'errors' => "Internal server error, please contact administrator of app."
-                ], 500);
-            }
-
-            $permissionCheck = $this->checkPermissionFile($fileId, 'write');
-            if (!$permissionCheck) {
-                return response()->json([
-                    'errors' => 'You do not have permission to delete this file.',
-                ], 403);
-            }
-        }
-
         $fileIds = $request->file_ids;
 
         try {
-            $files = File::whereIn('id', $fileIds)->get(); // Tambahkan get() untuk mengeksekusi query
+            // Periksa apakah ada file ID yang bukan integer
+            $nonIntegerFileIds = array_filter($fileIds, fn($id) => !is_int($id));
+            if (!empty($nonIntegerFileIds)) {
+                Log::error('Invalid File IDs detected: ' . implode(', ', $nonIntegerFileIds), [
+                    'context' => 'FileController.php (delete) - invalid file IDs.',
+                ]);
+                return response()->json([
+                    'errors' => 'Invalid file IDs detected.',
+                    'invalid_ids' => $nonIntegerFileIds
+                ], 422);
+            }
 
-            // Periksa apakah ada file_id yang tidak ditemukan
+            // Periksa apakah semua file ada
+            $files = File::whereIn('id', $fileIds)->get();
+
+            $foundFileIds = $files->pluck('id')->toArray();
+
+            // Jika ada file yang tidak ditemukan
             if (count($files) != count($fileIds)) {
-                $foundFileIds = $files->pluck('id')->toArray();
                 $notFoundFileIds = array_diff($fileIds, $foundFileIds);
 
-                Log::error('File Delete: some file not found:' . $notFoundFileIds);
+                Log::error('File Delete: some files not found: ' . implode(', ', $notFoundFileIds));
 
                 return response()->json([
-                    'errors' => 'Some files were not found',
+                    'errors' => 'Some files were not found.',
+                    'not_found_file_ids' => $notFoundFileIds
                 ], 404);
             }
 
-            $noPermissionFile = []; // Inisialisasi array
-
-            DB::beginTransaction();
-
+            // Periksa perizinan sekaligus
+            $noPermissionFileIds = [];
             foreach ($files as $file) {
                 if (!$this->checkPermissionFile($file->id, 'write')) {
-                    $noPermissionFile[] = $file->id;
+                    $noPermissionFileIds[] = $file->id;
                 }
             }
 
             // Jika ada file yang tidak memiliki izin
-            if (!empty($noPermissionFile)) {
-                Log::error('User attempted to delete file without permission: ' . implode(', ', $noPermissionFile));
+            if (!empty($noPermissionFileIds)) {
+                Log::error('User attempted to delete files without permission: ' . implode(', ', $noPermissionFileIds));
                 return response()->json([
                     'errors' => 'You do not have permission to delete some of the selected files.',
+                    'no_permission_file_ids' => $noPermissionFileIds
                 ], 403);
             }
 
-            foreach ($files as $file) {
-                if ($file->tags()->exists()) {
-                    $file->tags()->detach();
-                }
+            DB::beginTransaction();
 
-                if ($file->instances()->exists()) {
-                    $file->instances()->detach();
-                }
+            // Hapus semua relasi yang berkaitan dengan file yang dihapus.
+            DB::table('user_file_permissions')->whereIn('file_id', $foundFileIds)->delete();
+            DB::table('file_has_tags')->whereIn('file_id', $foundFileIds)->delete();
+            DB::table('file_has_instances')->whereIn('file_id', $foundFileIds)->delete();
+            // TODO: tambahkan penghapusan file favorite disini
 
-                $file->delete();
-            }
+            // Hapus file secara batch
+            File::whereIn('id', $foundFileIds)->delete();
 
             DB::commit();
 
+            // Hapus file di storage
             foreach ($files as $file) {
                 if (Storage::exists($file->path)) {
                     Storage::delete($file->path);
@@ -872,66 +876,95 @@ class FileController extends Controller
             return response()->json([
                 'message' => 'File(s) deleted successfully.',
             ], 200);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'errors' => 'File not found.',
-            ], 404);
         } catch (Exception $e) {
             DB::rollBack();
-
-            Log::error('Error occurred while deleting file: ' . $e->getMessage(), [
-                'fileId' => $fileIds,
+            Log::error('Error occurred while deleting file(s): ' . $e->getMessage(), [
+                'fileIds' => $fileIds,
                 'trace' => $e->getTraceAsString(),
             ]);
             return response()->json([
-                'errors' => 'An error occurred while deleting the file.',
+                'errors' => 'An error occurred while deleting the file(s).',
             ], 500);
         }
     }
 
     public function serveFileImageByHashedId($hashedId)
     {
-        $user = Auth::user();
+        // $user = Auth::user();
 
-        if ($user) {
-            // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
-            $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-            $fileIdArray = $sqids->decode($hashedId);
+        // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
+        $fileIdArray = $sqids->decode($hashedId);
 
-            if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-                return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
-            }
-
-            // Dapatkan file_id dari hasil decode
-            $file_id = $fileIdArray[0];
-
-            // Cari file berdasarkan ID
-            $file = File::find($file_id);
-
-            if (!$file) {
-                return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
-            }
-
-            // Cek apakah file adalah gambar
-            if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
-                return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
-            }
-
-            // Periksa perizinan menggunakan fungsi checkPermissionFile
-            if (!$this->checkPermissionFile($file->id, ['read'])) {
-                return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
-            }
-
-            // Ambil path file dari storage
-            $file_path = Storage::path($file->path);
-
-            // Kembalikan file sebagai respon (mengirim file gambar)
-            return response()->file($file_path);
-        } else {
-            return response()->json([
-                'errors' => 'Unauthenticated.'
-            ]);
+        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+            return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
         }
+
+        // Dapatkan file_id dari hasil decode
+        $file_id = $fileIdArray[0];
+
+        // Cari file berdasarkan ID
+        $file = File::find($file_id);
+
+        if (!$file) {
+            return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
+        }
+
+        // Cek apakah file adalah gambar
+        if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
+            return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
+        }
+
+        // // Periksa perizinan menggunakan fungsi checkPermissionFile
+        // if (!$this->checkPermissionFile($file->id, ['read'])) {
+        //     return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+        // }
+
+        // Ambil path file dari storage
+        $file_path = Storage::path($file->path);
+
+        // Kembalikan file sebagai respon (mengirim file gambar)
+        return response()->file($file_path);
+
+        // if ($user) {
+        //     // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
+        //     $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
+        //     $fileIdArray = $sqids->decode($hashedId);
+
+        //     if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+        //         return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
+        //     }
+
+        //     // Dapatkan file_id dari hasil decode
+        //     $file_id = $fileIdArray[0];
+
+        //     // Cari file berdasarkan ID
+        //     $file = File::find($file_id);
+
+        //     if (!$file) {
+        //         return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
+        //     }
+
+        //     // Cek apakah file adalah gambar
+        //     if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
+        //         return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
+        //     }
+
+        //     // Periksa perizinan menggunakan fungsi checkPermissionFile
+        //     if (!$this->checkPermissionFile($file->id, ['read'])) {
+        //         return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+        //     }
+
+        //     // Ambil path file dari storage
+        //     $file_path = Storage::path($file->path);
+
+        //     // Kembalikan file sebagai respon (mengirim file gambar)
+        //     return response()->file($file_path);
+        // } else {
+        //     return response()->json([
+        //         'errors' => 'Unauthenticated.'
+        //     ]);
+        // }
     }
 
     public function generateFilePublicPath($folderId, $fileName)

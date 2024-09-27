@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use App\Services\CheckAdminService;
 use App\Services\CheckFolderPermissionService;
-use App\Services\GenerateImageURLService;
+use App\Services\GenerateURLService;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,8 +23,8 @@ class AppServiceProvider extends ServiceProvider
             return new CheckFolderPermissionService();
         });
 
-        $this->app->singleton(GenerateImageURLService::class, function ($app) {
-            return new GenerateImageURLService();
+        $this->app->singleton(GenerateURLService::class, function ($app) {
+            return new GenerateURLService();
         });
 
     }

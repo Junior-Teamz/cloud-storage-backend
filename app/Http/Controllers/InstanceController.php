@@ -8,10 +8,10 @@ use App\Models\Instance;
 use App\Services\CheckAdminService;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class InstanceController extends Controller
@@ -235,8 +235,23 @@ class InstanceController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'name' => 'required|string|max:255|unique:instances,name',
+                'name' => [
+                    'required',
+                    'string',
+                    // Custom uniqueness validation query to make it case-insensitive
+                    Rule::unique('instances')->where(function ($query) {
+                        return $query->whereRaw('LOWER(name) = ?', [strtolower(request('name'))]);
+                    }),
+                    'regex:/^[a-zA-Z0-9\s.,()\-]+$/',
+                    'max:255'
+                ],
                 'address' => 'required|string|max:255',
+            ], [
+                'name.required' => 'Instance name is required.',
+                'name.string' => 'Instance name must be string.',
+                'name.unique' => 'Instance name already exists.',
+                'name.regex' => 'Instance name is not valid.',
+                'name.max' => 'Instance name cannot exceed 255 characters.',
             ]
         );
 
@@ -295,7 +310,7 @@ class InstanceController extends Controller
 
         try {
             DB::beginTransaction();
-            
+
             // Inisialisasi objek InstanceImport
             $instanceImport = new InstanceImport;
 
@@ -322,7 +337,7 @@ class InstanceController extends Controller
 
             return response()->json([
                 'errors' => $e->getMessage()
-            ], 400);
+            ], 422);
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -354,8 +369,24 @@ class InstanceController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'name' => 'required|string|max:255',
+                'name' => [
+                    'required',
+                    'string',
+                    // Custom uniqueness validation query to make it case-insensitive
+                    Rule::unique('instances')->where(function ($query) use ($request, $id) {
+                        return $query->whereRaw('LOWER(name) = ?', [strtolower($request->name)])
+                        ->where('id', '!=', $id); // Exclude the current instance ID;
+                    }),
+                    'regex:/^[a-zA-Z0-9\s.,()\-]+$/',
+                    'max:255'
+                ],
                 'address' => 'required|string|max:255',
+            ], [
+                'name.required' => 'Instance name is required.',
+                'name.string' => 'Instance name must be string.',
+                'name.unique' => 'Instance name already exists.',
+                'name.regex' => 'Instance name is not valid.',
+                'name.max' => 'Instance name cannot exceed 255 characters.',
             ]
         );
 
@@ -400,71 +431,69 @@ class InstanceController extends Controller
     }
 
     /**
-     * Menghapus satu atau beberapa instansi berdasarkan array ID yang diberikan.
+     * Menghapus data instansi.
      * 
-     * PERINGATAN: FUNCTION INI DAPAT MENGHAPUS SATU ATAU LEBIH DATA SECARA 
+     * PERINGATAN: FUNCTION INI DAPAT MENGHAPUS DATA SECARA 
      * PERMANEN. GUNAKAN DENGAN HATI-HATI
      * 
-     * @param  \Illuminate\Http\Request  $request
+     * @param  $instanceId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy(Request $request)
+    public function destroy($instanceId)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService;
 
         if (!$checkAdmin) {
+            Log::info('A user attempted to delete an instance without permission.');
             return response()->json([
                 'errors' => 'You are not allowed to perform this action.'
             ], 403);
         }
 
-        $validator = Validator::make($request->all(), [
-            'instance_ids' => 'required|array',
-            'instance_ids.*' => 'integer|exists:instances,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        // Ambil daftar tag_ids dari request
-        $instanceIds = $request->instance_ids;
-
         try {
-            // Gunakan whereIn untuk efisiensi dan menghapus dalam satu query
-            $instances = Instance::whereIn('id', $instanceIds)->get();
+            $instance = Instance::where('id', $instanceId)->first();
+
+            if ($instance->isEmpty()) {
+                Log::error('Attempt to delete non-existent instance: ' . $instanceId);
+                return response()->json([
+                    'errors' => 'Instance not found.'
+                ], 404);
+            }
 
             DB::beginTransaction();
 
-            foreach ($instances as $instance) {
-                if ($instance->users()->exists()) {
-                    $instance->users()->detach();
-                }
-
-                if ($instance->folders()->exists()) {
-                    $instance->folders()->detach();
-                }
-
-                if ($instance->files()->exists()) {
-                    $instance->files()->detach();
-                }
-
-                $instance->delete();
+            // Cek apakah ada data pivot untuk users
+            if ($instance->users()->exists()) {
+                $instance->users()->detach(); // Hapus relasi folder jika ada
             }
+
+            // Cek apakah ada data pivot untuk folders
+            if ($instance->folders()->exists()) {
+                $instance->folders()->detach(); // Hapus relasi folder jika ada
+            }
+
+            // Cek apakah ada data pivot untuk files
+            if ($instance->files()->exists()) {
+                $instance->files()->detach(); // Hapus relasi file jika ada
+            }
+
+            $instance->delete();
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Instances deleted successfully.',
+                'message' => 'Instance deleted successfully.'
             ], 200);
         } catch (Exception $e) {
-
             DB::rollBack();
 
-            Log::error('Error occurred while deleting instances: ' . $e->getMessage());
+            Log::error('Error occured while deleting instance data.', [
+                'instance_id' => $instanceId,
+                'message' => $e->getMessage()
+            ]);
 
             return response()->json([
-                'errors' => 'An error occurred while deleting instances.'
+                'errors' => 'An error occured while deleting instance data.'
             ], 500);
         }
     }

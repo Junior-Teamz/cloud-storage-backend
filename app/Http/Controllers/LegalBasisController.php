@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use AMWScan\Scanner;
 use App\Models\LegalBasis;
 use App\Services\CheckAdminService;
+use App\Services\GenerateURLService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,36 +13,38 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Sqids\Sqids;
 
 class LegalBasisController extends Controller
 {
-    private function checkAdmin() {
+    protected $GenerateURLService;
+
+    public function __construct(GenerateURLService $GenerateURLService)
+    {
+        // Simpan service ke dalam property
+        $this->GenerateURLService = $GenerateURLService;
+    }
+
+    private function checkAdmin()
+    {
         $user = Auth::user();
 
-        if(!$user->hasRole('admin') && $user->is_superadmin == 0) {
-            return false;
+        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     public function getAll()
     {
-        $checkAdmin = $this->checkAdmin();
-
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
-
         try {
             // Ambil semua dasar hukum
             $allLegalBasis = LegalBasis::all();
 
             // Tambahkan link file ke setiap dasar hukum
             $allLegalBasis->transform(function ($legalBasis) {
-                $legalBasis->file_url = asset('storage/' . $legalBasis->file_path);
+                $legalBasis->file_url = $this->GenerateURLService->generateUrlForLegalBasis($legalBasis->id);
                 return $legalBasis;
             });
 
@@ -58,6 +61,33 @@ class LegalBasisController extends Controller
         }
     }
 
+    public function serveFilePdfByHashedId($hashedId)
+    {
+        // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
+        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
+        $fileIdArray = $sqids->decode($hashedId);
+
+        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+            return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
+        }
+
+        // Dapatkan file_id dari hasil decode
+        $file_id = $fileIdArray[0];
+
+        // Cari file berdasarkan ID
+        $file = LegalBasis::find($file_id);
+
+        if (!$file) {
+            return response()->json(['errors' => 'Legal Basis not found'], 404);  // File tidak ditemukan
+        }
+
+        // Ambil path file dari storage
+        $file_path = Storage::path($file->file_path);
+
+        // Kembalikan file sebagai respon (mengirim file)
+        return response()->file($file_path);
+    }
+
     public function save(Request $request)
     {
         $checkAdmin = $this->checkAdmin();
@@ -70,7 +100,7 @@ class LegalBasisController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'file' => 'required|file|max:2000|mimes:pdf,docx,doc'
+            'file' => 'required|file|max:5120|mimes:pdf,docx,doc'
         ], [
             'name.required' => 'Name is required',
             'file.max' => 'File is too large, max size is 2MB',

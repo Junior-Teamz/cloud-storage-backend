@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('news', function (Blueprint $table) {
             $table->id();
             $table->foreignId('created_by')->references('id')->on('users')->cascadeOnDelete();
-            $table->string('url_thumbnail');
+            $table->string('thumbnail');
             $table->string('slug');
             $table->string('title');
             $table->text('content');
             $table->integer('viewer');
-            $table->enum('status', ['published', 'archived'])->default('published');
+            $table->enum('status', ['published', 'archived'])->default('archived');
             $table->timestamps();
         });
     }

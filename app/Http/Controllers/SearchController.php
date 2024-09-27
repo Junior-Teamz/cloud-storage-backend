@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\File;
 use App\Models\Folder;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +26,7 @@ class SearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return response()->json(['error' => $validator->errors()], 422);
         }
 
         try {
@@ -66,6 +67,43 @@ class SearchController extends Controller
 
             return response()->json([
                 'error' => 'An error occurred while searching for folders and files.'
+            ], 500);
+        }
+    }
+
+    public function searchUser(Request $request)
+    {
+        try {
+            // Ambil query 'name' dan 'email' jika ada
+            $keywordName = $request->query('name');
+            $keywordEmail = $request->query('email');
+
+            // Buat query dasar dengan relasi dan kolom yang dipilih
+            $query = User::with('instances:id,name,address')->select('id', 'name', 'email');
+
+            // Jika ada query name, tambahkan kondisi pencarian untuk name
+            if ($keywordName) {
+                $query->where('name', 'like', '%' . $keywordName . '%');
+            }
+
+            // Jika ada query email, tambahkan kondisi pencarian untuk email
+            if ($keywordEmail) {
+                $query->where('email', 'like', '%' . $keywordEmail . '%');
+            }
+
+            // Dapatkan hasil dengan pagination
+            $allUser = $query->paginate(10);
+
+            // Sembunyikan relasi roles dari hasil response
+            $allUser->makeHidden('roles');
+
+            // Kembalikan hasil pagination tanpa membungkus lagi
+            return response()->json($allUser, 200);
+        } catch (\Exception $e) {
+            Log::error("Error occurred on getting user list: " . $e->getMessage());
+
+            return response()->json([
+                'errors' => 'An error occurred on getting user list.',
             ], 500);
         }
     }
