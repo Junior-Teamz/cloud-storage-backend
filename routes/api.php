@@ -286,7 +286,7 @@ Route::middleware(['encode_id', 'decode_id', 'protectRootFolder', 'protectRootTa
 
             Route::post('/create', [NewsController::class, 'createNews']); // Membuat berita baru
 
-            Route::put('/update', [NewsController::class, 'updateNews']); // Update berita yang ada sebelumnya
+            Route::put('/update/{newsId}', [NewsController::class, 'updateNews']); // Update berita yang ada sebelumnya
 
             Route::put('/changeStatus/{newsId}', [NewsController::class, 'changeStatus']);
 

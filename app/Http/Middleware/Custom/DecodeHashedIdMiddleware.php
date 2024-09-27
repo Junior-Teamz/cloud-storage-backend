@@ -27,8 +27,8 @@ class DecodeHashedIdMiddleware
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Failed to decode route parameter ID:', [
-                        'key' => $key, 
-                        'value' => $value, 
+                        'key' => $key,
+                        'value' => $value,
                         'error' => $e->getMessage()
                     ]);
                     return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);

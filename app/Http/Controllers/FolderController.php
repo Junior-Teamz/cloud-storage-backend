@@ -422,16 +422,39 @@ class FolderController extends Controller
                 ], 500);
             }
 
-            foreach ($request->tag_ids as $tagId) {
-                if (!is_int($tagId)) {
-                    Log::error('Invalid Tag ID detected: ' . $tagId . ' , please check decode hashed id middleware!', [
-                        'context' => 'FolderController.php (create) Tag ID is not integer.'
-                    ]);
+            // Pastikan semua nilai dalam 'tag_ids' adalah integer
+            $invalidTagIds = array_filter($request->tag_ids, function ($tagId) {
+                return !is_int($tagId);  // Filter semua tag yang bukan integer
+            });
 
-                    return response()->json([
-                        'errors' => "Internal server error, please contact administrator of app."
-                    ], 500);
-                }
+            if (!empty($invalidTagIds)) {
+                Log::error('Invalid Tag IDs detected: ', [
+                    'context' => 'FolderController.php (create) Tag IDs are not integer.',
+                    'invalid_ids' => $invalidTagIds
+                ]);
+
+                return response()->json([
+                    'errors' => "Some Tag IDs are invalid. Please check the input.",
+                    'invalid_tag_ids' => $invalidTagIds
+                ], 400);
+            }
+
+            // Pastikan tag_ids ada di database
+            $tagIds = Tags::whereIn('id', $request->tag_ids)->pluck('id')->toArray();
+
+            // Cek apakah ada tag_ids yang tidak ditemukan di database
+            $missingTagIds = array_diff($request->tag_ids, $tagIds);
+
+            if (!empty($missingTagIds)) {
+                Log::error('Tag IDs not found in database: ', [
+                    'context' => 'FolderController.php (create)',
+                    'missing_tag_ids' => $missingTagIds
+                ]);
+
+                return response()->json([
+                    'errors' => "Some Tag IDs were not found in the database.",
+                    'missing_tag_ids' => $missingTagIds
+                ], 400);
             }
 
             $userLogin = Auth::user();
@@ -967,7 +990,7 @@ class FolderController extends Controller
             // Periksa apakah folder tujuan ada
             $newParentFolder = Folder::where('id', $newParentIdRequest)->first();
 
-            if($newParentFolder->isEmpty()) {
+            if ($newParentFolder->isEmpty()) {
                 if ($folder->isEmpty()) {
                     return response()->json([
                         'error' => 'New parent folder was not found.'
