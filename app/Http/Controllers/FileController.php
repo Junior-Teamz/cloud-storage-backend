@@ -26,13 +26,13 @@ use Sqids\Sqids;
 class FileController extends Controller
 {
     protected $checkPermissionFolderService;
-    protected $GenerateURLService;
+    protected $generateImageUrlService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $generateImageUrlService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
-        $this->GenerateURLService = $GenerateURLService;
+        $this->generateImageUrlService = $generateImageUrlService;
     }
 
     /**
@@ -318,7 +318,7 @@ class FileController extends Controller
                 $mimeType = Storage::mimeType($path);
 
                 if (Str::startsWith($mimeType, 'image')) {
-                    $imageUrl = $this->GenerateURLService->generateUrlForImage($file->id);
+                    $imageUrl = $this->generateImageUrlService->generateUrlForImage($file->id);
 
                     $file->image_url = $imageUrl;
                     $file->save();
@@ -890,81 +890,47 @@ class FileController extends Controller
 
     public function serveFileImageByHashedId($hashedId)
     {
-        // $user = Auth::user();
+        $user = Auth::user();
 
-        // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-        $fileIdArray = $sqids->decode($hashedId);
+        if ($user) {
+            // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
+            $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
+            $fileIdArray = $sqids->decode($hashedId);
 
-        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-            return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
+            if (empty($fileIdArray) || !isset($fileIdArray[0])) {
+                return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
+            }
+
+            // Dapatkan file_id dari hasil decode
+            $file_id = $fileIdArray[0];
+
+            // Cari file berdasarkan ID
+            $file = File::find($file_id);
+
+            if (!$file) {
+                return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
+            }
+
+            // Cek apakah file adalah gambar
+            if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
+                return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
+            }
+
+            // Periksa perizinan menggunakan fungsi checkPermissionFile
+            if (!$this->checkPermissionFile($file->id, ['read'])) {
+                return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+            }
+
+            // Ambil path file dari storage
+            $file_path = Storage::path($file->path);
+
+            // Kembalikan file sebagai respon (mengirim file gambar)
+            return response()->file($file_path);
+        } else {
+            return response()->json([
+                'errors' => 'Unauthenticated.'
+            ], 401);
         }
-
-        // Dapatkan file_id dari hasil decode
-        $file_id = $fileIdArray[0];
-
-        // Cari file berdasarkan ID
-        $file = File::find($file_id);
-
-        if (!$file) {
-            return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
-        }
-
-        // Cek apakah file adalah gambar
-        if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
-            return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
-        }
-
-        // // Periksa perizinan menggunakan fungsi checkPermissionFile
-        // if (!$this->checkPermissionFile($file->id, ['read'])) {
-        //     return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
-        // }
-
-        // Ambil path file dari storage
-        $file_path = Storage::path($file->path);
-
-        // Kembalikan file sebagai respon (mengirim file gambar)
-        return response()->file($file_path);
-
-        // if ($user) {
-        //     // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
-        //     $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-        //     $fileIdArray = $sqids->decode($hashedId);
-
-        //     if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-        //         return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
-        //     }
-
-        //     // Dapatkan file_id dari hasil decode
-        //     $file_id = $fileIdArray[0];
-
-        //     // Cari file berdasarkan ID
-        //     $file = File::find($file_id);
-
-        //     if (!$file) {
-        //         return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
-        //     }
-
-        //     // Cek apakah file adalah gambar
-        //     if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
-        //         return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
-        //     }
-
-        //     // Periksa perizinan menggunakan fungsi checkPermissionFile
-        //     if (!$this->checkPermissionFile($file->id, ['read'])) {
-        //         return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
-        //     }
-
-        //     // Ambil path file dari storage
-        //     $file_path = Storage::path($file->path);
-
-        //     // Kembalikan file sebagai respon (mengirim file gambar)
-        //     return response()->file($file_path);
-        // } else {
-        //     return response()->json([
-        //         'errors' => 'Unauthenticated.'
-        //     ]);
-        // }
     }
 
     public function generateFilePublicPath($folderId, $fileName)
