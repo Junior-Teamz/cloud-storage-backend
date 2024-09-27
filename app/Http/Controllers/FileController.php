@@ -26,13 +26,13 @@ use Sqids\Sqids;
 class FileController extends Controller
 {
     protected $checkPermissionFolderService;
-    protected $generateImageUrlService;
+    protected $GenerateURLService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $generateImageUrlService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
-        $this->generateImageUrlService = $generateImageUrlService;
+        $this->GenerateURLService = $GenerateURLService;
     }
 
     /**
@@ -318,7 +318,7 @@ class FileController extends Controller
                 $mimeType = Storage::mimeType($path);
 
                 if (Str::startsWith($mimeType, 'image')) {
-                    $imageUrl = $this->generateImageUrlService->generateUrlForImage($file->id);
+                    $imageUrl = $this->GenerateURLService->generateUrlForImage($file->id);
 
                     $file->image_url = $imageUrl;
                     $file->save();

@@ -12,7 +12,7 @@ use App\Models\UserFolderPermission;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Services\CheckFolderPermissionService;
-use App\Services\GenerateImageURLService;
+use App\Services\GenerateURLService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Sqids\Sqids;
@@ -20,13 +20,13 @@ use Sqids\Sqids;
 class SharingController extends Controller
 {
     protected $checkPermissionFolderService;
-    protected $generateImageUrlService;
+    protected $GenerateURLService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateImageURLService $generateImageUrlService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
-        $this->generateImageUrlService = $generateImageUrlService;
+        $this->GenerateURLService = $GenerateURLService;
     }
 
     public function getListUserSharedFolder($id)
@@ -170,7 +170,7 @@ class SharingController extends Controller
                 // Jika file adalah gambar, tambahkan URL gambar
                 $mimeType = Storage::mimeType($file->path);
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['image_url'] = $this->generateImageUrlService->generateUrlForImage($file->id);
+                    $fileData['image_url'] = $this->GenerateURLService->generateUrlForImage($file->id);
                 }
 
                 return $fileData;
