@@ -45,7 +45,7 @@ class DecodeHashedIdMiddleware
         Log::info('Incoming Request Method: ' . $requestMethod);
 
         // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
-        if ($requestMethod == 'post' || $requestMethod == 'put' || $requestMethod == 'patch' || $requestMethod == 'delete') {
+        if ($requestMethod == 'POST' || $requestMethod == 'PUT' || $requestMethod == 'PATCH' || $requestMethod == 'DELETE') {
             $requestData = $request->all();
 
             // Decode body parameters (termasuk form-data, JSON, dll.)
