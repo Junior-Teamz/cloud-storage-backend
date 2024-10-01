@@ -12,6 +12,10 @@ class NewsTag extends Model
 
     protected $fillable = ['name'];
 
+    // Menyembunyikan pivot dari semua query secara global
+    protected $hidden = ['pivot'];
+
+    protected $table = 'news_tags';
 
     public function news(): BelongsToMany
     {
