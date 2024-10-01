@@ -45,7 +45,7 @@ class DecodeHashedIdMiddleware
         Log::info('Incoming Request Method: ' . $requestMethod);
 
         // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
-        if (in_array($requestMethod, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
+        if ($requestMethod == 'POST' || $requestMethod == 'PUT' || $requestMethod == 'PATCH' || $requestMethod == 'DELETE') {
             $requestData = $request->all();
 
             // Decode body parameters (termasuk form-data, JSON, dll.)
@@ -61,7 +61,7 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Recursively decode IDs in request data and ensure they are integers.
+     * Recursively decode IDs in request data.
      *
      * @param array $input
      * @return array
@@ -107,7 +107,7 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Decode single ID value and ensure it is returned as an integer.
+     * Decode single ID value.
      *
      * @param string $key
      * @param mixed $value
@@ -118,12 +118,7 @@ class DecodeHashedIdMiddleware
         // Hanya decode jika key mengandung 'id' atau 'ids'
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
-                $decodedValue = $this->attemptDecode($value);
-
-                // Convert decoded value to integer
-                if (is_numeric($decodedValue)) {
-                    return (int) $decodedValue;
-                }
+                return $this->attemptDecode($value);
             } catch (Exception $e) {
                 Log::error('Failed to decode ID value:', [
                     'key' => $key, 
@@ -131,10 +126,23 @@ class DecodeHashedIdMiddleware
                     'error' => $e->getMessage(),
                     'context' => 'Decoding process for key containing ID'
                 ]);
+                return $value; // Kembalikan nilai asli jika gagal decode
             }
         }
 
-        return $value; // Kembalikan nilai asli jika gagal decode
+        return $value; // Jika bukan scalar atau bukan ID, kembalikan nilai asli
+    }
+
+    /**
+     * Detect if value is JSON string.
+     *
+     * @param string $value
+     * @return bool
+     */
+    protected function isJsonString($value)
+    {
+        json_decode($value);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 
     /**
@@ -167,17 +175,5 @@ class DecodeHashedIdMiddleware
     protected function decodeId($hashedId)
     {
         return app(HashIdService::class)->decodeId($hashedId);
-    }
-
-    /**
-     * Detect if value is JSON string.
-     *
-     * @param string $value
-     * @return bool
-     */
-    protected function isJsonString($value)
-    {
-        json_decode($value);
-        return json_last_error() === JSON_ERROR_NONE;
     }
 }
