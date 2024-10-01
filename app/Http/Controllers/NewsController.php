@@ -44,7 +44,7 @@ class NewsController extends Controller
             $status = $request->query('status');
 
             // Query dasar untuk mengambil berita dengan relasi creator dan newsTags
-            $query = News::with(['creator:id,name,email', 'newsTags']);
+            $query = News::with(['creator:id,name,email', 'tags']);
 
             // Tambahkan filter berdasarkan nama creator jika ada
             if (!empty($titleNews)) {
@@ -153,7 +153,7 @@ class NewsController extends Controller
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
                 'creator:id,name,email',  // Ambil id dan name dari relasi creator (User)
-                'newsTags'  // Ambil id dan name dari relasi newsTags (NewsTag)
+                'tags'  // Ambil id dan name dari relasi newsTags (NewsTag)
             ])->find($newsId);
 
             // Jika berita tidak ditemukan, kembalikan response 404
@@ -303,11 +303,11 @@ class NewsController extends Controller
             ]);
 
             // Hubungkan berita dengan tag
-            $news->newsTags()->sync($foundNewsTagIds);
+            $news->tags()->attach($foundNewsTagIds);
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'newsTags']);
+            $news->load(['creator:id,name,email', 'tags']);
 
             return response()->json([
                 'message' => 'News successfully created.',
@@ -455,7 +455,7 @@ class NewsController extends Controller
 
             // Jika ada tag yang di-update, sinkronkan tag
             if (!is_null($newsTagIdRequest)) {
-                $news->newsTags()->sync($foundNewsTagIds);
+                $news->tags()->sync($foundNewsTagIds);
             }
 
             // Simpan perubahan
@@ -463,7 +463,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'newsTags']);
+            $news->load(['creator:id,name,email', 'tags']);
 
             return response()->json([
                 'message' => 'News updated successfully.',
@@ -567,7 +567,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'newsTags']);
+            $news->load(['creator:id,name,email', 'tags']);
 
             return response()->json([
                 'message' => 'News status changed successfully.',
