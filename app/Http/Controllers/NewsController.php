@@ -207,14 +207,17 @@ class NewsController extends Controller
         }
 
         $newsTagIdRequest = $request->news_tag_ids;
+        $nonIntegerIds = [];
 
         try {
             // Periksa apakah ID sudah di decode dengan benar oleh middleware decode hashed id
-            $nonIntegerIds = array_filter($newsTagIdRequest, function ($tagId) {
-                return !(is_int($tagId) || (is_string($tagId) && ctype_digit($tagId)));
+            $nonIntegerId = array_filter($newsTagIdRequest, function ($tagId) {
+                if (!(is_int($tagId) || (is_string($tagId) && ctype_digit($tagId)))) {
+                    $nonIntegerIds[] = $tagId;
+                }
             });
 
-            if ($nonIntegerIds) {
+            if (!empty($nonIntegerIds)) {
                 Log::error('Invalid news tag IDs detected. Please check decode hashed id middleware!', [
                     'context' => 'NewsController.php (createNews) News Tag ID is not an integer.',
                     'news_tag_ids' => $nonIntegerIds
