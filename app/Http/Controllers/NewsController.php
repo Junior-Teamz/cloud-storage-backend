@@ -209,6 +209,8 @@ class NewsController extends Controller
         $newsTagIdRequest = $request->news_tag_ids;
         $nonIntegerIds = [];
 
+        Log::warning('REQUEST NEWS TAG ! $newsTagIdRequest: ' . $newsTagIdRequest);
+
         try {
             foreach ($newsTagIdRequest as $tagId) {
                 $checkIntegerTag = is_int($tagId);
@@ -227,8 +229,6 @@ class NewsController extends Controller
                     'errors' => 'Internal error has occurred. Please contact administrator of app.'
                 ], 500);
             }
-
-            Log::info('$newsTagIdRequest: ' . $newsTagIdRequest);
 
             $newsTags = NewsTag::whereIn('id', $newsTagIdRequest)->get();
 
