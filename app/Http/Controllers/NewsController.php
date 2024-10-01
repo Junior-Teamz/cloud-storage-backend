@@ -214,7 +214,7 @@ class NewsController extends Controller
                 return !(is_int($tagId) || (is_string($tagId) && ctype_digit($tagId)));
             });
 
-            if (!empty($nonIntegerIds)) {
+            if ($nonIntegerIds) {
                 Log::error('Invalid news tag IDs detected. Please check decode hashed id middleware!', [
                     'context' => 'NewsController.php (createNews) News Tag ID is not an integer.',
                     'news_tag_ids' => $nonIntegerIds
