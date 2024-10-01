@@ -69,23 +69,20 @@ class DecodeHashedIdMiddleware
     protected function decodeIdsInRequest(array $input)
     {
         foreach ($input as $key => $value) {
-            if (is_array($value)) {
-                // Jika value adalah array, decode setiap item di dalamnya
+            if (is_array($value) && !$this->isAssociativeArray($value)) {
+                // Jika value adalah array non-associative (list), proses tiap elemen array
                 $input[$key] = array_map(function ($item) use ($key) {
-                    return is_array($item) ? $this->decodeIdsInRequest($item) : $this->decodeSingleValue($key, $item);
+                    return $this->decodeSingleValue($key, $item);
                 }, $value);
             } elseif ($this->isJsonString($value)) {
                 // Jika value adalah JSON string, decode JSON menjadi array dan proses lebih lanjut
                 $decodedJson = json_decode($value, true);
                 if (is_array($decodedJson)) {
-                    // Jika JSON decoded, lakukan recursive decode jika key mengandung 'id' atau 'ids'
                     $input[$key] = $this->decodeIdsInRequest($decodedJson);
                 } else {
-                    // Jika bukan array, langsung decode value
                     $input[$key] = $this->decodeSingleValue($key, $value);
                 }
             } else {
-                // Jika key mengandung 'id', coba decode value
                 if ($this->isIdKey($key)) {
                     $input[$key] = $this->decodeSingleValue($key, $value);
                 }
@@ -115,23 +112,21 @@ class DecodeHashedIdMiddleware
      */
     protected function decodeSingleValue($key, $value)
     {
-        // Hanya decode jika key mengandung 'id' atau 'ids'
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
-                // Cek jika value berisi beberapa ID yang dipisahkan oleh koma
                 if (strpos($value, ',') !== false) {
+                    // Jika terdapat beberapa ID yang dipisahkan oleh koma, decode tiap ID
                     $ids = explode(',', $value);
-                    $decodedIds = array_map(function($id) {
-                        return (int) $this->attemptDecode($id);
+                    $decodedIds = array_map(function ($id) {
+                        return (int) $this->attemptDecode(trim($id)); // trim untuk menghilangkan spasi ekstra
                     }, $ids);
 
-                    return $decodedIds; // Mengembalikan array dengan ID yang terdecode, tanpa nested array
+                    return $decodedIds; // Mengembalikan array dengan ID yang terdecode
                 }
 
-                // Jika hanya satu ID, lakukan decode langsung
+                // Jika hanya satu ID, decode langsung
                 $decodedValue = $this->attemptDecode($value);
 
-                // Convert decoded value to integer
                 if (is_numeric($decodedValue)) {
                     return (int) $decodedValue;
                 }
@@ -166,7 +161,7 @@ class DecodeHashedIdMiddleware
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        return $decoded[0]; // Mengambil nilai decoded pertama, menghindari array dalam array
+        return $decoded[0]; // Mengambil nilai decoded pertama
     }
 
     /**
@@ -190,5 +185,16 @@ class DecodeHashedIdMiddleware
     {
         json_decode($value);
         return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    /**
+     * Check if array is associative or not.
+     *
+     * @param array $array
+     * @return bool
+     */
+    protected function isAssociativeArray(array $array)
+    {
+        return array_values($array) !== $array;
     }
 }
