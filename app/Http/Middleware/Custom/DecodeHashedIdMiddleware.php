@@ -30,8 +30,8 @@ class DecodeHashedIdMiddleware
                         ]);
                     } catch (Exception $e) {
                         Log::error('Failed to decode route parameter ID:', [
-                            'key' => $key, 
-                            'value' => $value, 
+                            'key' => $key,
+                            'value' => $value,
                             'error' => $e->getMessage()
                         ]);
                         return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
@@ -70,16 +70,16 @@ class DecodeHashedIdMiddleware
     {
         foreach ($input as $key => $value) {
             if (is_array($value)) {
-                // Jika value adalah array, cek apakah kita sudah mendecode ID sebelumnya
-                $input[$key] = $this->decodeIdsInArray($key, $value);
+                // Jika value adalah array, pastikan array hasil decode tetap "flat"
+                $input[$key] = $this->flattenArray(array_map(function ($item) use ($key) {
+                    return is_array($item) ? $this->decodeIdsInRequest($item) : $this->decodeSingleValue($key, $item);
+                }, $value));
             } elseif ($this->isJsonString($value)) {
                 // Jika value adalah JSON string, decode JSON menjadi array dan proses lebih lanjut
                 $decodedJson = json_decode($value, true);
                 if (is_array($decodedJson)) {
-                    // Jika JSON decoded, lakukan recursive decode jika key mengandung 'id' atau 'ids'
                     $input[$key] = $this->decodeIdsInRequest($decodedJson);
                 } else {
-                    // Jika bukan array, langsung decode value
                     $input[$key] = $this->decodeSingleValue($key, $value);
                 }
             } else {
@@ -91,30 +91,6 @@ class DecodeHashedIdMiddleware
         }
 
         return $input;
-    }
-
-    /**
-     * Decode IDs in array and flatten the result if needed.
-     *
-     * @param string $key
-     * @param array $values
-     * @return array
-     */
-    protected function decodeIdsInArray($key, array $values)
-    {
-        $result = [];
-
-        foreach ($values as $value) {
-            if (is_array($value)) {
-                // Rekursif untuk array yang lebih dalam
-                $result = array_merge($result, $this->decodeIdsInArray($key, $value));
-            } else {
-                // Decode single value
-                $result[] = $this->decodeSingleValue($key, $value);
-            }
-        }
-
-        return $result;
     }
 
     /**
@@ -137,21 +113,21 @@ class DecodeHashedIdMiddleware
      */
     protected function decodeSingleValue($key, $value)
     {
-        // Hanya decode jika key mengandung 'id' atau 'ids'
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
-                // Cek jika value berisi beberapa ID yang dipisahkan oleh koma
                 if (strpos($value, ',') !== false) {
+                    // Jika terdapat beberapa ID yang dipisahkan oleh koma, decode tiap ID
                     $ids = explode(',', $value);
-                    return array_map(function($id) {
-                        return (int) $this->attemptDecode($id);
+                    $decodedIds = array_map(function ($id) {
+                        return (int) $this->attemptDecode(trim($id)); // trim untuk menghilangkan spasi ekstra
                     }, $ids);
+
+                    return $decodedIds; // Mengembalikan array dengan ID yang terdecode
                 }
 
-                // Jika hanya satu ID, lakukan decode langsung
+                // Jika hanya satu ID, decode langsung
                 $decodedValue = $this->attemptDecode($value);
 
-                // Convert decoded value to integer
                 if (is_numeric($decodedValue)) {
                     return (int) $decodedValue;
                 }
@@ -210,5 +186,20 @@ class DecodeHashedIdMiddleware
     {
         json_decode($value);
         return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    /**
+     * Flatten a nested array.
+     *
+     * @param array $array
+     * @return array
+     */
+    protected function flattenArray(array $array)
+    {
+        $result = [];
+        array_walk_recursive($array, function ($a) use (&$result) {
+            $result[] = $a;
+        });
+        return $result;
     }
 }
