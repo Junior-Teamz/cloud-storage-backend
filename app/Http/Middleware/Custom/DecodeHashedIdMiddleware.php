@@ -21,7 +21,8 @@ class DecodeHashedIdMiddleware
             foreach ($routeParameters as $key => $value) {
                 if ($this->isIdKey($key)) {
                     try {
-                        $decodedId = $this->attemptDecode($value);
+                        // Jika nilai berisi koma, pecah menjadi array
+                        $decodedId = $this->decodeMultipleIds($value);
                         $request->route()->setParameter($key, $decodedId);
                         Log::info('Decoded route parameter ID:', [
                             'key' => $key,
@@ -107,7 +108,7 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Decode single ID value.
+     * Decode single or multiple ID values.
      *
      * @param string $key
      * @param mixed $value
@@ -118,7 +119,7 @@ class DecodeHashedIdMiddleware
         // Hanya decode jika key mengandung 'id' atau 'ids'
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
-                return $this->attemptDecode($value);
+                return $this->decodeMultipleIds($value);
             } catch (Exception $e) {
                 Log::error('Failed to decode ID value:', [
                     'key' => $key, 
@@ -134,15 +135,23 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Detect if value is JSON string.
+     * Decode multiple hashed IDs separated by commas.
      *
      * @param string $value
-     * @return bool
+     * @return mixed
      */
-    protected function isJsonString($value)
+    protected function decodeMultipleIds($value)
     {
-        json_decode($value);
-        return json_last_error() === JSON_ERROR_NONE;
+        // Pisahkan nilai jika berisi koma (multiple IDs)
+        $values = explode(',', $value);
+
+        // Decode setiap ID dan return hasil sebagai array atau string kembali
+        $decodedValues = array_map(function ($val) {
+            return $this->attemptDecode($val);
+        }, $values);
+
+        // Gabungkan kembali menjadi string jika awalnya berupa string
+        return count($decodedValues) > 1 ? implode(',', $decodedValues) : $decodedValues[0];
     }
 
     /**
@@ -175,5 +184,17 @@ class DecodeHashedIdMiddleware
     protected function decodeId($hashedId)
     {
         return app(HashIdService::class)->decodeId($hashedId);
+    }
+
+    /**
+     * Detect if value is JSON string.
+     *
+     * @param string $value
+     * @return bool
+     */
+    protected function isJsonString($value)
+    {
+        json_decode($value);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 }
