@@ -121,9 +121,11 @@ class DecodeHashedIdMiddleware
                 // Cek jika value berisi beberapa ID yang dipisahkan oleh koma
                 if (strpos($value, ',') !== false) {
                     $ids = explode(',', $value);
-                    return array_map(function($id) {
+                    $decodedIds = array_map(function($id) {
                         return (int) $this->attemptDecode($id);
                     }, $ids);
+
+                    return $decodedIds; // Mengembalikan array dengan ID yang terdecode, tanpa nested array
                 }
 
                 // Jika hanya satu ID, lakukan decode langsung
@@ -164,7 +166,7 @@ class DecodeHashedIdMiddleware
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        return $decoded[0]; // Mengambil nilai decoded pertama
+        return $decoded[0]; // Mengambil nilai decoded pertama, menghindari array dalam array
     }
 
     /**
