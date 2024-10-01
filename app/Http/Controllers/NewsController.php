@@ -209,7 +209,9 @@ class NewsController extends Controller
         $newsTagIdRequest = $request->news_tag_ids;
         $nonIntegerIds = [];
 
-        Log::warning('REQUEST NEWS TAG ! $newsTagIdRequest: ' . $newsTagIdRequest);
+        Log::warning('REQUEST NEWS TAG ! $newsTagIdRequest', [
+            'news_tag_ids' => $newsTagIdRequest
+        ]);
 
         try {
             foreach ($newsTagIdRequest as $tagId) {
