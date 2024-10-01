@@ -228,6 +228,8 @@ class NewsController extends Controller
                 ], 500);
             }
 
+            Log::info('$newsTagIdRequest: ' . $newsTagIdRequest);
+
             $newsTags = NewsTag::whereIn('id', $newsTagIdRequest)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
