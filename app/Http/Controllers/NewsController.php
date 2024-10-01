@@ -207,14 +207,17 @@ class NewsController extends Controller
         }
 
         $newsTagIdRequest = $request->news_tag_ids;
+        $nonIntegerIds = [];
 
         try {
-            // Periksa apakah ID sudah di decode dengan benar oleh middleware decode hashed id
-            $nonIntegerIds = array_filter($newsTagIdRequest, function ($tagId) {
-                return !is_int($tagId);
-            });
+            foreach ($newsTagIdRequest as $tagId) {
+                $checkIntegerTag = is_int($tagId);
+                if (!$checkIntegerTag) {
+                    $nonIntegerIds[] = $checkIntegerTag;
+                }
+            }
 
-            if ($nonIntegerIds) {
+            if (empty($nonIntegerIds)) {
                 Log::error('Invalid news tag IDs detected. Please check decode hashed id middleware!', [
                     'context' => 'NewsController.php (createNews) News Tag ID is not an integer.',
                     'news_tag_ids' => $nonIntegerIds
@@ -528,10 +531,11 @@ class NewsController extends Controller
         }
     }
 
-    public function changeStatus(Request $request, $newsId){
+    public function changeStatus(Request $request, $newsId)
+    {
         $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if(!$checkAdmin){
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You are not allowed to perform this action.'
             ], 403);
@@ -543,7 +547,7 @@ class NewsController extends Controller
             'status.in' => 'Status must be either published or archived.',
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors()
             ], 422);
@@ -552,7 +556,7 @@ class NewsController extends Controller
         try {
             $news = News::where('id', $newsId)->first();
 
-            if($news->isEmpty()){
+            if ($news->isEmpty()) {
                 Log::warning('Attempt to change status of non-existence news with news ID: ' . $newsId);
                 return response()->json([
                     'errors' => 'News not found.'
