@@ -45,7 +45,7 @@ class DecodeHashedIdMiddleware
         Log::info('Incoming Request Method: ' . $requestMethod);
 
         // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
-        if ($requestMethod == 'POST' || $requestMethod == 'PUT' || $requestMethod == 'PATCH' ||$requestMethod == 'DELETE') {
+        if (in_array($requestMethod, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             $requestData = $request->all();
 
             // Decode body parameters (termasuk form-data, JSON, dll.)
@@ -123,6 +123,8 @@ class DecodeHashedIdMiddleware
                 // Convert decoded value to integer
                 if (is_numeric($decodedValue)) {
                     return (int) $decodedValue;
+                } elseif (is_array($decodedValue)) {
+                    return array_map('intval', $decodedValue);
                 }
             } catch (Exception $e) {
                 Log::error('Failed to decode ID value:', [
@@ -155,7 +157,7 @@ class DecodeHashedIdMiddleware
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        return $decoded[0];
+        return is_array($decoded) ? $decoded : [$decoded];
     }
 
     /**
