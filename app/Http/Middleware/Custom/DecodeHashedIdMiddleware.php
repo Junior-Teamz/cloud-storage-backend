@@ -21,8 +21,7 @@ class DecodeHashedIdMiddleware
             foreach ($routeParameters as $key => $value) {
                 if ($this->isIdKey($key)) {
                     try {
-                        // Jika nilai berisi koma, pecah menjadi array
-                        $decodedId = $this->decodeMultipleIds($value);
+                        $decodedId = $this->attemptDecode($value);
                         $request->route()->setParameter($key, $decodedId);
                         Log::info('Decoded route parameter ID:', [
                             'key' => $key,
@@ -62,7 +61,7 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Recursively decode IDs in request data.
+     * Recursively decode IDs in request data and ensure they are integers.
      *
      * @param array $input
      * @return array
@@ -108,7 +107,7 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Decode single or multiple ID values.
+     * Decode single ID value and ensure it is returned as an integer.
      *
      * @param string $key
      * @param mixed $value
@@ -119,8 +118,12 @@ class DecodeHashedIdMiddleware
         // Hanya decode jika key mengandung 'id' atau 'ids'
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
-                // Decode nilai ID
-                return $this->decodeMultipleIds($value);
+                $decodedValue = $this->attemptDecode($value);
+
+                // Convert decoded value to integer
+                if (is_numeric($decodedValue)) {
+                    return (int) $decodedValue;
+                }
             } catch (Exception $e) {
                 Log::error('Failed to decode ID value:', [
                     'key' => $key, 
@@ -128,31 +131,10 @@ class DecodeHashedIdMiddleware
                     'error' => $e->getMessage(),
                     'context' => 'Decoding process for key containing ID'
                 ]);
-                return $value; // Kembalikan nilai asli jika gagal decode
             }
         }
 
-        return $value; // Jika bukan scalar atau bukan ID, kembalikan nilai asli
-    }
-
-    /**
-     * Decode multiple hashed IDs separated by commas.
-     *
-     * @param string $value
-     * @return mixed
-     */
-    protected function decodeMultipleIds($value)
-    {
-        // Pisahkan nilai jika berisi koma (multiple IDs)
-        $values = explode(',', $value);
-
-        // Decode setiap ID dan return hasil sebagai array atau integer tunggal
-        $decodedValues = array_map(function ($val) {
-            return $this->attemptDecode($val);
-        }, $values);
-
-        // Jika hanya ada satu hasil decode, kembalikan sebagai integer, bukan array
-        return count($decodedValues) > 1 ? $decodedValues : $decodedValues[0];
+        return $value; // Kembalikan nilai asli jika gagal decode
     }
 
     /**
@@ -167,15 +149,13 @@ class DecodeHashedIdMiddleware
             throw new Exception('Cannot decode non-scalar value: ' . json_encode($value));
         }
 
-        // Decode hashed ID menjadi integer
         $decoded = $this->decodeId($value);
 
         if (empty($decoded)) {
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        // Pastikan hasil decode dikembalikan sebagai integer
-        return (int) $decoded[0];
+        return $decoded[0];
     }
 
     /**
