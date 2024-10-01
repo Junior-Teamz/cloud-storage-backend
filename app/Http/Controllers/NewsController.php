@@ -15,8 +15,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
-// TODO: LANJUTKAN CHANGE STATUS, UPDATE DAN DELETE !!!!!!!!!!!!!!!!!!!!!
-
 class NewsController extends Controller
 {
     protected $checkAdminService;
@@ -44,7 +42,7 @@ class NewsController extends Controller
             $status = $request->query('status');
 
             // Query dasar untuk mengambil berita dengan relasi creator dan newsTags
-            $query = News::with(['creator:id,name,email,instances', 'newsTags']);
+            $query = News::with(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags']);
 
             // Tambahkan filter berdasarkan nama creator jika ada
             if (!empty($titleNews)) {
@@ -86,7 +84,7 @@ class NewsController extends Controller
             $titleNews = $request->query('title');
 
             // Ambil semua data berita beserta nama pembuat dan tag-nya, dengan pagination 10 item per halaman
-            $queryNews = News::with(['creator:name', 'newsTags:name']);
+            $queryNews = News::with(['creator:name','creator.instances:name,address', 'newsTags:name']);
 
             if (!empty($titleNews)) {
                 $queryNews->whereHas('title', function ($q) use ($titleNews) {
@@ -120,6 +118,7 @@ class NewsController extends Controller
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
                 'creator:name',  // Ambil id dan name dari relasi creator (User)
+                'creator.instances:name,address',
                 'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
             ])
                 ->where('status', 'published')
@@ -153,6 +152,7 @@ class NewsController extends Controller
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
                 'creator:id,name,email',  // Ambil id dan name dari relasi creator (User)
+                'creator.instances:id,name,address',
                 'newsTags'  // Ambil id dan name dari relasi newsTags (NewsTag)
             ])->find($newsId);
 
@@ -307,7 +307,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'newsTags']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags']);
 
             return response()->json([
                 'message' => 'News successfully created.',
@@ -463,7 +463,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'newsTags']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags']);
 
             return response()->json([
                 'message' => 'News updated successfully.',
@@ -567,7 +567,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'newsTags']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags']);
 
             return response()->json([
                 'message' => 'News status changed successfully.',
