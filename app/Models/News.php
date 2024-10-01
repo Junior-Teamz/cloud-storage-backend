@@ -26,7 +26,7 @@ class News extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function tags(): BelongsToMany
+    public function newsTags(): BelongsToMany
     {
         return $this->belongsToMany(NewsTag::class, 'news_has_tags')->withTimestamps(); // menggunakan tabel pivot untuk menyalakan otomatisasi timestamp().
     }

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('news_has_tags', function (Blueprint $table) {
             $table->id();
             $table->foreignId('news_id')->references('id')->on('news')->cascadeOnDelete();
-            $table->foreignId('tag_id')->references('id')->on('news_tags')->cascadeOnDelete();
+            $table->foreignId('news_tag_id')->references('id')->on('news_tags')->cascadeOnDelete();
             $table->timestamps();
         });
     }
