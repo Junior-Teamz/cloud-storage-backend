@@ -12,33 +12,40 @@ class DecodeHashedIdMiddleware
 {
     public function handle($request, Closure $next)
     {
-        // Ambil semua parameter route
-        $routeParameters = $request->route()->parameters();
+        // Pastikan request memiliki route yang valid
+        if ($request->route()) {
+            // Ambil semua parameter route
+            $routeParameters = $request->route()->parameters();
 
-        // Decode route parameters
-        foreach ($routeParameters as $key => $value) {
-            if ($this->isIdKey($key)) {
-                try {
-                    $decodedId = $this->attemptDecode($value);
-                    $request->route()->setParameter($key, $decodedId);
-                    Log::info('Decoded route parameter ID:', [
-                        'key' => $key,
-                        'original' => $value,
-                        'decoded' => $decodedId
-                    ]);
-                } catch (Exception $e) {
-                    Log::error('Failed to decode route parameter ID:', [
-                        'key' => $key, 
-                        'value' => $value, 
-                        'error' => $e->getMessage()
-                    ]);
-                    return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
+            // Decode route parameters
+            foreach ($routeParameters as $key => $value) {
+                if ($this->isIdKey($key)) {
+                    try {
+                        $decodedId = $this->attemptDecode($value);
+                        $request->route()->setParameter($key, $decodedId);
+                        Log::info('Decoded route parameter ID:', [
+                            'key' => $key,
+                            'original' => $value,
+                            'decoded' => $decodedId
+                        ]);
+                    } catch (Exception $e) {
+                        Log::error('Failed to decode route parameter ID:', [
+                            'key' => $key, 
+                            'value' => $value, 
+                            'error' => $e->getMessage()
+                        ]);
+                        return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
+                    }
                 }
             }
         }
 
+        $requestMethod = $request->method();
+
+        Log::info('Incoming Request Method: ' . $requestMethod);
+
         // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
-        if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch')) {
+        if ($requestMethod == 'post' || $requestMethod == 'put' || $requestMethod == 'patch' || $requestMethod == 'delete') {
             $requestData = $request->all();
 
             // Decode body parameters (termasuk form-data, JSON, dll.)
