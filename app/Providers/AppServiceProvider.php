@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\CheckAdminService;
+use App\Services\CheckFilePermissionService;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
 use Illuminate\Support\Facades\View;
@@ -21,6 +22,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(CheckFolderPermissionService::class, function ($app) {
             return new CheckFolderPermissionService();
+        });
+
+        $this->app->bind(CheckFilePermissionService::class, function ($app) {
+            return new CheckFilePermissionService();
         });
 
         $this->app->singleton(GenerateURLService::class, function ($app) {

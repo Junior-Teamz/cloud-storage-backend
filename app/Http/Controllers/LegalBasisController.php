@@ -61,6 +61,45 @@ class LegalBasisController extends Controller
         }
     }
 
+    public function getSpesificLegalBasis($id)
+    {
+        $checkAdmin = $this->checkAdmin();
+
+        if(!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You do not have permission to perform this action.'
+            ], 403);
+        }
+
+        try {
+            $legalBasis = LegalBasis::where('id', $id)->first();
+
+            if($legalBasis->isEmpty()){
+                Log::warning('Attempt to get legal basis with not found id: ' . $id);
+
+                return response()->json([
+                    'errors' => 'Legal Basis not found.'
+                ], 404);
+            }
+
+            $legalBasis['file_url'] = $this->GenerateURLService->generateUrlForLegalBasis($legalBasis->id);
+
+            return response()->json([
+                'message' => 'Legal basis fetched successfully',
+                'data' => $legalBasis
+            ], 200);
+            
+        } catch (Exception $e) {
+            Log::error('Error occurred while fetching legal basis with id: ' . $e->getMessage(), [
+                'id' => $id
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occured while fetching legal basis with id.'
+            ], 500);
+        }
+    }
+
     public function serveFilePdfByHashedId($hashedId)
     {
         // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli

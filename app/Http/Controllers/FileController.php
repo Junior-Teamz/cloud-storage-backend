@@ -8,12 +8,11 @@ use App\Models\File;
 use App\Models\Tags;
 use App\Models\User;
 use App\Models\Folder;
+use App\Services\CheckFilePermissionService;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use App\Models\UserFilePermission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\UserFolderPermission;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -27,109 +26,14 @@ class FileController extends Controller
 {
     protected $checkPermissionFolderService;
     protected $GenerateURLService;
+    protected $checkPermissionFileServices;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, CheckFilePermissionService $checkFilePermissionService, GenerateURLService $GenerateURLService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
         $this->GenerateURLService = $GenerateURLService;
-    }
-
-    /**
-     * Check the user permission for file
-     */
-    private function checkPermissionFile($fileId, $actions)
-    {
-        $user = Auth::user();
-        $file = File::find($fileId);
-
-        // If file not found, return 404 error and stop the process
-        if (!$file) {
-            return response()->json([
-                'errors' => 'File with File ID you entered not found, Please check your File ID and try again.'
-            ], 404); // Setting status code to 404 Not Found
-        }
-
-        // Step 1: Check if the file belongs to the logged-in user
-        if ($file->user_id === $user->id) {
-            return true; // The owner has all permissions
-        }
-
-        // Step 2: Check if user is admin with SUPERADMIN privilege
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
-            return true;
-        } else if ($user->hasRole('admin')) {
-            return false; // Regular admin without SUPERADMIN privilege
-        }
-
-        // Step 3: Check if user has explicit permission to the file
-        $userFilePermission = UserFilePermission::where('user_id', $user->id)->where('file_id', $file->id)->first();
-        if ($userFilePermission) {
-            $checkPermission = $userFilePermission->permissions;
-
-            // Jika $actions adalah string, ubah menjadi array
-            if (!is_array($actions)) {
-                $actions = [$actions];
-            }
-
-            // Periksa apakah izin pengguna ada di array $actions
-            if (in_array($checkPermission, $actions)) {
-                return true;
-            }
-        }
-
-        // Step 4: Check permission for folder where file is located, including parent folders
-        return $this->checkPermissionFolderRecursive($file->folder_id, $actions);
-    }
-
-    /**
-     * Recursive function to check permission on parent folders
-     */
-    private function checkPermissionFolderRecursive($folderId, $actions)
-    {
-        $user = Auth::user();
-        $folder = Folder::find($folderId);
-
-        // If folder not found, return false
-        if (!$folder) {
-            return false;
-        }
-
-        // Step 1: Check if the folder belongs to the logged-in user
-        if ($folder->user_id === $user->id) {
-            return true; // The owner has all permissions
-        }
-
-        // Step 2: Check if user is admin with SUPERADMIN privilege
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
-            return true;
-        } else if ($user->hasRole('admin')) {
-            return false;
-        }
-
-        // Step 3: Check if user has explicit permission to the folder
-        $userFolderPermission = UserFolderPermission::where('user_id', $user->id)->where('folder_id', $folder->id)->first();
-        if ($userFolderPermission) {
-            $checkPermission = $userFolderPermission->permissions;
-
-            // Jika $actions adalah string, ubah menjadi array
-            if (!is_array($actions)) {
-                $actions = [$actions];
-            }
-
-            // Periksa apakah izin pengguna ada di array $actions
-            if (in_array($checkPermission, $actions)) {
-                return true;
-            }
-        }
-
-        // Step 4: Check if the folder has a parent folder
-        if ($folder->parent_id) {
-            return $this->checkPermissionFolderRecursive($folder->parent_id, $actions); // Recursive call to check parent folder
-        }
-
-        // Return false if no permissions are found
-        return false;
+        $this->checkPermissionFileServices = $checkFilePermissionService;
     }
 
     /**
@@ -137,7 +41,7 @@ class FileController extends Controller
      */
     public function info($id)
     {
-        $checkPermission = $this->checkPermissionFile($id, ['read', 'write']);
+        $checkPermission = $this->checkPermissionFileServices->checkPermissionFile($id, ['read', 'write']);
 
         if (!$checkPermission) {
             return response()->json([
@@ -388,7 +292,7 @@ class FileController extends Controller
 
         foreach ($fileIds as $fileId) {
 
-            $checkPermission = $this->checkPermissionFile($fileId, ['read']);
+            $checkPermission = $this->checkPermissionFileServices->checkPermissionFile($fileId, ['read']);
 
             if (!$checkPermission) {
                 return response()->json([
@@ -470,7 +374,7 @@ class FileController extends Controller
         }
 
         // Periksa perizinan
-        $permissionCheck = $this->checkPermissionFile($request->file_id, 'write');
+        $permissionCheck = $this->checkPermissionFileServices->checkPermissionFile($request->file_id, 'write');
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to add tag to this file.',
@@ -544,7 +448,7 @@ class FileController extends Controller
         }
 
         // Periksa apakah user memiliki perizinan pada file
-        $permissionCheck = $this->checkPermissionFile($request->file_id, 'write');
+        $permissionCheck = $this->checkPermissionFileServices->checkPermissionFile($request->file_id, 'write');
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to remove tag from this file.',
@@ -614,7 +518,7 @@ class FileController extends Controller
         }
 
         // Periksa apakah user memiliki perizinan pada file
-        $permissionCheck = $this->checkPermissionFile($id, 'write');
+        $permissionCheck = $this->checkPermissionFileServices->checkPermissionFile($id, 'write');
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to edit this file.',
@@ -702,7 +606,7 @@ class FileController extends Controller
         }
 
         // Periksa apakah user memiliki izin pada file
-        $permissionCheck = $this->checkPermissionFile($id, 'write');
+        $permissionCheck = $this->checkPermissionFileServices->checkPermissionFile($id, 'write');
         if (!$permissionCheck) {
             return response()->json([
                 'errors' => 'You do not have permission to move this file.',
@@ -839,7 +743,7 @@ class FileController extends Controller
             // Periksa perizinan sekaligus
             $noPermissionFileIds = [];
             foreach ($files as $file) {
-                if (!$this->checkPermissionFile($file->id, 'write')) {
+                if (!$this->checkPermissionFileServices->checkPermissionFile($file->id, 'write')) {
                     $noPermissionFileIds[] = $file->id;
                 }
             }
@@ -917,7 +821,7 @@ class FileController extends Controller
             }
 
             // Periksa perizinan menggunakan fungsi checkPermissionFile
-            if (!$this->checkPermissionFile($file->id, ['read'])) {
+            if (!$this->checkPermissionFileServices->checkPermissionFile($file->id, ['read'])) {
                 return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
             }
 
