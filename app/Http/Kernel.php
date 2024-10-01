@@ -21,7 +21,9 @@ class Kernel extends HttpKernel
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         // \Illuminate\Http\Middleware\HandleCors::class,
-        \App\Http\Middleware\Custom\CorsCustom::class
+        \App\Http\Middleware\Custom\CorsCustom::class,
+        \App\Http\Middleware\Custom\EncodeIdMiddleware::class,
+        \App\Http\Middleware\Custom\DecodeHashedIdMiddleware::class
     ];
 
     /**
@@ -37,13 +39,13 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class
         ],
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class
         ],
     ];
 
@@ -71,8 +73,6 @@ class Kernel extends HttpKernel
         'check_admin' => \App\Http\Middleware\Custom\CheckAdmin::class,
         'validate_admin' => \App\Http\Middleware\Custom\ValidateAdmin::class,
         'hide_superadmin_flag' => \App\Http\Middleware\Custom\HideSuperadminFlag::class,
-        'check_storage_limit' => \App\Http\Middleware\Custom\CheckStorageLimit::class,
-        'encode_id' => \App\Http\Middleware\Custom\EncodeIdMiddleware::class,
-        'decode_id' => \App\Http\Middleware\Custom\DecodeHashedIdMiddleware::class,
+        'check_storage_limit' => \App\Http\Middleware\Custom\CheckStorageLimit::class
     ];
 }
