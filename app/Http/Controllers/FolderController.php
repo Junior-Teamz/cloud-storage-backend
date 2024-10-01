@@ -410,7 +410,7 @@ class FolderController extends Controller
         }
 
         foreach ($request->tag_ids as $tagId) {
-            if (!is_int($tagId)) {
+            if (!is_numeric($tagId)) {
                 Log::error('Invalid Tag ID detected: ' . $tagId . ' , please check decode hashed id middleware!');
 
                 return response()->json([
@@ -823,7 +823,7 @@ class FolderController extends Controller
 
         try {
             // Pengecekan apakah ada ID yang bukan integer
-            $nonIntegerFolderIds = array_filter($folderIds, fn($id) => !is_int($id));
+            $nonIntegerFolderIds = array_filter($folderIds, fn($id) => !is_numeric($id));
             if (!empty($nonIntegerFolderIds)) {
                 Log::error('Invalid Folder IDs detected: ' . implode(', ', $nonIntegerFolderIds), [
                     'context' => 'FolderController.php (delete) - invalid folder IDs.',
@@ -943,7 +943,7 @@ class FolderController extends Controller
         $newParentIdRequest = $request->new_parent_id;
 
         try {
-            if (!is_int($folderIdRequest)) {
+            if (!is_numeric($folderIdRequest)) {
                 Log::error('Invalid folder ID detected: ' . $folderIdRequest . ' , please check decode hashed id middleware!', [
                     'context' => 'FolderController.php (create) folder ID is not integer.'
                 ]);
@@ -953,7 +953,7 @@ class FolderController extends Controller
                 ], 500);
             }
 
-            if (!is_int($newParentIdRequest)) {
+            if (!is_numeric($newParentIdRequest)) {
                 Log::error('Invalid new parent folderID detected: ' . $newParentIdRequest . ' , please check decode hashed id middleware!', [
                     'context' => 'FolderController.php (create) new parent folder ID is not integer.'
                 ]);

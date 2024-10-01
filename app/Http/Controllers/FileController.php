@@ -712,7 +712,7 @@ class FileController extends Controller
 
         try {
             // Periksa apakah ada file ID yang bukan integer
-            $nonIntegerFileIds = array_filter($fileIds, fn($id) => !is_int($id));
+            $nonIntegerFileIds = array_filter($fileIds, fn($id) => !is_numeric($id));
             if (!empty($nonIntegerFileIds)) {
                 Log::error('Invalid File IDs detected: ' . implode(', ', $nonIntegerFileIds), [
                     'context' => 'FileController.php (delete) - invalid file IDs.',

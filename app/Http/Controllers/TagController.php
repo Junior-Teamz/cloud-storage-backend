@@ -437,7 +437,7 @@ class TagController extends Controller
         try {
             // Periksa apakah ID sudah di decode dengan benar oleh middleware decode hashed id
             $nonIntegerIds = array_filter($tagIds, function ($tagId) {
-                return !is_int($tagId);
+                return !is_numeric($tagId);
             });
 
             if (!empty($nonIntegerIds)) {
