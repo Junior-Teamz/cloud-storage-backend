@@ -107,7 +107,7 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Decode single ID value and ensure it is returned as an integer.
+     * Decode single ID value and ensure it is returned as an integer or array of integers.
      *
      * @param string $key
      * @param mixed $value
@@ -118,13 +118,20 @@ class DecodeHashedIdMiddleware
         // Hanya decode jika key mengandung 'id' atau 'ids'
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
+                // Cek jika value berisi beberapa ID yang dipisahkan oleh koma
+                if (strpos($value, ',') !== false) {
+                    $ids = explode(',', $value);
+                    return array_map(function($id) {
+                        return (int) $this->attemptDecode($id);
+                    }, $ids);
+                }
+
+                // Jika hanya satu ID, lakukan decode langsung
                 $decodedValue = $this->attemptDecode($value);
 
                 // Convert decoded value to integer
                 if (is_numeric($decodedValue)) {
                     return (int) $decodedValue;
-                } elseif (is_array($decodedValue)) {
-                    return array_map('intval', $decodedValue);
                 }
             } catch (Exception $e) {
                 Log::error('Failed to decode ID value:', [
@@ -157,7 +164,7 @@ class DecodeHashedIdMiddleware
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        return is_array($decoded) ? $decoded : [$decoded];
+        return $decoded[0]; // Mengambil nilai decoded pertama
     }
 
     /**
