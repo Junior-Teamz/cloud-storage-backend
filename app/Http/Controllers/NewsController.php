@@ -44,7 +44,7 @@ class NewsController extends Controller
             $status = $request->query('status');
 
             // Query dasar untuk mengambil berita dengan relasi creator dan newsTags
-            $query = News::with(['creator:id,name,email', 'newsTags']);
+            $query = News::with(['creator:id,name,email,instances', 'newsTags']);
 
             // Tambahkan filter berdasarkan nama creator jika ada
             if (!empty($titleNews)) {

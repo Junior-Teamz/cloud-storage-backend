@@ -20,6 +20,9 @@ class News extends Model
         'status'
     ];
 
+     // Menyembunyikan pivot dari semua query secara global
+     protected $hidden = ['created_by'];
+
     // Relasi ke model User
     public function creator()
     {
