@@ -128,7 +128,7 @@ class DecodeHashedIdMiddleware
                 // Jika hanya satu ID, decode langsung
                 $decodedValue = $this->attemptDecode($value);
 
-                if (is_numeric($decodedValue)) {
+                if (is_int($decodedValue)) {
                     return (int) $decodedValue;
                 }
             } catch (Exception $e) {

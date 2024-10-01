@@ -37,7 +37,7 @@ class EncodeIdMiddleware
                 $input[$key] = $this->encodeIdsInResponse($value);
             } else {
                 // Jika key mengandung 'id' dan value numeric, encode
-                if (strpos($key, 'id') !== false && is_numeric($value)) {
+                if (strpos($key, 'id') !== false && is_int($value)) {
                     $input[$key] = $this->encodeId($value);
                 }
             }
