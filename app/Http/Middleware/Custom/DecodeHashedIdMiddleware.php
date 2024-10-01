@@ -37,37 +37,50 @@ class DecodeHashedIdMiddleware
             }
         }
 
-        // Decode body parameters (termasuk form-data, JSON, dll.)
-        $decodedRequest = $this->decodeIdsInRequest($request->all());
+        // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
+        if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch') || $request->isMethod('delete')) {
+            $requestData = $request->all();
 
-        // Replace original request data dengan data yang sudah di-decode
-        $request->replace($decodedRequest);
+            // Decode body parameters (termasuk form-data, JSON, dll.)
+            $decodedRequest = $this->decodeIdsInRequest($requestData);
+
+            // Replace original request data dengan data yang sudah di-decode (jika array)
+            if (is_array($decodedRequest)) {
+                $request->replace($decodedRequest);
+            }
+        }
 
         return $next($request);
     }
 
-    protected function decodeIdsInRequest($input)
+    /**
+     * Recursively decode IDs in request data.
+     *
+     * @param array $input
+     * @return array
+     */
+    protected function decodeIdsInRequest(array $input)
     {
         foreach ($input as $key => $value) {
             if (is_array($value)) {
                 // Jika value adalah array, decode setiap item di dalamnya
-                $input[$key] = array_map(function ($item) {
-                    try {
-                        return is_array($item) ? $this->decodeIdsInRequest($item) : $this->attemptDecode($item);
-                    } catch (Exception $e) {
-                        Log::error('Failed to decode array item ID:', ['value' => $item, 'error' => $e->getMessage()]);
-                        return $item; // Kembalikan nilai asli jika gagal decode
-                    }
+                $input[$key] = array_map(function ($item) use ($key) {
+                    return is_array($item) ? $this->decodeIdsInRequest($item) : $this->decodeSingleValue($key, $item);
                 }, $value);
+            } elseif ($this->isJsonString($value)) {
+                // Jika value adalah JSON string, decode JSON menjadi array dan proses lebih lanjut
+                $decodedJson = json_decode($value, true);
+                if (is_array($decodedJson)) {
+                    // Jika JSON decoded, lakukan recursive decode jika key mengandung 'id' atau 'ids'
+                    $input[$key] = $this->decodeIdsInRequest($decodedJson);
+                } else {
+                    // Jika bukan array, langsung decode value
+                    $input[$key] = $this->decodeSingleValue($key, $value);
+                }
             } else {
-                // Jika key mengandung 'id' dan value adalah string atau bukan array, coba decode
+                // Jika key mengandung 'id', coba decode value
                 if ($this->isIdKey($key)) {
-                    try {
-                        $input[$key] = $this->attemptDecode($value);
-                    } catch (Exception $e) {
-                        Log::error('Failed to decode body ID:', ['key' => $key, 'value' => $value, 'error' => $e->getMessage()]);
-                        return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
-                    }
+                    $input[$key] = $this->decodeSingleValue($key, $value);
                 }
             }
         }
@@ -76,7 +89,10 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Memeriksa apakah key terkait dengan 'id', 'ids', atau 'tag_ids', dst.
+     * Check if key is related to an ID field.
+     *
+     * @param string $key
+     * @return bool
      */
     protected function isIdKey($key)
     {
@@ -84,31 +100,50 @@ class DecodeHashedIdMiddleware
     }
 
     /**
-     * Coba decode ID apapun yang ada di request, baik dalam route maupun body.
-     * Jika nilai bukan string, ubah menjadi string terlebih dahulu sebelum decode.
+     * Decode single ID value.
      *
-     * @param mixed $value Nilai yang akan di-decode
-     * @return mixed ID asli yang sudah di-decode, atau throw exception jika gagal
-     * @throws Exception Jika decoding gagal
+     * @param string $key
+     * @param mixed $value
+     * @return mixed
+     */
+    protected function decodeSingleValue($key, $value)
+    {
+        // Hanya decode jika key mengandung 'id' atau 'ids'
+        if ($this->isIdKey($key) && is_scalar($value)) {
+            try {
+                return $this->attemptDecode($value);
+            } catch (Exception $e) {
+                Log::error('Failed to decode ID value:', ['key' => $key, 'value' => $value, 'error' => $e->getMessage()]);
+                return $value; // Kembalikan nilai asli jika gagal decode
+            }
+        }
+
+        return $value; // Jika bukan scalar atau bukan ID, kembalikan nilai asli
+    }
+
+    /**
+     * Detect if value is JSON string.
+     *
+     * @param string $value
+     * @return bool
+     */
+    protected function isJsonString($value)
+    {
+        json_decode($value);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    /**
+     * Attempt to decode the hashed ID.
+     *
+     * @param string $value
+     * @return mixed
      */
     protected function attemptDecode($value)
     {
-        // Jika nilai adalah array, lakukan decoding setiap elemen
-        if (is_array($value)) {
-            $decodedArray = [];
-            foreach ($value as $item) {
-                $decodedArray[] = $this->attemptDecode($item);
-            }
-            return $decodedArray;
-        }
-
-        // Ubah apapun menjadi string jika bukan array atau objek
-        if (!is_scalar($value) && !is_null($value)) {
+        if (!is_scalar($value)) {
             throw new Exception('Cannot decode non-scalar value: ' . json_encode($value));
         }
-
-        // Konversi ke string jika bukan null
-        $value = is_null($value) ? $value : (string) $value;
 
         $decoded = $this->decodeId($value);
 
@@ -116,10 +151,15 @@ class DecodeHashedIdMiddleware
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        // Kembalikan nilai ID asli yang sudah di-decode
         return $decoded[0];
     }
 
+    /**
+     * Decode hashed ID using the HashIdService.
+     *
+     * @param string $hashedId
+     * @return array
+     */
     protected function decodeId($hashedId)
     {
         return app(HashIdService::class)->decodeId($hashedId);
