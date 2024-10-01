@@ -211,7 +211,7 @@ class NewsController extends Controller
 
         try {
             // Periksa apakah ID sudah di decode dengan benar oleh middleware decode hashed id
-            $nonIntegerId = array_filter($newsTagIdRequest, function ($tagId) {
+            array_filter($newsTagIdRequest, function ($tagId) {
                 if (!(is_int($tagId) || (is_string($tagId) && ctype_digit($tagId)))) {
                     $nonIntegerIds[] = $tagId;
                 }

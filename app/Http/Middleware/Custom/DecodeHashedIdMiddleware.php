@@ -46,7 +46,7 @@ class DecodeHashedIdMiddleware
         Log::info('Incoming Request Method: ' . $requestMethod);
 
         // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
-        if ($requestMethod == 'POST' || $requestMethod == 'PUT' || $requestMethod == 'PATCH' || $requestMethod == 'DELETE') {
+        if (in_array($requestMethod, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             $requestData = $request->all();
 
             // Decode body parameters (termasuk form-data, JSON, dll.)
@@ -119,6 +119,7 @@ class DecodeHashedIdMiddleware
         // Hanya decode jika key mengandung 'id' atau 'ids'
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
+                // Decode nilai ID
                 return $this->decodeMultipleIds($value);
             } catch (Exception $e) {
                 Log::error('Failed to decode ID value:', [
@@ -145,13 +146,13 @@ class DecodeHashedIdMiddleware
         // Pisahkan nilai jika berisi koma (multiple IDs)
         $values = explode(',', $value);
 
-        // Decode setiap ID dan return hasil sebagai array atau string kembali
+        // Decode setiap ID dan return hasil sebagai array atau integer tunggal
         $decodedValues = array_map(function ($val) {
             return $this->attemptDecode($val);
         }, $values);
 
-        // Gabungkan kembali menjadi string jika awalnya berupa string
-        return count($decodedValues) > 1 ? implode(',', $decodedValues) : $decodedValues[0];
+        // Jika hanya ada satu hasil decode, kembalikan sebagai integer, bukan array
+        return count($decodedValues) > 1 ? $decodedValues : $decodedValues[0];
     }
 
     /**
@@ -166,13 +167,15 @@ class DecodeHashedIdMiddleware
             throw new Exception('Cannot decode non-scalar value: ' . json_encode($value));
         }
 
+        // Decode hashed ID menjadi integer
         $decoded = $this->decodeId($value);
 
         if (empty($decoded)) {
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        return $decoded[0];
+        // Pastikan hasil decode dikembalikan sebagai integer
+        return (int) $decoded[0];
     }
 
     /**
