@@ -38,7 +38,7 @@ class DecodeHashedIdMiddleware
         }
 
         // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
-        if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch') || $request->isMethod('delete')) {
+        if ($request->isMethod('post') || $request->isMethod('put') || $request->isMethod('patch')) {
             $requestData = $request->all();
 
             // Decode body parameters (termasuk form-data, JSON, dll.)
@@ -113,7 +113,12 @@ class DecodeHashedIdMiddleware
             try {
                 return $this->attemptDecode($value);
             } catch (Exception $e) {
-                Log::error('Failed to decode ID value:', ['key' => $key, 'value' => $value, 'error' => $e->getMessage()]);
+                Log::error('Failed to decode ID value:', [
+                    'key' => $key, 
+                    'value' => $value, 
+                    'error' => $e->getMessage(),
+                    'context' => 'Decoding process for key containing ID'
+                ]);
                 return $value; // Kembalikan nilai asli jika gagal decode
             }
         }
