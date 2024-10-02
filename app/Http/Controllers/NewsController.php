@@ -489,8 +489,8 @@ class NewsController extends Controller
         }
 
         try {
-            $news = News::where('id', $id)->first();
-            if ($news->isEmpty()) {
+            $news = News::find($id)->first();
+            if (!$news) {
                 Log::warning('Attempt to delete non-existence news with news ID: ' . $id);
                 return response()->json([
                     'errors' => 'News not found.'
