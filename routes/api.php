@@ -289,7 +289,7 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::put('/changeStatus/{newsId}', [NewsController::class, 'changeStatus']);
 
-        Route::delete('/delete', [NewsController::class, 'deleteNews']); // Hapus berita
+        Route::delete('/delete/{newsId}', [NewsController::class, 'deleteNews']); // Hapus berita
     });
 
     Route::prefix('news_tag')->group(function () {

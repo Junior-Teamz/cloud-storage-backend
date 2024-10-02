@@ -295,7 +295,7 @@ class NewsController extends Controller
             $news = News::create([
                 'created_by' => $userLogin->id,
                 'title' => $request->title,
-                'thumbnail' => $thumbnailPath,
+                'thumbnail' => ($request->hasFile('thumbnail')) ? asset($thumbnailPath) : $thumbnailPath,
                 'slug' => $slug,
                 'content' => $request->content,
                 'viewer' => 0,  // viewer dimulai dari 0
