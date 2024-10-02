@@ -550,9 +550,9 @@ class NewsController extends Controller
         }
 
         try {
-            $news = News::where('id', $newsId)->first();
+            $news = News::find($newsId)->first();
 
-            if($news->isEmpty()){
+            if(!$news){
                 Log::warning('Attempt to change status of non-existence news with news ID: ' . $newsId);
                 return response()->json([
                     'errors' => 'News not found.'
