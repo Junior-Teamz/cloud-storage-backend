@@ -21,8 +21,13 @@ class DecodeHashedIdMiddleware
             foreach ($routeParameters as $key => $value) {
                 if ($this->isIdKey($key)) {
                     try {
-                        $decodedId = $this->attemptDecode($value);
+                        // Membersihkan spasi yang tidak terlihat
+                        $cleanedValue = $this->cleanInput($value);
+
+                        // Decode ID yang sudah dibersihkan
+                        $decodedId = $this->attemptDecode($cleanedValue);
                         $request->route()->setParameter($key, $decodedId);
+                        
                         Log::info('Decoded route parameter ID:', [
                             'key' => $key,
                             'original' => $value,
@@ -34,14 +39,13 @@ class DecodeHashedIdMiddleware
                             'value' => $value,
                             'error' => $e->getMessage()
                         ]);
-                        return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
+                        return response()->json(['error' => 'Invalid ID. Check your ID again.' . $key], 400);
                     }
                 }
             }
         }
 
         $requestMethod = $request->method();
-
         Log::info('Incoming Request Method: ' . $requestMethod);
 
         // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
@@ -58,6 +62,18 @@ class DecodeHashedIdMiddleware
         }
 
         return $next($request);
+    }
+
+    /**
+     * Membersihkan input dari spasi yang tidak terlihat.
+     *
+     * @param string $input
+     * @return string
+     */
+    protected function cleanInput($input)
+    {
+        // Trim untuk menghilangkan spasi di awal dan akhir
+        return trim($input);
     }
 
     /**
@@ -115,33 +131,36 @@ class DecodeHashedIdMiddleware
     {
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
-                if (strpos($value, ',') !== false) {
+                // Membersihkan spasi dari nilai ID
+                $cleanedValue = $this->cleanInput($value);
+
+                if (strpos($cleanedValue, ',') !== false) {
                     // Jika terdapat beberapa ID yang dipisahkan oleh koma, decode tiap ID
-                    $ids = explode(',', $value);
+                    $ids = explode(',', $cleanedValue);
                     $decodedIds = array_map(function ($id) {
-                        return (int) $this->attemptDecode(trim($id)); // trim untuk menghilangkan spasi ekstra
+                        return (int) $this->attemptDecode(trim($id));
                     }, $ids);
 
-                    return $decodedIds; // Mengembalikan array dengan ID yang terdecode
+                    return $decodedIds;
                 }
 
                 // Jika hanya satu ID, decode langsung
-                $decodedValue = $this->attemptDecode($value);
+                $decodedValue = $this->attemptDecode($cleanedValue);
 
                 if (is_int($decodedValue)) {
                     return (int) $decodedValue;
                 }
             } catch (Exception $e) {
                 Log::error('Failed to decode ID value:', [
-                    'key' => $key, 
-                    'value' => $value, 
+                    'key' => $key,
+                    'value' => $value,
                     'error' => $e->getMessage(),
                     'context' => 'Decoding process for key containing ID'
                 ]);
             }
         }
 
-        return $value; // Kembalikan nilai asli jika gagal decode
+        return $value;
     }
 
     /**
@@ -162,7 +181,7 @@ class DecodeHashedIdMiddleware
             throw new Exception('Decoding failed for value: ' . $value);
         }
 
-        return $decoded[0]; // Mengambil nilai decoded pertama
+        return $decoded[0];
     }
 
     /**
