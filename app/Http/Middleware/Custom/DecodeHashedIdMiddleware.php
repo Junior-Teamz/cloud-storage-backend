@@ -15,47 +15,38 @@ class DecodeHashedIdMiddleware
 
     public function __construct()
     {
-        // Ambil panjang ID dari env
         $this->idLength = env('SQIDS_LENGTH', 10); // Default ke 10 jika tidak ada SQIDS_LENGTH
     }
 
     public function handle($request, Closure $next)
     {
-        // Pastikan request memiliki route yang valid
         if ($request->route()) {
-            // Ambil semua parameter route
             $routeParameters = $request->route()->parameters();
 
-            // Decode route parameters
             foreach ($routeParameters as $key => $value) {
                 if ($this->isIdKey($key)) {
                     try {
-                        // Membersihkan input dari spasi tidak terlihat
                         $cleanedValue = $this->cleanInput($value);
 
-                        // Cek apakah ID berbentuk integer atau ID yang panjangnya tidak valid
                         if ($this->isInvalidInteger($cleanedValue)) {
                             Log::error('Invalid integer ID detected:', [
                                 'key' => $key,
                                 'value' => $cleanedValue
                             ]);
-                            throw new HttpException(400, 'Invalid ID format for ' . $key);
+                            return response()->json(['error' => 'Invalid ID format for ' . $key], 400);
                         }
 
-                        // Cek apakah panjang ID sesuai dengan yang diharapkan
                         if (!$this->isValidIdLength($cleanedValue)) {
                             Log::error('Invalid ID length:', [
                                 'key' => $key,
                                 'value' => $cleanedValue,
                                 'expected_length' => $this->idLength
                             ]);
-                            abort(400, "Invalid ID length.");
+                            return response()->json(['error' => 'Invalid ID length.'], 400);
                         }
 
-                        // Decode ID yang sudah dibersihkan
                         $decodedId = $this->attemptDecode($cleanedValue);
 
-                        // Set parameter yang sudah di-decode ke dalam route
                         $request->route()->setParameter($key, $decodedId);
 
                         Log::info('Decoded route parameter ID:', [
@@ -64,39 +55,31 @@ class DecodeHashedIdMiddleware
                             'decoded' => $decodedId
                         ]);
                     } catch (HttpException $e) {
-                        // Tangani error decoding yang disebabkan oleh input invalid dari user
                         Log::error('Failed to decode route parameter ID (user error):', [
                             'key' => $key,
                             'value' => $value,
                             'error' => $e->getMessage()
                         ]);
-                        throw $e; // Biarkan error HTTP 400 keluar
+                        return response()->json(['error' => $e->getMessage()], $e->getStatusCode());
                     } catch (Exception $e) {
-                        // Tangani error sistem (500)
                         Log::critical('Failed to decode route parameter ID (system error):', [
                             'key' => $key,
                             'value' => $value,
                             'error' => $e->getMessage()
                         ]);
-                        throw new HttpException(500, 'Internal Server Error while decoding ID for ' . $key);
+                        return response()->json(['error' => 'Internal Server Error while decoding ID for ' . $key], 500);
                     }
                 }
             }
         }
 
-        // Cek metode request
         $requestMethod = $request->method();
-
         Log::info('Incoming Request Method: ' . $requestMethod);
 
-        // Cek apakah request memiliki data yang dapat diakses (JSON atau form-data)
         if (in_array($requestMethod, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             $requestData = $request->all();
-
-            // Decode body parameters (termasuk form-data, JSON, dll.)
             $decodedRequest = $this->decodeIdsInRequest($requestData);
 
-            // Replace original request data dengan data yang sudah di-decode (jika array)
             if (is_array($decodedRequest)) {
                 $request->replace($decodedRequest);
             }
@@ -123,20 +106,19 @@ class DecodeHashedIdMiddleware
     protected function attemptDecode($value)
     {
         if (!is_scalar($value)) {
-            throw new HttpException(400, 'Cannot decode non-scalar value: ' . json_encode($value));
+            return response()->json(['error' => 'Cannot decode non-scalar value: ' . json_encode($value)], 400);
         }
 
         try {
-            // Decode the ID using the HashIdService
             $decoded = $this->decodeId($value);
 
             if (empty($decoded)) {
-                throw new HttpException(400, 'Decoding failed for value: ' . $value);
+                return response()->json(['error' => 'Decoding failed for value: ' . $value], 400);
             }
 
-            return $decoded[0]; // Mengambil nilai decoded pertama
+            return $decoded[0];
         } catch (Exception $e) {
-            throw new HttpException(500, 'Decoding error due to system failure: ' . $e->getMessage());
+            return response()->json(['error' => 'Decoding error due to system failure: ' . $e->getMessage()], 500);
         }
     }
 
@@ -193,21 +175,19 @@ class DecodeHashedIdMiddleware
                     return (int) $decodedValue;
                 }
             } catch (HttpException $e) {
-                // Handle user input errors (400)
                 Log::error('Failed to decode ID value (user error):', [
                     'key' => $key,
                     'value' => $value,
                     'error' => $e->getMessage()
                 ]);
-                throw $e;
+                return response()->json(['error' => $e->getMessage()], $e->getStatusCode());
             } catch (Exception $e) {
-                // Handle system errors (500)
                 Log::critical('Failed to decode ID value (system error):', [
                     'key' => $key,
                     'value' => $value,
                     'error' => $e->getMessage()
                 ]);
-                throw new HttpException(500, 'Internal Server Error while decoding ID for ' . $key);
+                return response()->json(['error' => 'Internal Server Error while decoding ID for ' . $key], 500);
             }
         }
 

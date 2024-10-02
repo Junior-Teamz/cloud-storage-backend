@@ -22,8 +22,6 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         // \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\Custom\CorsCustom::class,
-        \App\Http\Middleware\Custom\EncodeIdMiddleware::class,
-        \App\Http\Middleware\Custom\DecodeHashedIdMiddleware::class
     ];
 
     /**
@@ -44,9 +42,21 @@ class Kernel extends HttpKernel
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
-            \Illuminate\Routing\Middleware\SubstituteBindings::class
+            \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\Custom\EncodeIdMiddleware::class,
+            \App\Http\Middleware\Custom\DecodeHashedIdMiddleware::class
         ],
+    ];
+
+    /**
+     * Responsible for prioritizing the middleware
+     *
+     * @var array
+     */
+    protected $middlewarePriority = [
+        \App\Http\Middleware\Custom\EncodeIdMiddleware::class,
+        \App\Http\Middleware\Custom\DecodeHashedIdMiddleware::class
     ];
 
     /**
