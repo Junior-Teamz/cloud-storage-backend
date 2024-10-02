@@ -7,6 +7,7 @@ use Closure;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class DecodeHashedIdMiddleware
 {
@@ -38,7 +39,7 @@ class DecodeHashedIdMiddleware
                                 'key' => $key,
                                 'value' => $cleanedValue
                             ]);
-                            return response()->json(['error' => 'Invalid ID format for ' . $key], 400);
+                            throw new HttpException(400, 'Invalid ID format for ' . $key);
                         }
 
                         // Cek apakah panjang ID sesuai dengan yang diharapkan
@@ -48,12 +49,13 @@ class DecodeHashedIdMiddleware
                                 'value' => $cleanedValue,
                                 'expected_length' => $this->idLength
                             ]);
-                            return response()->json(['error' => 'Invalid ID length for ' . $key], 400);
+                            throw new HttpException(400, 'Invalid ID length for ' . $key);
                         }
 
                         // Decode ID yang sudah dibersihkan
                         $decodedId = $this->attemptDecode($cleanedValue);
 
+                        // Set parameter yang sudah di-decode ke dalam route
                         $request->route()->setParameter($key, $decodedId);
 
                         Log::info('Decoded route parameter ID:', [
@@ -61,18 +63,28 @@ class DecodeHashedIdMiddleware
                             'original' => $value,
                             'decoded' => $decodedId
                         ]);
-                    } catch (Exception $e) {
-                        Log::error('Failed to decode route parameter ID:', [
+                    } catch (HttpException $e) {
+                        // Tangani error decoding yang disebabkan oleh input invalid dari user
+                        Log::error('Failed to decode route parameter ID (user error):', [
                             'key' => $key,
                             'value' => $value,
                             'error' => $e->getMessage()
                         ]);
-                        return response()->json(['error' => 'Failed to decode ID for ' . $key], 400);
+                        throw $e; // Biarkan error HTTP 400 keluar
+                    } catch (Exception $e) {
+                        // Tangani error sistem (500)
+                        Log::critical('Failed to decode route parameter ID (system error):', [
+                            'key' => $key,
+                            'value' => $value,
+                            'error' => $e->getMessage()
+                        ]);
+                        throw new HttpException(500, 'Internal Server Error while decoding ID for ' . $key);
                     }
                 }
             }
         }
 
+        // Cek metode request
         $requestMethod = $request->method();
 
         Log::info('Incoming Request Method: ' . $requestMethod);
@@ -93,101 +105,59 @@ class DecodeHashedIdMiddleware
         return $next($request);
     }
 
-    /**
-     * Membersihkan input dari spasi yang tidak terlihat.
-     *
-     * @param string $input
-     * @return string
-     */
     protected function cleanInput($input)
     {
         return trim($input);
     }
 
-    /**
-     * Cek apakah ID berbentuk integer dan oleh karena itu harus dianggap tidak valid.
-     *
-     * @param string $value
-     * @return bool
-     */
     protected function isInvalidInteger($value)
     {
-        // Cek apakah nilai merupakan integer murni
         return is_numeric($value) && (int)$value == $value;
     }
 
-    /**
-     * Cek apakah panjang ID valid sesuai dengan SQIDS_LENGTH.
-     *
-     * @param string $value
-     * @return bool
-     */
     protected function isValidIdLength($value)
     {
         return strlen($value) == $this->idLength;
     }
 
-    /**
-     * Attempt to decode the hashed ID.
-     *
-     * @param string $value
-     * @return mixed
-     * @throws Exception
-     */
     protected function attemptDecode($value)
     {
         if (!is_scalar($value)) {
-            throw new Exception('Cannot decode non-scalar value: ' . json_encode($value));
+            throw new HttpException(400, 'Cannot decode non-scalar value: ' . json_encode($value));
         }
 
-        // Decode the ID using the HashIdService
-        $decoded = $this->decodeId($value);
+        try {
+            // Decode the ID using the HashIdService
+            $decoded = $this->decodeId($value);
 
-        if (empty($decoded)) {
-            throw new Exception('Decoding failed for value: ' . $value);
+            if (empty($decoded)) {
+                throw new HttpException(400, 'Decoding failed for value: ' . $value);
+            }
+
+            return $decoded[0]; // Mengambil nilai decoded pertama
+        } catch (Exception $e) {
+            throw new HttpException(500, 'Decoding error due to system failure: ' . $e->getMessage());
         }
-
-        return $decoded[0]; // Mengambil nilai decoded pertama
     }
 
-    /**
-     * Decode hashed ID using the HashIdService.
-     *
-     * @param string $hashedId
-     * @return array
-     */
     protected function decodeId($hashedId)
     {
         return app(HashIdService::class)->decodeId($hashedId);
     }
 
-    /**
-     * Check if key is related to an ID field.
-     *
-     * @param string $key
-     * @return bool
-     */
     protected function isIdKey($key)
     {
         return preg_match('/id$/i', $key) || preg_match('/ids$/i', $key);
     }
 
-    /**
-     * Recursively decode IDs in request data and ensure they are integers.
-     *
-     * @param array $input
-     * @return array
-     */
     protected function decodeIdsInRequest(array $input)
     {
         foreach ($input as $key => $value) {
             if (is_array($value)) {
-                // Jika value adalah array, pastikan array hasil decode tetap "flat"
                 $input[$key] = $this->flattenArray(array_map(function ($item) use ($key) {
                     return is_array($item) ? $this->decodeIdsInRequest($item) : $this->decodeSingleValue($key, $item);
                 }, $value));
             } elseif ($this->isJsonString($value)) {
-                // Jika value adalah JSON string, decode JSON menjadi array dan proses lebih lanjut
                 $decodedJson = json_decode($value, true);
                 if (is_array($decodedJson)) {
                     $input[$key] = $this->decodeIdsInRequest($decodedJson);
@@ -195,7 +165,6 @@ class DecodeHashedIdMiddleware
                     $input[$key] = $this->decodeSingleValue($key, $value);
                 }
             } else {
-                // Jika key mengandung 'id', coba decode value
                 if ($this->isIdKey($key)) {
                     $input[$key] = $this->decodeSingleValue($key, $value);
                 }
@@ -205,64 +174,52 @@ class DecodeHashedIdMiddleware
         return $input;
     }
 
-    /**
-     * Decode single ID value and ensure it is returned as an integer or array of integers.
-     *
-     * @param string $key
-     * @param mixed $value
-     * @return mixed
-     */
     protected function decodeSingleValue($key, $value)
     {
         if ($this->isIdKey($key) && is_scalar($value)) {
             try {
                 if (strpos($value, ',') !== false) {
-                    // Jika terdapat beberapa ID yang dipisahkan oleh koma, decode tiap ID
                     $ids = explode(',', $value);
                     $decodedIds = array_map(function ($id) {
-                        return (int) $this->attemptDecode(trim($id)); // trim untuk menghilangkan spasi ekstra
+                        return (int) $this->attemptDecode(trim($id));
                     }, $ids);
 
-                    return $decodedIds; // Mengembalikan array dengan ID yang terdecode
+                    return $decodedIds;
                 }
 
-                // Jika hanya satu ID, decode langsung
                 $decodedValue = $this->attemptDecode($value);
 
                 if (is_int($decodedValue)) {
                     return (int) $decodedValue;
                 }
-            } catch (Exception $e) {
-                Log::error('Failed to decode ID value:', [
-                    'key' => $key, 
-                    'value' => $value, 
-                    'error' => $e->getMessage(),
-                    'context' => 'Decoding process for key containing ID'
+            } catch (HttpException $e) {
+                // Handle user input errors (400)
+                Log::error('Failed to decode ID value (user error):', [
+                    'key' => $key,
+                    'value' => $value,
+                    'error' => $e->getMessage()
                 ]);
+                throw $e;
+            } catch (Exception $e) {
+                // Handle system errors (500)
+                Log::critical('Failed to decode ID value (system error):', [
+                    'key' => $key,
+                    'value' => $value,
+                    'error' => $e->getMessage()
+                ]);
+                throw new HttpException(500, 'Internal Server Error while decoding ID for ' . $key);
             }
         }
 
-        return $value; // Kembalikan nilai asli jika gagal decode
+        return $value;
     }
 
-    /**
-     * Detect if value is JSON string.
-     *
-     * @param string $value
-     * @return bool
-     */
     protected function isJsonString($value)
     {
         json_decode($value);
         return json_last_error() === JSON_ERROR_NONE;
     }
 
-    /**
-     * Flatten a nested array.
-     *
-     * @param array $array
-     * @return array
-     */
     protected function flattenArray(array $array)
     {
         $result = [];
