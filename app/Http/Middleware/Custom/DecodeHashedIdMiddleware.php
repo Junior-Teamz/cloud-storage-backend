@@ -16,7 +16,7 @@ class DecodeHashedIdMiddleware
     public function __construct()
     {
         // Ambil panjang ID dari env
-        $this->idLength = env('SQIDS_LENGTH', 8); // Default ke 8 jika tidak ada SQIDS_LENGTH
+        $this->idLength = env('SQIDS_LENGTH', 10); // Default ke 10 jika tidak ada SQIDS_LENGTH
     }
 
     public function handle($request, Closure $next)
@@ -49,7 +49,7 @@ class DecodeHashedIdMiddleware
                                 'value' => $cleanedValue,
                                 'expected_length' => $this->idLength
                             ]);
-                            throw new HttpException(400, 'Invalid ID length for ' . $key);
+                            abort(400, "Invalid ID length.");
                         }
 
                         // Decode ID yang sudah dibersihkan
