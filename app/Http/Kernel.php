@@ -50,16 +50,6 @@ class Kernel extends HttpKernel
     ];
 
     /**
-     * Responsible for prioritizing the middleware
-     *
-     * @var array
-     */
-    protected $middlewarePriority = [
-        \App\Http\Middleware\Custom\EncodeIdMiddleware::class,
-        \App\Http\Middleware\Custom\DecodeHashedIdMiddleware::class
-    ];
-
-    /**
      * The application's middleware aliases.
      *
      * Aliases may be used to conveniently assign middleware to routes and groups.
