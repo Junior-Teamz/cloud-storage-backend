@@ -54,7 +54,7 @@ class PermissionFolderController extends Controller
                 ->where('folder_id', $folderId)
                 ->get();
 
-            if ($userFolderPermissions->isEmpty()) {
+            if (!$userFolderPermissions) {
                 return response()->json([
                     'message' => 'No user has permission on this folder.'
                 ], 404);

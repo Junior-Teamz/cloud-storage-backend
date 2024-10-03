@@ -33,7 +33,7 @@ class DecodeHashedIdMiddleware
                                 'key' => $key,
                                 'value' => $cleanedValue
                             ]);
-                            return response()->json(['error' => 'Invalid ID format for ' . $key], 400);
+                            return response()->json(['error' => 'Invalid ID format.'], 400);
                         }
 
                         if (!$this->isValidIdLength($cleanedValue)) {

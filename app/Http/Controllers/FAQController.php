@@ -45,7 +45,7 @@ class FAQController extends Controller
             }
 
             // Jika tidak ada FAQ yang ditemukan
-            if ($faqs->isEmpty()) {
+            if (!$faqs) {
                 return response()->json([
                     'message' => 'No FAQs found.'
                 ], 404);

@@ -66,7 +66,7 @@ class SharingController extends Controller
                     ];
                 });
 
-            if ($sharedUsers->isEmpty()) {
+            if (!$sharedUsers) {
                 return response()->json([
                     'message' => 'This folder is not shared to anyone else.'
                 ]);

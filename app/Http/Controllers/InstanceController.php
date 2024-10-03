@@ -49,7 +49,7 @@ class InstanceController extends Controller
 
                 $allInstance = Instance::where('name', 'like', '%' . $keywordName . '%')->paginate(10);
 
-                if ($allInstance->isEmpty()) {
+                if (!$allInstance) {
                     return response()->json([
                         'errors' => 'Instance data not found.'
                     ], 404);
@@ -96,7 +96,7 @@ class InstanceController extends Controller
             $instanceId = Instance::where('name', 'like', '%' . $keywordName . '%')
                 ->get(['id', 'name']);
 
-            if ($instanceId->isEmpty()) {
+            if (!$instanceId) {
                 return response()->json([
                     'errors' => 'Instance data not found.'
                 ], 404);
@@ -127,7 +127,7 @@ class InstanceController extends Controller
         try {
             $countInstance = Instance::count();
 
-            if ($countInstance->isEmpty()) {
+            if (!$countInstance) {
                 return response()->json([
                     'message' => 'Instance is empty.',
                     'instance_count' => $countInstance
@@ -453,7 +453,7 @@ class InstanceController extends Controller
         try {
             $instance = Instance::where('id', $instanceId)->first();
 
-            if ($instance->isEmpty()) {
+            if (!$instance) {
                 Log::error('Attempt to delete non-existent instance: ' . $instanceId);
                 return response()->json([
                     'errors' => 'Instance not found.'

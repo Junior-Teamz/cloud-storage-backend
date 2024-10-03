@@ -60,7 +60,7 @@ class TagController extends Controller
             $allTag = $query->paginate(10);
 
             // Jika data kosong, kembalikan error
-            if ($allTag->isEmpty()) {
+            if (!$allTag) {
                 return response()->json([
                     'errors' => 'Tag data not found.'
                 ], 404);
@@ -120,7 +120,7 @@ class TagController extends Controller
         try {
             $countTag = Tags::count();
 
-            if ($countTag->isEmpty()) {
+            if (!$countTag) {
                 return response()->json([
                     'message' => 'Tag is empty.',
                     'tag_count' => $countTag

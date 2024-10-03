@@ -41,7 +41,7 @@ class NewsTagController extends Controller
 
                 if ($allTag->isEmpty()) {
                     return response()->json([
-                        'errors' => 'Tag not found.'
+                        'errors' => 'News Tag is empty.'
                     ], 404);
                 }
 
@@ -153,7 +153,7 @@ class NewsTagController extends Controller
         try {
             $newsTag = NewsTag::where('id', $id)->first();
 
-            if ($newsTag->isEmpty()){
+            if (!$newsTag){
                 return response()->json([
                     'errors' => 'News tag not found.'
                 ], 404);

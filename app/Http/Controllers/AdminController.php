@@ -149,7 +149,7 @@ class AdminController extends Controller
         try {
             $userCount = User::count();
 
-            if ($userCount->isEmpty()) {
+            if (!$userCount) {
                 return response()->json([
                     'message' => 'User registered is empty.',
                     'user_count' => $userCount
@@ -455,7 +455,7 @@ class AdminController extends Controller
 
             DB::beginTransaction();
 
-            if (!$folders->isEmpty()) {
+            if (!!$folders) {
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder);
                 }

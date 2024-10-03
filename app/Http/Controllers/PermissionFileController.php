@@ -52,7 +52,7 @@ class PermissionFileController extends Controller
                 ->where('file_id', $fileId)
                 ->get();
 
-            if ($userFilePermissions->isEmpty()) {
+            if (!$userFilePermissions) {
                 return response()->json([
                     'message' => 'No user has permission on this file.'
                 ], 404);

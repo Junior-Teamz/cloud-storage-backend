@@ -146,6 +146,46 @@ class NewsController extends Controller
         }
     }
 
+    public function getNewsBySlug($slug)
+    {
+        if(!is_string($slug)){
+            return response()->json([
+                'errors' => 'Parameter must be a slug of news.'
+            ], 400);
+        }
+
+        try {
+            // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
+            $news = News::with([
+                'creator:name',  // Ambil id dan name dari relasi creator (User)
+                'creator.instances:name,address',
+                'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
+            ])
+                ->where('status', 'published')
+                ->where('slug', $slug)->first();
+
+            // Jika berita tidak ditemukan, kembalikan response 404
+            if (!$news) {
+                return response()->json([
+                    'message' => 'News not found.'
+                ], 404);
+            }
+
+            // Tambahkan jumlah viewer +1
+            $news->increment('viewer');
+
+            return response()->json([
+                'message' => 'News successfully retrieved.',
+                'data' => $news
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error occurred while getting news by ID: ' . $e->getMessage());
+            return response()->json([
+                'errors' => 'An error occurred while getting the news.'
+            ], 500);
+        }
+    }
+
     public function getNewsDetailForAdmin($newsId)
     {
         try {
@@ -295,7 +335,7 @@ class NewsController extends Controller
             $news = News::create([
                 'created_by' => $userLogin->id,
                 'title' => $request->title,
-                'thumbnail' => ($request->hasFile('thumbnail')) ? asset($thumbnailPath) : $thumbnailPath,
+                'thumbnail' => $thumbnailPath,
                 'slug' => $slug,
                 'content' => $request->content,
                 'viewer' => 0,  // viewer dimulai dari 0

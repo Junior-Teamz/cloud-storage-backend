@@ -966,7 +966,7 @@ class FolderController extends Controller
             // Periksa apakah folder yang ingin dipindahkan ada
             $folder = Folder::where('id', $request->folder_id)->first();
 
-            if ($folder->isEmpty()) {
+            if (!$folder) {
                 return response()->json([
                     'error' => 'Folder was not found.'
                 ], 404);
@@ -978,8 +978,8 @@ class FolderController extends Controller
             // Periksa apakah folder tujuan ada
             $newParentFolder = Folder::where('id', $newParentIdRequest)->first();
 
-            if ($newParentFolder->isEmpty()) {
-                if ($folder->isEmpty()) {
+            if (!$newParentFolder) {
+                if (!$folder) {
                     return response()->json([
                         'error' => 'New parent folder was not found.'
                     ], 404);

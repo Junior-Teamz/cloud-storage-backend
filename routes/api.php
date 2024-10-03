@@ -37,15 +37,18 @@ Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageBy
 Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'remove_nanoid', 'hide_superadmin_flag']);
 
 Route::prefix('/legal_basis')->group(function () {
-    Route::get('/all', [LegalBasisController::class, 'getAll']);
+    Route::get('/getAllLegalBasis', [LegalBasisController::class, 'getAll']);
 
     Route::get('/file/{hashedId}', [LegalBasisController::class, 'serveFilePdfByHashedId'])->name('pdf.url');
 });
 
 Route::prefix('news')->group(function () {
-    Route::get('/all', [NewsController::class, 'getAllNewsForPublic']); // Mendapatkan semua berita untuk publik
+    Route::get('/getAllNews', [NewsController::class, 'getAllNewsForPublic']); // Mendapatkan semua berita untuk publik
 
-    Route::get('/{id}', [NewsController::class, 'getNewsById']); // lihat detail berita
+    Route::get('/detail//id/{id}', [NewsController::class, 'getNewsById']); // lihat detail berita
+
+    Route::get('/detail/slug/{newsSlug}', [NewsController::class, 'getNewsBySlug']);
+
 });
 
 Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_nanoid', 'check_admin', 'hide_superadmin_flag'])->group(function () {
@@ -281,7 +284,7 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
     Route::prefix('news')->group(function () {
         Route::get('/getAllNews', [NewsController::class, 'getAllNews']);
 
-        Route::get('/getNewsDetail/{newsId}', [NewsController::class, 'getNewsDetailForAdmin']);
+        Route::get('/getNewsDetailFromId/{newsId}', [NewsController::class, 'getNewsDetailForAdmin']);
 
         Route::post('/create', [NewsController::class, 'createNews']); // Membuat berita baru
 

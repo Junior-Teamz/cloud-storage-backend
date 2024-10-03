@@ -305,7 +305,7 @@ class FileController extends Controller
             // Ambil files berdasarkan file_ids
             $files = File::whereIn('id', $fileIds)->get();
 
-            if ($files->isEmpty()) {
+            if (!$files) {
                 return response()->json(['error' => 'Files not found'], 404);
             }
 
@@ -626,7 +626,7 @@ class FileController extends Controller
 
             $file = File::where('id', $id)->first();
 
-            if($file->isEmpty()){
+            if(!$file){
                 Log::warning('Attempt to move file on non-existence folder: ' . $id);
                 return response()->json([
                     'errors' => 'Folder destination to move the file was not found.'

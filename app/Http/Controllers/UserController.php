@@ -213,7 +213,7 @@ class UserController extends Controller
             // Hapus folder dan file terkait dari local storage
             $folders = Folder::where('user_id', $user->id)->get();
             
-            if(!$folders->isEmpty()){
+            if(!!$folders){
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder);
                 }

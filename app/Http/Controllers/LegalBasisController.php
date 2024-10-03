@@ -74,7 +74,7 @@ class LegalBasisController extends Controller
         try {
             $legalBasis = LegalBasis::where('id', $id)->first();
 
-            if($legalBasis->isEmpty()){
+            if(!$legalBasis){
                 Log::warning('Attempt to get legal basis with not found id: ' . $id);
 
                 return response()->json([
