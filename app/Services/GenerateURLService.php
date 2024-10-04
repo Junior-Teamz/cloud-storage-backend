@@ -17,12 +17,8 @@ class GenerateURLService
             return null; // Jika file tidak ditemukan, kembalikan null
         }
 
-        // Gunakan Sqids untuk menghasilkan hash dari ID
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-        $hashedId = $sqids->encode([$file->id]);
-
         // Buat URL yang diobfuscate menggunakan hashed ID
-        return route('image.url', ['hashedId' => $hashedId]);
+        return route('image.url', ['hashedId' => $file->id]);
     }
 
     public function generateUrlForLegalBasis($id)
@@ -34,11 +30,7 @@ class GenerateURLService
             return null; // Jika file tidak ditemukan, kembalikan null
         }
 
-        // Gunakan Sqids untuk menghasilkan hash dari ID
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-        $hashedId = $sqids->encode([$file->id]);
-
         // Buat URL yang diobfuscate menggunakan hashed ID
-        return route('pdf.url', ['hashedId' => $hashedId]);
+        return route('pdf.url', ['hashedId' => $file->id]);
     }
 }
