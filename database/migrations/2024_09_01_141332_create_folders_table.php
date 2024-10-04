@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('folders', function (Blueprint $table) {
             $table->id();
+            $table->uuid();
             $table->string('nanoid');
             $table->string('name');
             $table->string('type');

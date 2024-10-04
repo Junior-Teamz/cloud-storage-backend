@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Instance extends Model
@@ -14,7 +15,18 @@ class Instance extends Model
 
     protected $hidden = ['pivot'];
 
-    protected $fillable = ['name', 'address'];
+    protected $fillable = ['uuid', 'name', 'address'];
+
+    protected static function boot() {
+        
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
+    }
     
     public function users(): BelongsToMany
     {

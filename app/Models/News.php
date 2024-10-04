@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class News extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'uuid',
         'created_by',
         'title',
         'thumbnail',
@@ -21,8 +24,19 @@ class News extends Model
         'status'
     ];
 
-     // Menyembunyikan pivot dari semua query secara global
-     protected $hidden = ['created_by'];
+    // Menyembunyikan pivot dari semua query secara global
+    protected $hidden = ['created_by'];
+
+    protected static function boot() {
+        
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     // Relasi ke model User
     public function creator()
