@@ -78,8 +78,9 @@ class LegalBasisController extends Controller
                 Log::warning('Attempt to get legal basis with not found id: ' . $id);
 
                 return response()->json([
-                    'errors' => 'Legal Basis not found.'
-                ], 404);
+                    'message' => 'Legal Basis not found.',
+                    'data' => []
+                ], 200);
             }
 
             $legalBasis['file_url'] = $this->GenerateURLService->generateUrlForLegalBasis($legalBasis->id);

@@ -61,8 +61,9 @@ class NewsController extends Controller
 
             if ($news->isEmpty()) {
                 return response()->json([
-                    'message' => 'No news found.'
-                ], 404);
+                    'message' => 'No news found.',
+                    'data' => []
+                ], 200);
             }
 
             return response()->json([
@@ -96,8 +97,9 @@ class NewsController extends Controller
 
             if ($news->isEmpty()) {
                 return response()->json([
-                    'message' => 'No news found.'
-                ], 404);
+                    'message' => 'No news found.',
+                    'data' => []
+                ], 200);
             }
 
             return response()->json([
@@ -127,8 +129,9 @@ class NewsController extends Controller
             // Jika berita tidak ditemukan, kembalikan response 404
             if (!$news) {
                 return response()->json([
-                    'message' => 'News not found.'
-                ], 404);
+                    'message' => 'News not found.',
+                    'data' => []
+                ], 200);
             }
 
             // Tambahkan jumlah viewer +1
@@ -164,11 +167,12 @@ class NewsController extends Controller
                 ->where('status', 'published')
                 ->where('slug', $slug)->first();
 
-            // Jika berita tidak ditemukan, kembalikan response 404
+            // Jika berita tidak ditemukan, kembalikan response 200
             if (!$news) {
                 return response()->json([
-                    'message' => 'News not found.'
-                ], 404);
+                    'message' => 'News not found.',
+                    'data' => []
+                ], 200);
             }
 
             // Tambahkan jumlah viewer +1
@@ -199,8 +203,9 @@ class NewsController extends Controller
             // Jika berita tidak ditemukan, kembalikan response 404
             if (!$news) {
                 return response()->json([
-                    'message' => 'News not found.'
-                ], 404);
+                    'message' => 'News not found.',
+                    'data' => []
+                ], 200);
             }
 
             return response()->json([
