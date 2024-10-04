@@ -95,30 +95,30 @@ class DecodeHashedIdMiddleware
 
     protected function isInvalidInteger($value)
     {
-        return is_numeric($value) && (int)$value == $value;
+        return !is_numeric($value) || (int)$value != $value;
     }
 
     protected function isValidIdLength($value)
     {
-        return strlen($value) == $this->idLength;
+        return strlen($value) <= $this->idLength;
     }
 
     protected function attemptDecode($value)
     {
         if (!is_scalar($value)) {
-            return response()->json(['error' => 'Cannot decode non-scalar value: ' . json_encode($value)], 400);
+            throw new HttpException(400, 'Cannot decode non-scalar value: ' . json_encode($value));
         }
 
         try {
             $decoded = $this->decodeId($value);
 
             if (empty($decoded)) {
-                return response()->json(['error' => 'Decoding failed for value: ' . $value], 400);
+                throw new HttpException(400, 'Decoding failed for value: ' . $value);
             }
 
-            return $decoded[0];
+            return $decoded[0]; // Mengembalikan ID pertama yang didecode
         } catch (Exception $e) {
-            return response()->json(['error' => 'Decoding error due to system failure: ' . $e->getMessage()], 500);
+            throw new HttpException(500, 'Decoding error due to system failure: ' . $e->getMessage());
         }
     }
 
@@ -136,9 +136,9 @@ class DecodeHashedIdMiddleware
     {
         foreach ($input as $key => $value) {
             if (is_array($value)) {
-                $input[$key] = $this->flattenArray(array_map(function ($item) use ($key) {
+                $input[$key] = array_map(function ($item) use ($key) {
                     return is_array($item) ? $this->decodeIdsInRequest($item) : $this->decodeSingleValue($key, $item);
-                }, $value));
+                }, $value);
             } elseif ($this->isJsonString($value)) {
                 $decodedJson = json_decode($value, true);
                 if (is_array($decodedJson)) {
@@ -198,14 +198,5 @@ class DecodeHashedIdMiddleware
     {
         json_decode($value);
         return json_last_error() === JSON_ERROR_NONE;
-    }
-
-    protected function flattenArray(array $array)
-    {
-        $result = [];
-        array_walk_recursive($array, function ($a) use (&$result) {
-            $result[] = $a;
-        });
-        return $result;
     }
 }
