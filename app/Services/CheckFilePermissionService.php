@@ -16,7 +16,11 @@ class CheckFilePermissionService
     public function checkPermissionFile($fileId, $actions)
     {
         $user = Auth::user();
-        $file = File::find($fileId);
+        if(is_int($fileId)){
+            $file = File::find($fileId);
+        } else {
+            $file = File::where('uuid', $fileId)->first();
+        }
 
         // If file not found, return 404 error and stop the process
         if (!$file) {
@@ -63,7 +67,7 @@ class CheckFilePermissionService
     private function checkPermissionFolderRecursive($folderId, $actions)
     {
         $user = Auth::user();
-        $folder = Folder::find($folderId);
+        $folder = Folder::where('uuid', $folderId)->first();
 
         // If folder not found, return false
         if (!$folder) {

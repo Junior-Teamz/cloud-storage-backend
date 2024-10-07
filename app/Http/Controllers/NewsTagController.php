@@ -151,7 +151,7 @@ class NewsTagController extends Controller
         }
 
         try {
-            $newsTag = NewsTag::where('id', $id)->first();
+            $newsTag = NewsTag::where('uuid', $id)->first();
 
             if (!$newsTag){
                 return response()->json([
@@ -210,24 +210,9 @@ class NewsTagController extends Controller
         $newsTagIds = $request->news_tag_ids;
 
         try {
-            // Periksa apakah ID sudah di decode dengan benar oleh middleware decode hashed id
-            $nonIntegerIds = array_filter($newsTagIds, function ($tagId) {
-                return !is_int($tagId);
-            });
-
-            if (!empty($nonIntegerIds)) {
-                Log::error('Invalid tag IDs detected. Please check decode hashed id middleware!', [
-                    'context' => 'NewsTagController.php (destroy) News Tag ID is not an integer because of decode hashed id middleware is not correctly decode hashed id!',
-                    'news_tag_ids' => implode(',', $nonIntegerIds)
-                ]);
-
-                return response()->json([
-                    'errors' => 'Internal error has occurred. Please contact administrator of app.'
-                ], 500);
-            }
 
             // Exclude "Root" tag dari query untuk menghindari penghapusan
-            $newsTags = NewsTag::whereIn('id', $newsTagIds)->get();
+            $newsTags = NewsTag::whereIn('uuid', $newsTagIds)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundNewsTagIds = $newsTags->pluck('id')->toArray();

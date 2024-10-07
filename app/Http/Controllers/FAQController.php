@@ -77,7 +77,7 @@ class FAQController extends Controller
 
         try {
 
-            $faq = FAQ::find($id);
+            $faq = FAQ::where('uuid', $id)->first();
             if (!$faq) {
                 return response()->json([
                     'errors' => 'FAQ not found'
@@ -155,7 +155,7 @@ class FAQController extends Controller
             ], 403);
         }
 
-        $faq = FAQ::find($id);
+        $faq = FAQ::where('uuid', $id)->first();
 
         if (!$faq) {
             return response()->json([
@@ -211,7 +211,7 @@ class FAQController extends Controller
             ], 403);
         }
 
-        $faq = FAQ::find($id);
+        $faq = FAQ::where('uuid', $id)->first();
 
         if (!$faq) {
             return response()->json([

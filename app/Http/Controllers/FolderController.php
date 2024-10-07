@@ -147,15 +147,16 @@ class FolderController extends Controller
             $parentFolder = Folder::where('user_id', $user->id)
                 ->whereNull('parent_id')
                 ->with([
-                    'subfolders.user:id,name,email', // Ambil data user yang terkait dengan folder
-                    'subfolders.tags:id,name', // Ambil tags folder
-                    'subfolders.instances:id,name,address', // Ambil instances folder
-                    'subfolders.userFolderPermissions.user:id,name,email',
+                    'user:id,uuid,name,email',
+                    'subfolders.user', // Ambil data user yang terkait dengan folder
+                    'subfolders.tags:uuid,name', // Ambil tags folder
+                    'subfolders.instances:uuid,name,address', // Ambil instances folder
+                    'subfolders.userFolderPermissions.user:id,uuid,name,email',
                     'subfolders.favorite', // Relasi favorite untuk subfolders
-                    'files.user:id,name,email', // Ambil data user yang terkait dengan file
-                    'files.tags:id,name', // Ambil tags file
-                    'files.instances:id,name,address', // Ambil instances file
-                    'files.userPermissions.user:id,name,email',
+                    'files.user:id,uuid,name,email', // Ambil data user yang terkait dengan file
+                    'files.tags:uuid,name', // Ambil tags file
+                    'files.instances:uuid,name,address', // Ambil instances file
+                    'files.userPermissions.user:id,uuid,name,email',
                 ])
                 ->select('id', 'name', 'created_at', 'updated_at', 'user_id') // Pilih hanya kolom yang diperlukan
                 ->first();
@@ -175,7 +176,7 @@ class FolderController extends Controller
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
                 return [
-                    'folder_id' => $folder->id,
+                    'folder_id' => $folder->uuid,
                     'name' => $folder->name,
                     'public_path' => $folder->public_path,
                     'total_size' => $this->calculateFolderSize($folder), // Hitung total ukuran folder
@@ -184,7 +185,11 @@ class FolderController extends Controller
                     'favorited_at' => $favoritedAt,
                     'created_at' => $folder->created_at,
                     'updated_at' => $folder->updated_at,
-                    'user' => $folder->user, // User sudah diambil dengan select
+                    'user' => [
+                        'id' => $folder->user->uuid,
+                        'name' => $folder->user->name,
+                        'email' => $folder->user->email
+                    ],
                     'tags' => $folder->tags, // Tags sudah diambil dengan select
                     'instances' => $folder->instances, // Instances sudah diambil dengan select
                     'shared_with' => $folder->userFolderPermissions
@@ -194,7 +199,7 @@ class FolderController extends Controller
             // Optimasi data file
             $responseFile = $parentFolder->files->map(function ($file) {
                 $fileResponse = [
-                    'id' => $file->id,
+                    'id' => $file->uuid,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
@@ -258,22 +263,23 @@ class FolderController extends Controller
         try {
             // Cari folder dengan ID yang diberikan dan sertakan subfolder, file, tags, instances, dan userFolderPermissions yang relevan
             $folder = Folder::with([
-                'user:id,name,email',
-                'tags:id,name',
-                'instances:id,name,address',
+                'user:id,uuid,name,email',
+                'parentFolder:id,uuid',
+                'tags:uuid,name',
+                'instances:uuid,name,address',
                 'favorite',
-                'userFolderPermissions.user:id,name,email', // Menambahkan relasi untuk mengambil shared users
-                'subfolders.user:id,name,email', // Ambil data user yang terkait dengan folder
-                'subfolders.tags:id,name', // Ambil tags folder
-                'subfolders.instances:id,name,address', // Ambil instances folder
-                'subfolders.userFolderPermissions.user:id,name,email',
+                'userFolderPermissions.user:id,uuid,name,email', // Menambahkan relasi untuk mengambil shared users
+                'subfolders.user:id,uuid,name,email', // Ambil data user yang terkait dengan folder
+                'subfolders.tags:uuid,name', // Ambil tags folder
+                'subfolders.instances:uuid,name,address', // Ambil instances folder
+                'subfolders.userFolderPermissions.user:id,uuid,name,email',
                 'subfolders.favorite', // Relasi favorite untuk subfolders
                 'files:id,folder_id,name,path,size,type,created_at,updated_at,user_id',
-                'files.user:id,name,email', // Ambil data user yang terkait dengan file
-                'files.tags:id,name', // Ambil tags file
-                'files.instances:id,name,address', // Ambil instances file
-                'files.userPermissions.user:id,name,email'
-            ])->findOrFail($id);
+                'files.user:id,uuid,name,email', // Ambil data user yang terkait dengan file
+                'files.tags:uuid,name', // Ambil tags file
+                'files.instances:uuid,name,address', // Ambil instances file
+                'files.userPermissions.user:id,uuid,name,email'
+            ])->where('uuid', $id)->first();
 
             $favorite = $folder->favorite->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -281,12 +287,12 @@ class FolderController extends Controller
 
             // Persiapkan respon untuk folder
             $folderResponse = [
-                'folder_id' => $folder->id,
+                'folder_id' => $folder->uuid,
                 'name' => $folder->name,
                 'public_path' => $folder->public_path,
                 'total_size' => $this->calculateFolderSize($folder),
                 'type' => $folder->type,
-                'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
+                'parent_id' => $folder->parent_id ? $folder->parentFolder->uuid ?? null : null,
                 'is_favorited' => $isFavorite, // Tambahkan atribut is_favorited
                 'favorited_at' => $favoritedAt,
                 'user' => $folder->user,
@@ -310,7 +316,7 @@ class FolderController extends Controller
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
                 return [
-                    'id' => $subfolder->id,
+                    'id' => $subfolder->uuid,
                     'name' => $subfolder->name,
                     'public_path' => $subfolder->public_path,
                     'total_size' => $this->calculateFolderSize($subfolder), // Hitung total ukuran folder
@@ -336,7 +342,7 @@ class FolderController extends Controller
             // Ambil files dan buat hidden beberapa atribut yang tidak diperlukan
             $files = $folder->files->map(function ($file) {
                 $fileData = [
-                    'id' => $file->id,
+                    'id' => $file->uuid,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
@@ -397,8 +403,8 @@ class FolderController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'name' => 'required|string',
-                'parent_id' => 'nullable|integer|exists:folders,id',
+                'name' => 'required|string|unique:folders,name',
+                'parent_id' => 'nullable|integer|exists:folders,uuid',
                 'tag_ids' => 'required|array',
             ],
         );
@@ -407,16 +413,6 @@ class FolderController extends Controller
             return response()->json([
                 'errors' => $validator->errors()
             ], 422);
-        }
-
-        foreach ($request->tag_ids as $tagId) {
-            if (!is_int($tagId)) {
-                Log::error('Invalid Tag ID detected: ' . $tagId . ' , please check decode hashed id middleware!');
-
-                return response()->json([
-                    'errors' => "Internal server error, please contact administrator of app."
-                ], 500);
-            }
         }
 
         try {
@@ -430,14 +426,15 @@ class FolderController extends Controller
             if ($request->parent_id === null) {
                 $parentId = $folderRootUser->id;
             } else {
+                $parentFolder = Folder::where('uuid', $request->parent_id)->first();
                 // Check user permission for the provided parent_id
-                $permission = $this->checkPermissionFolderService->checkPermissionFolder($request->parent_id, 'write');
+                $permission = $this->checkPermissionFolderService->checkPermissionFolder($parentFolder->id, 'write');
                 if (!$permission) {
                     return response()->json([
                         'errors' => 'You do not have permission to create a folder in this parent_id',
                     ], 403);
                 } else {
-                    $parentId = $request->parent_id;
+                    $parentId = $parentFolder->id;
                 }
             }
 
@@ -461,18 +458,17 @@ class FolderController extends Controller
             ]);
 
             // Sync the user's instances to the folder
-            $userInstance = User::find($userId)->instances->pluck('id')->toArray();
+            $userInstance = User::find($userId);
             $newFolder->instances()->sync($userInstance);
 
             // Sync the tags using tag_ids
-            $newFolder->tags()->sync($request->tag_ids);
+            $getTagIds = Tags::whereIn('uuid', $request->tag_ids)->get();
+            $tagIds = $getTagIds->pluck('id')->toArray();
+            $newFolder->tags()->sync($tagIds);
 
             // Generate public path after folder creation
             $publicPath = $this->getPublicPath($newFolder->id);
             $newFolder->update(['public_path' => $publicPath]);
-
-            // Commit the transaction if no errors
-            DB::commit();
 
             // Get the folder's NanoID for use in storage path
             $folderNameWithNanoId = $newFolder->nanoid;
@@ -480,11 +476,16 @@ class FolderController extends Controller
             $fullPath = $path . '/' . $folderNameWithNanoId;
             Storage::makeDirectory($fullPath);
 
-            // Hide the nanoid from the response
-            $newFolder->makeHidden(['nanoid']);
-
             // Load instances and tags for the response
-            $newFolder->load('instances:id,name,address', 'tags:id,name');
+            $newFolder->load('user:id,uuid,name,email', 'parentFolder:id,uuid', 'instances:uuid,name,address', 'tags:uuid,name');
+
+            $newFolder->parent_id = $newFolder->parentFolder->uuid ?? null;
+
+            // Hide the nanoid from the response
+            $newFolder->makeHidden(['nanoid', 'user_id', 'parent_folder', 'parentFolder']);
+
+            // Commit the transaction if no errors
+            DB::commit();
 
             return response()->json([
                 'message' => $newFolder->parent_id ? 'Subfolder created successfully' : 'Folder created successfully',
@@ -509,31 +510,6 @@ class FolderController extends Controller
         }
     }
 
-    protected function attemptDecode($value)
-    {
-        // Jika nilai adalah array, lakukan decoding setiap elemen
-        if (is_array($value)) {
-            return array_map([$this, 'attemptDecode'], $value);
-        }
-
-        // Ubah apapun menjadi string jika bukan array atau objek
-        if (!is_scalar($value) && !is_null($value)) {
-            throw new \Exception('Cannot decode non-scalar value: ' . json_encode($value));
-        }
-
-        // Konversi ke string jika bukan null
-        $value = is_null($value) ? $value : (string) $value;
-
-        $decoded = $this->decodeId($value);
-
-        if (empty($decoded)) {
-            throw new \Exception('Decoding failed for value: ' . $value);
-        }
-
-        // Kembalikan nilai ID asli yang sudah di-decode
-        return $decoded[0];
-    }
-
     /**
      * Add a tag to a folder.
      * 
@@ -551,8 +527,8 @@ class FolderController extends Controller
     public function addTagToFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'folder_id' => 'required|integer|exists:folders,id',
-            'tag_id' => 'required|integer|exists:tags,id',
+            'folder_id' => 'required|integer|exists:folders,uuid',
+            'tag_id' => 'required|integer|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -568,8 +544,8 @@ class FolderController extends Controller
         }
 
         try {
-            $folder = Folder::findOrFail($request->folder_id);
-            $tag = Tags::findOrFail($request->tag_id);
+            $folder = Folder::where('uuid', $request->folder_id);
+            $tag = Tags::where('uuid', $request->tag_id);
 
             // Memeriksa apakah tag sudah terkait dengan folder
             if ($folder->tags->contains($tag->id)) {
@@ -583,11 +559,15 @@ class FolderController extends Controller
             // Menambahkan tag ke folder (tabel pivot folder_has_tags)
             $folder->tags()->attach($tag->id);
 
+            $folder->load(['user:id,uuid,name,email', 'parentFolder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
+
+            // Ubah response parent_id menjadi UUID dari parent folder
+            $folder->parent_id = $folder->parentFolder->uuid ?? null;
+
+            // Sembunyikan relasi parent folder pada response
+            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder']);
+
             DB::commit();
-
-            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
-
-            $folder->makeHidden(['nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'Successfully added tag to folder.',
@@ -634,8 +614,8 @@ class FolderController extends Controller
     public function removeTagFromFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'folder_id' => 'required|integer|exists:folders,id',
-            'tag_id' => 'required|integer|exists:tags,id',
+            'folder_id' => 'required|integer|exists:folders,uuid',
+            'tag_id' => 'required|integer|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -651,8 +631,8 @@ class FolderController extends Controller
         }
 
         try {
-            $folder = Folder::findOrFail($request->folder_id);
-            $tag = Tags::findOrFail($request->tag_id);
+            $folder = Folder::where('uuid', $request->folder_id);
+            $tag = Tags::where('uuid', $request->tag_id);
 
             // Memeriksa apakah tag terkait dengan folder
             if (!$folder->tags->contains($tag->id)) {
@@ -666,11 +646,13 @@ class FolderController extends Controller
             // Menghapus tag dari folder (tabel pivot folder_has_tags)
             $folder->tags()->detach($tag->id);
 
+            $folder->load(['user:id,uuid,name,email', 'parentFolder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
+
+            $folder->parent_id = $folder->parentFolder->uuid ?? null;
+
+            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder']);
+
             DB::commit();
-
-            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
-
-            $folder->makeHidden(['nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'Successfully removed tag from folder.',
@@ -734,7 +716,7 @@ class FolderController extends Controller
         }
 
         try {
-            $folder = Folder::findOrFail($id);
+            $folder = Folder::where('uuid', $id)->first();
 
             $oldNanoid = $folder->nanoid;
 
@@ -747,8 +729,6 @@ class FolderController extends Controller
                 'public_path' => $publicPath
             ]);
 
-            DB::commit();
-
             // Update folder name in storage
             $path = $this->getFolderPath($folder->parent_id);
             $oldFullPath = $path . '/' . $oldNanoid;
@@ -758,9 +738,11 @@ class FolderController extends Controller
                 Storage::move($oldFullPath, $newFullPath);
             }
 
-            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name', 'favorite']);
+            $folder->load(['user:id,uuid,name,email', 'parentFolder:id,uuid', 'tags:uuid,name', 'instances:id,name', 'favorite']);
 
-            $folder->makeHidden(['nanoid', 'user_id']);
+            $folder->parent_id = $folder->parentFolder->uuid ?? null;
+
+            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder']);
 
             $favorite = $folder->favorite->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -768,6 +750,8 @@ class FolderController extends Controller
 
             $folder['is_favorite'] = $isFavorite;
             $folder['favorited_at'] = $favoritedAt;
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Folder name updated successfully.',
@@ -822,24 +806,13 @@ class FolderController extends Controller
         $folderIds = $request->folder_ids;
 
         try {
-            // Pengecekan apakah ada ID yang bukan integer
-            $nonIntegerFolderIds = array_filter($folderIds, fn($id) => !is_int($id));
-            if (!empty($nonIntegerFolderIds)) {
-                Log::error('Invalid Folder IDs detected: ' . implode(', ', $nonIntegerFolderIds), [
-                    'context' => 'FolderController.php (delete) - invalid folder IDs.',
-                ]);
-                return response()->json([
-                    'errors' => 'Invalid folder IDs detected.',
-                    'invalid_ids' => $nonIntegerFolderIds
-                ], 422);
-            }
-
             // Ambil semua folder yang sesuai
-            $folders = Folder::whereIn('id', $folderIds)->get();
+            $folders = Folder::whereIn('uuid', $folderIds)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundFolderIds = $folders->pluck('id')->toArray();
-            $notFoundFolderIds = array_diff($folderIds, $foundFolderIds);
+            $foundFolderIdsToCheck = $folders->pluck('uuid')->toArray();
+            $notFoundFolderIds = array_diff($folderIds, $foundFolderIdsToCheck);
 
             if (!empty($notFoundFolderIds)) {
                 Log::info('Attempt to delete non-existent folders: ' . implode(',', $notFoundFolderIds));
@@ -877,8 +850,6 @@ class FolderController extends Controller
             // Hapus folder dari database
             Folder::whereIn('id', $foundFolderIds)->delete();
 
-            DB::commit();
-
             // Hapus folder dari storage setelah commit ke database berhasil
             foreach ($folders as $folder) {
                 $path = $this->getFolderPath($folder->parent_id);
@@ -888,6 +859,8 @@ class FolderController extends Controller
                     Storage::deleteDirectory($fullPath);
                 }
             }
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Folder(s) deleted successfully.',
@@ -939,32 +912,9 @@ class FolderController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $folderIdRequest = $request->folder_id;
-        $newParentIdRequest = $request->new_parent_id;
-
         try {
-            if (!is_int($folderIdRequest)) {
-                Log::error('Invalid folder ID detected: ' . $folderIdRequest . ' , please check decode hashed id middleware!', [
-                    'context' => 'FolderController.php (create) folder ID is not integer.'
-                ]);
-
-                return response()->json([
-                    'errors' => "Internal server error, please contact administrator of app."
-                ], 500);
-            }
-
-            if (!is_int($newParentIdRequest)) {
-                Log::error('Invalid new parent folderID detected: ' . $newParentIdRequest . ' , please check decode hashed id middleware!', [
-                    'context' => 'FolderController.php (create) new parent folder ID is not integer.'
-                ]);
-
-                return response()->json([
-                    'errors' => "Internal server error, please contact administrator of app."
-                ], 500);
-            }
-
             // Periksa apakah folder yang ingin dipindahkan ada
-            $folder = Folder::where('id', $request->folder_id)->first();
+            $folder = Folder::where('uuid', $request->folder_id)->first();
 
             if (!$folder) {
                 return response()->json([
@@ -976,7 +926,9 @@ class FolderController extends Controller
             $oldParentId = $folder->parent_id;
 
             // Periksa apakah folder tujuan ada
-            $newParentFolder = Folder::where('id', $newParentIdRequest)->first();
+            $newParentFolder = Folder::where('uuid', $request->new_parent_id)->first();
+
+            $newParentFolderId = $newParentFolder->pluck('id');
 
             if (!$newParentFolder) {
                 if (!$folder) {
@@ -987,7 +939,7 @@ class FolderController extends Controller
             }
 
             // Periksa apakah user yang sedang login memiliki perizinan untuk memindahkan folder ke folder tujuan
-            $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($newParentIdRequest, 'write');
+            $permissionCheck = $this->checkPermissionFolderService->checkPermissionFolder($newParentFolderId, 'write');
             if (!$permissionCheck) {
                 return response()->json([
                     'errors' => 'You do not have permission on the folder you are trying to move this folder to.',
@@ -996,10 +948,8 @@ class FolderController extends Controller
 
             DB::beginTransaction();
 
-            $folder->parent_id = $newParentIdRequest;
+            $folder->parent_id = $newParentFolderId;
             $folder->save();
-
-            DB::commit();
 
             // Move folder in storage
             $oldPath = $this->getFolderPath($oldParentId);
@@ -1011,9 +961,11 @@ class FolderController extends Controller
                 Storage::move($oldFullPath, $newFullPath);
             }
 
-            $folder->load(['user:id,name,email', 'tags', 'instances:id,name', 'favorite']);
+            $folder->load(['user:id,uuid,name,email', 'parentFolder:id,uuid', 'tags:uuid,name', 'instances:id,name', 'favorite']);
 
-            $folder->makeHidden(['nanoid', 'user_id']);
+            $folder->parent_id = $folder->parentFolder->uuid ?? null;
+
+            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder']);
 
             $favorite = $folder->favorite->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -1021,6 +973,8 @@ class FolderController extends Controller
 
             $folder['is_favorite'] = $isFavorite;
             $folder['favorited_at'] = $favoritedAt;
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Folder moved successfully.',
@@ -1065,7 +1019,11 @@ class FolderController extends Controller
             return ''; // Root directory, no need for 'folders' base path
         }
 
-        $parentFolder = Folder::findOrFail($parentId);
+        if(is_int($parentId)){
+            $parentFolder = Folder::find($parentId);
+        } else {
+            $parentFolder = Folder::where('uuid', $parentId)->first();
+        }
         $path = $this->getFolderPath($parentFolder->parent_id);
 
         // Use the folder's NanoID in the storage path
@@ -1088,7 +1046,11 @@ class FolderController extends Controller
     public function getPublicPath($id)
     {
         try {
-            $folder = Folder::findOrFail($id);
+            if(is_int($id)){
+                $folder = Folder::find($id);
+            } else {
+                $folder = Folder::where('uuid', $id)->first();
+            }
             $path = [];
 
             while ($folder) {
@@ -1127,7 +1089,11 @@ class FolderController extends Controller
     public function getFullPath($id)
     {
         try {
-            $folder = Folder::findOrFail($id);
+            if(is_int($id)){
+                $folder = Folder::find($id);
+            } else {
+                $folder = Folder::where('uuid', $id)->first();
+            }
             $path = [];
 
             while ($folder) {
@@ -1161,7 +1127,11 @@ class FolderController extends Controller
     {
         $depth = 0;
         while ($parentId) {
-            $folder = Folder::find($parentId);
+            if(is_int($parentId)){
+                $folder = Folder::find($parentId);
+            } else {
+                $folder = Folder::where('uuid', $parentId)->first();
+            }
             if (!$folder) {
                 break;
             }

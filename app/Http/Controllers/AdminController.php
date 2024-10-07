@@ -44,7 +44,7 @@ class AdminController extends Controller
                 // Cari user berdasarkan nama dengan relasi instances, roles, dan folder root
                 $allUser = User::where('name', 'like', '%' . $keywordName . '%')
                     ->with([
-                        'instances:id,name,address',
+                        'instances:uuid,name,address',
                         'folders' => function ($query) {
                             $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                         }
@@ -68,7 +68,7 @@ class AdminController extends Controller
                 // Cari user berdasarkan email dengan relasi instances, roles, dan folder root
                 $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')
                     ->with([
-                        'instances:id,name,address',
+                        'instances:uuid,name,address',
                         'folders' => function ($query) {
                             $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                         }
@@ -94,7 +94,7 @@ class AdminController extends Controller
                     $query->where('name', 'like', '%' . $keywordInstance . '%');
                 })
                     ->with([
-                        'instances:id,name,address',
+                        'instances:uuid,name,address',
                         'folders' => function ($query) {
                             $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                         }
@@ -112,7 +112,7 @@ class AdminController extends Controller
             } else {
                 // Ambil semua user dengan relasi instances, roles, dan folder root
                 $allUser = User::with([
-                    'instances:id,name,address',
+                    'instances:uuid,name,address',
                     'folders' => function ($query) {
                         $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                     }
@@ -184,7 +184,7 @@ class AdminController extends Controller
 
         try {
 
-            $user = User::where('id', $id)->with('instances:id,name,address')->first();
+            $user = User::where('uuid', $id)->with('instances:uuid,name,address')->first();
 
             $user['role'] = $user->roles->pluck('name');
 
@@ -250,7 +250,7 @@ class AdminController extends Controller
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', 'exists:roles,name'],
-            'instance_id' => ['required', 'integer', 'exists:instances,id'],
+            'instance_id' => ['required', 'integer', 'exists:instances,uuid'],
         ]);
 
         if ($validator->fails()) {
@@ -274,7 +274,7 @@ class AdminController extends Controller
 
             DB::commit();
 
-            $newUser->load('instances:id,name,address');
+            $newUser->load('instances:uuid,name,address');
 
             $newUser['role'] = $newUser->roles->pluck('name');
 
@@ -343,7 +343,7 @@ class AdminController extends Controller
                 Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'instance_id' => ['required', 'integer', 'exists:instances,id'],
+            'instance_id' => ['required', 'integer', 'exists:instances,uuid'],
         ]);
 
         if ($validator->fails()) {
@@ -353,7 +353,7 @@ class AdminController extends Controller
         }
 
         try {
-            $userToBeUpdated = User::where('id', $userIdToBeUpdated)->first();
+            $userToBeUpdated = User::where('uuid', $userIdToBeUpdated)->first();
 
             if (!$userToBeUpdated) {
                 return response()->json([
@@ -388,7 +388,7 @@ class AdminController extends Controller
 
             DB::commit();
 
-            $userToBeUpdated->load('instances:id,name,address');
+            $userToBeUpdated->load('instances:uuid,name,address');
 
             $userToBeUpdated['role'] = $userToBeUpdated->roles->pluck('name');
 
@@ -436,7 +436,7 @@ class AdminController extends Controller
 
         try {
             // Delete the user from the database.
-            $userData = User::where('id', $userIdToBeDeleted)->first();
+            $userData = User::where('uuid', $userIdToBeDeleted)->first();
 
             if (!$userData) {
                 return response()->json([

@@ -15,7 +15,6 @@ use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
-use Sqids\Sqids;
 
 class SharingController extends Controller
 {
@@ -44,7 +43,7 @@ class SharingController extends Controller
 
         try {
             // Ambil folder beserta userFolderPermissions dan user yang terkait
-            $folder = Folder::findOrFail($id);
+            $folder = Folder::where('uuid', $id)->first();
 
             // Cek apakah folder dimiliki oleh user yang sedang login
             if ($folder->user_id !== $user->id) {
@@ -55,14 +54,14 @@ class SharingController extends Controller
 
             // Ambil daftar user (id, name, email) yang memiliki akses ke folder
             $sharedUsers = UserFolderPermission::where('folder_id', $folder->id)
-                ->with(['user:id,name,email', 'instances:id,name,address']) // Hanya memuat kolom yang dibutuhkan
+                ->with(['user:id,uuid,name,email', 'user.instances:id,uuid,name,address']) // Hanya memuat kolom yang dibutuhkan
                 ->get()
                 ->map(function ($permission) {
                     return [
                         'id' => $permission->user->id,
                         'name' => $permission->user->name,
                         'email' => $permission->user->email,
-                        'instances' => $permission->instances
+                        'instances' => $permission->user->instances
                     ];
                 });
 
@@ -100,7 +99,7 @@ class SharingController extends Controller
             $sharedFolders = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders'])
+                ->with(['user:id,uuid,name,email', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite', 'subfolders'])
                 ->get();
 
             // Filter folder induk yang dibagikan jika subfolder-nya juga dibagikan
@@ -127,7 +126,7 @@ class SharingController extends Controller
             $sharedFiles = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address'])
+                ->with(['user:id,uuid,name,email', 'tags:uuid,name', 'instances:uuid,name,address'])
                 ->paginate($perPage, ['*'], 'file_page', $filePage);
 
             // Format response untuk folder
@@ -138,7 +137,7 @@ class SharingController extends Controller
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
                 return [
-                    'id' => $folder->id,
+                    'id' => $folder->uuid,
                     'name' => $folder->name,
                     'public_path' => $folder->public_path,
                     'type' => $folder->type,
@@ -155,7 +154,7 @@ class SharingController extends Controller
             // Format response untuk file
             $formattedFiles = $sharedFiles->map(function ($file) {
                 $fileData = [
-                    'id' => $file->id,
+                    'id' => $file->uuid,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
@@ -216,18 +215,11 @@ class SharingController extends Controller
      */
     public function generateShareableFolderLink($folderId)
     {
-        // Gunakan Sqids untuk menghasilkan hash dari ID
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-        $hashedFolderId = $sqids->encode([$folderId]);
-
-        // Prefix "F" untuk Folder
-        $hashedId = base64_encode("F" . $hashedFolderId);
-
         // Ambil URL frontend dari konfigurasi
         $frontendUrl = config('frontend.url_for_share', 'http://localhost:3000');
 
-        // Format URL: {frontend_url}/share/{hashed_id}
-        return "{$frontendUrl}/share/{$hashedId}";
+        // Format URL: {frontend_url}/share/{folderId}
+        return "{$frontendUrl}/share/{$folderId}";
     }
 
     /**
@@ -237,17 +229,10 @@ class SharingController extends Controller
      */
     public function generateShareableFileLink($fileId)
     {
-        // Gunakan Sqids untuk menghasilkan hash dari ID
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-        $hashedFileId = $sqids->encode([$fileId]);
-
-        // Prefix "L" untuk File
-        $hashedId = base64_encode("L" . $hashedFileId);
-
         // Ambil URL frontend dari konfigurasi
         $frontendUrl = config('frontend.url_for_share', 'http://localhost:3000');
 
-        // Format URL: {frontend_url}/share/{hashed_id}
-        return "{$frontendUrl}/share/{$hashedId}";
+        // Format URL: {frontend_url}/share/{folderId}
+        return "{$frontendUrl}/share/{$fileId}";
     }
 }

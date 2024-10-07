@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
+use App\Models\User;
 use App\Models\UserFilePermission;
 use App\Models\UserFolderPermission;
 use Exception;
@@ -21,7 +22,11 @@ class PermissionFolderController extends Controller
     private function checkPermission($folderId)
     {
         $user = Auth::user();
-        $folder = Folder::find($folderId);
+        if(is_int($folderId)){
+            $folder = Folder::find($folderId);
+        } else {
+            $folder = Folder::where('uuid', $folderId)->first();
+        }
 
         // If folder not found, return 404 error and stop the process
         if (!$folder) {
@@ -38,8 +43,11 @@ class PermissionFolderController extends Controller
         return false;
     }
 
-    public function getAllPermissionOnFolder($folderId)
+    public function getAllPermissionOnFolder($folderIdParam)
     {
+        $folder = Folder::where('uuid', $folderIdParam)->first();
+        $folderId = $folder->pluck('id');
+
         // Periksa apakah pengguna yang meminta memiliki izin untuk melihat perizinan folder ini
         $permission = $this->checkPermission($folderId);
         if (!$permission) {
@@ -92,8 +100,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'folder_id' => 'required|integer|exists:folders,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'folder_id' => 'required|integer|exists:folders,uuid',
             ],
         );
 
@@ -103,8 +111,11 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        // Cek apakah user adalah pemilik folder
-        $folder = Folder::find($request->folder_id);
+        $folder = Folder::where('uuid', $request->folder_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $folderId = $folder->pluck('id');
+        $userId = $userInfo->pluck('id');
 
         if (!$folder) {
             return response()->json([
@@ -113,14 +124,14 @@ class PermissionFolderController extends Controller
         }
 
         // Asumsi folder memiliki kolom 'owner_id' yang menyimpan ID pemilik folder
-        if ($folder->user_id == $request->user_id) {
+        if ($folder->user_id == $userId) {
             return response()->json([
                 'message' => 'Anda adalah pemilik folder.'
             ]);
         }
 
         // Cek permission user pada folder
-        $permission = $this->checkPermission($request->folder_id);
+        $permission = $this->checkPermission($folderId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to view permissions on this Folder.'
@@ -156,8 +167,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'folder_id' => 'required|integer|exists:folders,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'folder_id' => 'required|integer|exists:folders,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -168,16 +179,20 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        // Cek apakah user yang dimaksud adalah pemilik folder
-        $folder = Folder::find($request->folder_id);
-        if ($folder->user_id == $request->user_id) {
+        $folder = Folder::where('uuid', $request->folder_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $folderId = $folder->pluck('id');
+        $userId = $userInfo->pluck('id');
+
+        if ($folder->user_id == $userId) {
             return response()->json([
                 'errors' => 'You cannot modify permissions for the owner of the folder.'
             ], 403);
         }
 
         // check if the user who owns the folder will grant permissions.
-        $permission = $this->checkPermission($request->folder_id);
+        $permission = $this->checkPermission($folderId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to grant permissions on this Folder.'
@@ -185,7 +200,7 @@ class PermissionFolderController extends Controller
         }
 
         try {
-            $checkUserFolderPermission = UserFolderPermission::where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
+            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if ($checkUserFolderPermission) {
                 return response()->json([
@@ -197,13 +212,13 @@ class PermissionFolderController extends Controller
 
             // Berikan izin pada folder induk
             $userFolderPermission = UserFolderPermission::create([
-                'user_id' => $request->user_id,
-                'folder_id' => $request->folder_id,
+                'user_id' => $userId,
+                'folder_id' => $folderId,
                 'permissions' => $request->permissions
             ]);
 
             // Terapkan izin pada subfolder dan file (kecuali file yang sudah ada izin)
-            $this->applyPermissionToSubfoldersAndFiles($folder, $request->user_id, $request->permissions);
+            $this->applyPermissionToSubfoldersAndFiles($folder, $userId, $request->permissions);
 
             DB::commit();
 
@@ -257,8 +272,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'folder_id' => 'required|integer|exists:folders,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'folder_id' => 'required|integer|exists:folders,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -269,16 +284,20 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        // Cek apakah user yang dimaksud adalah pemilik folder
-        $folder = Folder::find($request->folder_id);
-        if ($folder->user_id == $request->user_id) {
+        $folder = Folder::where('uuid', $request->folder_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $folderId = $folder->pluck('id');
+        $userId = $userInfo->pluck('id');
+
+        if ($folder->user_id == $userId) {
             return response()->json([
                 'errors' => 'You cannot modify permissions for the owner of the folder.'
             ], 403);
         }
 
         // check if the user who owns the folder will revoke permissions.
-        $permission = $this->checkPermission($request->folder_id);
+        $permission = $this->checkPermission($folderId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to change permissions on this Folder.'
@@ -286,7 +305,7 @@ class PermissionFolderController extends Controller
         }
 
         try {
-            $userFolderPermission = UserFolderPermission::where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
+            $userFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if (!$userFolderPermission) {
                 return response()->json([
@@ -323,8 +342,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'folder_id' => 'required|integer|exists:folders,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'folder_id' => 'required|integer|exists:folders,uuid',
             ],
         );
 
@@ -334,16 +353,20 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        // Cek apakah user yang dimaksud adalah pemilik folder
-        $folder = Folder::find($request->folder_id);
-        if ($folder->user_id == $request->user_id) {
+        $folder = Folder::where('uuid', $request->folder_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $folderId = $folder->pluck('id');
+        $userId = $userInfo->pluck('id');
+
+        if ($folder->user_id == $userId) {
             return response()->json([
                 'errors' => 'You cannot modify permissions for the owner of the folder.'
             ], 403);
         }
 
         // check if the user who owns the folder will revoke permissions.
-        $permission = $this->checkPermission($request->folder_id);
+        $permission = $this->checkPermission($folderId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to revoke permissions on this Folder.'
@@ -351,7 +374,7 @@ class PermissionFolderController extends Controller
         }
 
         try {
-            $userFolderPermission = UserFolderPermission::where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
+            $userFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if (!$userFolderPermission) {
                 return response()->json([
@@ -386,7 +409,7 @@ class PermissionFolderController extends Controller
     {
         // Hapus izin dari semua subfolder
         foreach ($folder->subfolders as $subfolder) {
-            UserFolderPermission::where('user_id', $userId)->where('folder_id', $subfolder->id)->delete();
+            UserFolderPermission::where('user_id', $userId)->where('folder_id', $folder->id)->delete();
             $this->removePermissionFromSubfoldersAndFiles($subfolder, $userId);
         }
 

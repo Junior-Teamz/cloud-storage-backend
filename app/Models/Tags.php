@@ -2,31 +2,19 @@
 
 namespace App\Models;
 
-
-use Illuminate\Support\Str;
+use App\Traits\HasUUID;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Tags extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUUID;
 
-    protected $fillable = ['uuid', 'name'];
+    protected $fillable = ['name'];
 
     protected $hidden = ['pivot'];
 
     protected $table = 'tags';
-
-    protected static function boot() {
-        
-        parent::boot();
-
-        static::creating(function ($model) {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     public function folders()
     {

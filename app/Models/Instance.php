@@ -2,31 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
+use App\Traits\HasUUID;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Instance extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUUID;
 
     protected $table = 'instances';
 
     protected $hidden = ['pivot'];
 
-    protected $fillable = ['uuid', 'name', 'address'];
-
-    protected static function boot() {
-        
-        parent::boot();
-
-        static::creating(function ($model) {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
+    protected $fillable = ['name', 'address'];
     
     public function users(): BelongsToMany
     {

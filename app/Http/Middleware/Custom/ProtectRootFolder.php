@@ -27,7 +27,7 @@ class ProtectRootFolder
                 $folderId = $request->route('id');
 
                 // Cari folder berdasarkan ID
-                $folder = Folder::find($folderId);
+                $folder = Folder::where('uuid', $folderId)->first();
 
                 // Cek jika folder adalah root folder (parent_id = null)
                 if ($folder && $folder->parent_id === null) {

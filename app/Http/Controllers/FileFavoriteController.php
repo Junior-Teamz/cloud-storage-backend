@@ -80,7 +80,7 @@ use Illuminate\Support\Facades\Validator;
 
 //         // Validasi request
 //         $validator = Validator::make($request->all(), [
-//             'file_id' => 'required|integer|exists:files,id',
+//             'file_id' => 'required|integer|exists:files,uuid',
 //         ]);
 
 //         // Jika validasi gagal, kirimkan respon error
@@ -103,7 +103,7 @@ use Illuminate\Support\Facades\Validator;
 //             }
 
 //             // Ambil folder yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-//             $folder = File::with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite' => function ($query) use ($userLogin) {
+//             $folder = File::with(['user:id,uuid,name,email', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite' => function ($query) use ($userLogin) {
 //                 $query->where('user_id', $userLogin->id);
 //             }])->findOrFail($request->folder_id);
 

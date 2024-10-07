@@ -20,7 +20,6 @@ use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Sqids\Sqids;
 
 class FileController extends Controller
 {
@@ -51,10 +50,11 @@ class FileController extends Controller
 
         try {
             $file = File::with([
-                'user:id,name,email',
+                'user:id,uuid,name,email',
+                'folder:id,uuid',
                 'tags',
-                'instances:id,name,address'
-            ])->find($id);
+                'instances:uuid,name,address'
+            ])->where('uuid', $id)->first();
 
             if (!$file) {
                 return response()->json([
@@ -89,7 +89,7 @@ class FileController extends Controller
         try {
             // Ambil semua file dari database dengan paginasi, termasuk user, tags, dan instances
             $filesQuery = File::where('user_id', $user->id)
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                ->with(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
 
             // Hitung total ukuran file langsung dari query sebelum paginasi
             $totalSize = $filesQuery->sum('size');
@@ -98,7 +98,7 @@ class FileController extends Controller
             $files = $filesQuery->paginate(10);
 
             // Sembunyikan kolom 'path' dan 'nanoid' dari respon JSON
-            $files->makeHidden(['path', 'nanoid']);
+            $files->makeHidden(['path', 'nanoid', 'user_id']);
 
             // Return daftar file yang dipaginasi dan total ukuran
             return response()->json([
@@ -128,9 +128,9 @@ class FileController extends Controller
         $validator = Validator::make($request->all(), [
             'file' => 'required|array',
             'file.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xlsx,pptx,ppt,txt,mp3,ogg,wav,aac,opus,mp4,hevc,mkv,mov,h264,h265,php,js,html,css',
-            'folder_id' => 'nullable|integer|exists:folders,id',
+            'folder_id' => 'nullable|integer|exists:folders,uuid',
             'tag_ids' => 'required|array',
-            'tag_ids.*' => ['integer', 'exists:tags,id'],
+            'tag_ids.*' => ['integer', 'exists:tags,uuid'],
         ]);
 
         if ($validator->fails()) {
@@ -228,13 +228,19 @@ class FileController extends Controller
                     $file->save();
                 }
 
-                $file->tags()->sync($request->tag_ids);
+                $getTagIds = Tags::whereIn('uuid', $request->tag_ids)->get();
+
+                $tagIds = $getTagIds->pluck('id')->toArray();
+
+                $file->tags()->sync($tagIds);
 
                 $file->instances()->sync($userInstances);
 
-                $file->makeHidden(['path', 'nanoid', 'user_id']);
+                $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
 
-                $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                $file->folder_id = $file->folder->uuid;
+
+                $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
                 // Tambahkan file ke dalam array yang akan dikembalikan
                 $filesData[] = $file;
@@ -280,7 +286,7 @@ class FileController extends Controller
         // Validasi input request
         $validate = Validator::make($request->all(), [
             'file_ids' => 'required|array',
-            'file_ids.*' => 'required|exists:files,id',
+            'file_ids.*' => 'required|exists:files,uuid',
         ]);
 
         if ($validate->fails()) {
@@ -303,10 +309,19 @@ class FileController extends Controller
 
         try {
             // Ambil files berdasarkan file_ids
-            $files = File::whereIn('id', $fileIds)->get();
+            $files = File::whereIn('uuid', $fileIds)->get();
 
-            if (!$files) {
-                return response()->json(['error' => 'Files not found'], 404);
+            // Bandingkan ID yang ditemukan dengan yang diminta
+            $foundFileIdsToCheck = $files->pluck('uuid')->toArray();
+            $notFoundFileIds = array_diff($fileIds, $foundFileIdsToCheck);
+
+            if (!empty($notFoundFileIds)) {
+                Log::info('Attempt to download non-existent files: ' . implode(',', $notFoundFileIds));
+
+                return response()->json([
+                    'errors' => 'Some files were not found.',
+                    'missing_file_ids' => $notFoundFileIds,
+                ], 404);
             }
 
             if ($files->count() === 1) {
@@ -365,8 +380,8 @@ class FileController extends Controller
     public function addTagToFile(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file_id' => 'required|integer|exists:files,id',
-            'tag_id' => 'required|integer|exists:tags,id',
+            'file_id' => 'required|integer|exists:files,uuid',
+            'tag_id' => 'required|integer|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -382,8 +397,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::findOrFail($request->file_id);
-            $tag = Tags::findOrFail($request->tag_id);
+            $file = File::where('uuid', $request->file_id);
+            $tag = Tags::where('uuid', $request->tag_id);
 
             // Memeriksa apakah tag sudah terkait dengan file
             if ($file->tags->contains($tag->id)) {
@@ -397,9 +412,13 @@ class FileController extends Controller
             // Menambahkan tag ke file (tabel pivot file_has_tags)
             $file->tags()->attach($tag->id);
 
-            DB::commit();
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
 
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
+            $file->folder_id = $file->folder->uuid;
+
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Successfully added tag to file.',
@@ -439,8 +458,8 @@ class FileController extends Controller
     public function removeTagFromFile(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file_id' => 'required|integer|exists:files,id',
-            'tag_id' => 'required|integer|exists:tags,id',
+            'file_id' => 'required|integer|exists:files,uuid',
+            'tag_id' => 'required|integer|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -456,8 +475,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::findOrFail($request->file_id);
-            $tag = Tags::findOrFail($request->tag_id);
+            $file = File::where('uuid', $request->file_id);
+            $tag = Tags::where('uuid', $request->tag_id);
 
             // Memeriksa apakah tag terkait dengan file
             if (!$file->tags->contains($tag->id)) {
@@ -471,9 +490,13 @@ class FileController extends Controller
             // Menghapus tag dari file (tabel pivot file_has_tags)
             $file->tags()->detach($tag->id);
 
-            DB::commit();
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
 
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
+            $file->folder_id = $file->folder->uuid;
+
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Successfully removed tag from file.',
@@ -528,7 +551,7 @@ class FileController extends Controller
         try {
             DB::beginTransaction();
 
-            $file = File::findOrFail($id);
+            $file = File::where('uuid', $id)->first();
 
             // Dapatkan ekstensi asli dari nama file yang ada
             $currentFileNameWithExtension = $file->name;
@@ -564,11 +587,13 @@ class FileController extends Controller
                 'public_path' => $publicPath,
             ]);
 
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
+
+            $file->folder_id = $file->folder->uuid;
+
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+
             DB::commit();
-
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
-
-            $file->makeHidden(['path', 'nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'File name updated successfully.',
@@ -598,7 +623,7 @@ class FileController extends Controller
     public function move(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'new_folder_id' => 'required|integer|exists:folders,id',
+            'new_folder_id' => 'required|integer|exists:folders,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -624,9 +649,9 @@ class FileController extends Controller
         try {
             DB::beginTransaction();
 
-            $file = File::where('id', $id)->first();
+            $file = File::where('uuid', $id)->first();
 
-            if(!$file){
+            if (!$file) {
                 Log::warning('Attempt to move file on non-existence folder: ' . $id);
                 return response()->json([
                     'errors' => 'Folder destination to move the file was not found.'
@@ -662,11 +687,13 @@ class FileController extends Controller
                 'public_path' => $newPublicPath,
             ]);
 
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
+
+            $file->folder_id = $file->folder->uuid;
+
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+
             DB::commit();
-
-            $file->load(['user:id,name,email', 'tags', 'instances:id,name,address']);
-
-            $file->makeHidden(['path', 'nanoid', 'user_id']);
 
             return response()->json([
                 'message' => 'File moved successfully.',
@@ -711,32 +738,20 @@ class FileController extends Controller
         $fileIds = $request->file_ids;
 
         try {
-            // Periksa apakah ada file ID yang bukan integer
-            $nonIntegerFileIds = array_filter($fileIds, fn($id) => !is_int($id));
-            if (!empty($nonIntegerFileIds)) {
-                Log::error('Invalid File IDs detected: ' . implode(', ', $nonIntegerFileIds), [
-                    'context' => 'FileController.php (delete) - invalid file IDs.',
-                ]);
-                return response()->json([
-                    'errors' => 'Invalid file IDs detected.',
-                    'invalid_ids' => $nonIntegerFileIds
-                ], 422);
-            }
-
             // Periksa apakah semua file ada
-            $files = File::whereIn('id', $fileIds)->get();
+            $files = File::whereIn('uuid', $fileIds)->get();
 
+            // Bandingkan ID yang ditemukan dengan yang diminta
             $foundFileIds = $files->pluck('id')->toArray();
+            $foundFileIdsToCheck = $files->pluck('uuid')->toArray();
+            $notFoundFileIds = array_diff($fileIds, $foundFileIdsToCheck);
 
-            // Jika ada file yang tidak ditemukan
-            if (count($files) != count($fileIds)) {
-                $notFoundFileIds = array_diff($fileIds, $foundFileIds);
-
-                Log::error('File Delete: some files not found: ' . implode(', ', $notFoundFileIds));
+            if (!empty($notFoundFileIds)) {
+                Log::info('Attempt to delete non-existent files: ' . implode(',', $notFoundFileIds));
 
                 return response()->json([
                     'errors' => 'Some files were not found.',
-                    'not_found_file_ids' => $notFoundFileIds
+                    'missing_file_ids' => $notFoundFileIds,
                 ], 404);
             }
 
@@ -797,9 +812,9 @@ class FileController extends Controller
         $user = Auth::user();
 
         if ($user) {
-    
+
             // Cari file berdasarkan ID
-            $file = File::find($fileId);
+            $file = File::where('uuid', $fileId)->first();
 
             if (!$file) {
                 return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
@@ -835,7 +850,11 @@ class FileController extends Controller
         // If folderId is provided, build the path from the folder to the root
         while ($folderId) {
             // Find the folder by ID
-            $folder = Folder::find($folderId);
+            if (is_int($folderId)) {
+                $folder = Folder::find($folderId);
+            } else {
+                $folder = Folder::where('uuid', $folderId)->first();
+            }
             if ($folder) {
                 // Prepend the folder name to the path array
                 array_unshift($path, $folder->name);
@@ -865,7 +884,11 @@ class FileController extends Controller
         // If folderId is provided, build the path from the folder to the root
         while ($folderId) {
             // Find the folder by ID
-            $folder = Folder::find($folderId);
+            if (is_int($folderId)) {
+                $folder = Folder::find($folderId);
+            } else {
+                $folder = Folder::where('uuid', $folderId)->first();
+            }
             if ($folder) {
                 // Prepend the folder name to the path array
                 array_unshift($path, $folder->nanoid);

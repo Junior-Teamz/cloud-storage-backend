@@ -2,21 +2,18 @@
 
 namespace App\Models;
 
-use App\Services\HashIdService;
+use App\Traits\HasUUID;
 use Exception;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class Folder extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUUID;
 
     protected $fillable = [
-        'uuid',
         'nanoid',
         'name',
         'type',
@@ -31,10 +28,6 @@ class Folder extends Model
 
         // Automatically generate a NanoID when creating a new folder
         static::creating(function ($model) {
-
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
 
             if (empty($model->nanoid)) {
                 $model->nanoid = self::generateNanoId();
@@ -84,7 +77,7 @@ class Folder extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function parentFolder()

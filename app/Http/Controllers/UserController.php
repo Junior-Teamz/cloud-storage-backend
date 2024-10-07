@@ -99,7 +99,7 @@ class UserController extends Controller
 
        try {
 
-           $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
+           $userInfo = User::where('id', $user->id)->with(['instances:uuid,name,address'])->first();
 
            $userInfo['role'] = $userInfo->roles->pluck('name');
 
@@ -158,7 +158,7 @@ class UserController extends Controller
                 },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'instance_id' => ['required', 'exists:instances,id'],
+            'instance_id' => ['required', 'exists:instances,uuid'],
         ]);
 
         if ($validator->fails()) {
@@ -180,7 +180,7 @@ class UserController extends Controller
 
             DB::commit();
 
-            $updatedUser->load('instances:id,name,address');
+            $updatedUser->load('instances:uuid,name,address');
 
             return response()->json([
                 'message' => 'Data user berhasil diperbarui',

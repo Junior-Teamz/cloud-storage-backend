@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\File;
+use App\Models\User;
 use App\Models\UserFilePermission;
 use Illuminate\Http\Request;
 use Exception;
@@ -19,7 +20,11 @@ class PermissionFileController extends Controller
     private function checkPermission($fileId)
     {
         $user = Auth::user();
-        $file = File::find($fileId);
+        if(is_int($fileId)){
+            $file = File::find($fileId);
+        } else {
+            $file = File::where('uuid', $fileId)->first();
+        }
 
         // If file not found, return 404 error and stop the process
         if (!$file) {
@@ -36,8 +41,11 @@ class PermissionFileController extends Controller
         return false;
     }
 
-    public function getAllPermissionOnFile($fileId)
+    public function getAllPermissionOnFile($fileIdParam)
     {
+        $file = File::where('uuid', $fileIdParam)->first();
+        $fileId = $file->pluck('id');
+
         // Periksa apakah pengguna yang meminta memiliki izin untuk melihat perizinan file ini
         $permission = $this->checkPermission($fileId);
         if (!$permission) {
@@ -89,8 +97,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'file_id' => 'required|integer|exists:files,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'file_id' => 'required|integer|exists:files,uuid',
             ],
         );
 
@@ -100,7 +108,13 @@ class PermissionFileController extends Controller
             ], 422);
         }
 
-        $permission = $this->checkPermission($request->file_id);
+        $file = File::where('uuid', $request->file_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $fileId = $file->pluck('id');
+        $userId = $userInfo->pluck('id');
+
+        $permission = $this->checkPermission($fileId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to view permissions on this file.'
@@ -108,7 +122,7 @@ class PermissionFileController extends Controller
         }
 
         try {
-            $userFilePermission = UserFilePermission::where('user_id', $request->user_id)->where('file_id', $request->file_id)->first();
+            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->first();
 
             if ($userFilePermission == null) {
                 return response()->json([
@@ -133,8 +147,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'file_id' => 'required|integer|exists:files,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'file_id' => 'required|integer|exists:files,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -145,16 +159,20 @@ class PermissionFileController extends Controller
             ], 422);
         }
 
-        // Cek apakah user yang dimaksud adalah pemilik file
-        $file = File::find($request->file_id);
-        if ($file->user_id == $request->user_id) {
+        $file = File::where('uuid', $request->file_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $fileId = $file->pluck('id');
+        $userId = $userInfo->pluck('id');
+
+        if ($file->user_id == $userId) {
             return response()->json([
                 'errors' => 'You cannot modify permissions for the owner of the file.'
             ], 403);
         }
 
         // check if the user who owns the file will grant permissions.
-        $permission = $this->checkPermission($request->file_id);
+        $permission = $this->checkPermission($fileId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to grant permissions on this file.'
@@ -162,7 +180,7 @@ class PermissionFileController extends Controller
         }
 
         try {
-            $userFilePermission = UserFilePermission::where('user_id', $request->user_id)->where('file_id', $request->file_id)->first();
+            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->first();
 
             if ($userFilePermission) {
                 return response()->json([
@@ -173,8 +191,8 @@ class PermissionFileController extends Controller
             DB::beginTransaction();
 
             $userFilePermission = UserFilePermission::create([
-                'user_id' => $request->user_id,
-                'file_id' => $request->file_id,
+                'user_id' => $userId,
+                'file_id' => $fileId,
                 'permissions' => $request->permissions
             ]);
 
@@ -199,8 +217,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'file_id' => 'required|integer|exists:files,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'file_id' => 'required|integer|exists:files,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -212,23 +230,29 @@ class PermissionFileController extends Controller
         }
 
         // Cek apakah user yang dimaksud adalah pemilik file
-        $file = File::find($request->file_id);
-        if ($file->user_id == $request->user_id) {
+        $file = File::where('uuid', $request->file_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $fileId = $file->pluck('id');
+        $userId = $userInfo->pluck('id');
+
+        if ($file->user_id == $userId) {
             return response()->json([
                 'errors' => 'You cannot modify permissions for the owner of the file.'
             ], 403);
         }
 
         // check if the user who owns the file will revoke permissions.
-        $permission = $this->checkPermission($request->file_id);
+        $permission = $this->checkPermission($fileId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to change permissions on this file.'
             ], 403);
         }
 
+
         try {
-            $userFilePermission = UserFilePermission::where('user_id', $request->user_id)->where('file_id', $request->file_id)->first();
+            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->first();
 
             if ($userFilePermission == null) {
                 return response()->json([
@@ -263,8 +287,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,id',
-                'file_id' => 'required|integer|exists:files,id',
+                'user_id' => 'required|integer|exists:users,uuid',
+                'file_id' => 'required|integer|exists:files,uuid',
             ],
         );
 
@@ -275,15 +299,20 @@ class PermissionFileController extends Controller
         }
 
         // Cek apakah user yang dimaksud adalah pemilik file
-        $file = File::find($request->file_id);
-        if ($file->user_id == $request->user_id) {
+        $file = File::where('uuid', $request->file_id)->first();
+        $userInfo = User::where('uuid', $request->user_id)->first();
+
+        $fileId = $file->pluck('id');
+        $userId = $userInfo->pluck('id');
+
+        if ($file->user_id == $userId) {
             return response()->json([
                 'errors' => 'You cannot modify permissions for the owner of the file.'
             ], 403);
         }
 
         // check if the user who owns the file will revoke permissions.
-        $permission = $this->checkPermission($request->file_id);
+        $permission = $this->checkPermission($fileId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to revoke permissions on this file.'
@@ -291,7 +320,7 @@ class PermissionFileController extends Controller
         }
 
         try {
-            $userFilePermission = UserFilePermission::where('user_id', $request->user_id)->where('file_id', $request->file_id)->first();
+            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->first();
 
             if ($userFilePermission == null) {
                 return response()->json([

@@ -86,7 +86,7 @@ class TagController extends Controller
     public function getTagsInformation($id)
     {
         try {
-            $tagData = Tags::where('id', $id)->first();
+            $tagData = Tags::where('uuid', $id)->first();
 
             if (!$tagData) {
                 return response()->json([
@@ -372,7 +372,7 @@ class TagController extends Controller
         }
         try {
 
-            $tag = Tags::find($id);
+            $tag = Tags::where('uuid', $id)->first();
 
             if (!$tag) {
                 return response()->json([
@@ -435,28 +435,13 @@ class TagController extends Controller
         $tagIds = $request->tag_ids;
 
         try {
-            // Periksa apakah ID sudah di decode dengan benar oleh middleware decode hashed id
-            $nonIntegerIds = array_filter($tagIds, function ($tagId) {
-                return !is_int($tagId);
-            });
-
-            if (!empty($nonIntegerIds)) {
-                Log::error('Invalid tag IDs detected. Please check decode hashed id middleware!', [
-                    'context' => 'TagController.php (destroy) Tag ID is not an integer.',
-                    'tag_ids' => implode(',', $nonIntegerIds)
-                ]);
-
-                return response()->json([
-                    'errors' => 'Internal error has occurred. Please contact administrator of app.'
-                ], 500);
-            }
-
             // Exclude "Root" tag dari query untuk menghindari penghapusan
-            $tags = Tags::whereIn('id', $tagIds)->where('name', '!=', 'Root')->get();
+            $tags = Tags::whereIn('uuid', $tagIds)->where('name', '!=', 'Root')->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundTagIds = $tags->pluck('id')->toArray();
-            $notFoundTagIds = array_diff($tagIds, $foundTagIds);
+            $foundTagIdsToCheck = $tags->pluck('uuid')->toArray();
+            $notFoundTagIds = array_diff($tagIds, $foundTagIdsToCheck);
 
             if (!empty($notFoundTagIds)) {
                 Log::info('Attempt to delete non-existent tags: ' . implode(',', $notFoundTagIds));
