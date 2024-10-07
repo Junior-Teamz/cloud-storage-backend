@@ -78,7 +78,7 @@ class NewsTagController extends Controller
                 Rule::unique('news_tags')->where(function ($query) {
                     return $query->whereRaw('LOWER(name) = ?', [strtolower(request('name'))]);
                 }),
-                'regex:/^[a-zA-Z\s]+$/',
+                'regex:/^[a-zA-Z\s&()]+$/',
                 'max:50'
             ],
         ], [

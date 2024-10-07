@@ -250,7 +250,7 @@ class AdminController extends Controller
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', 'exists:roles,name'],
-            'instance_id' => ['required', 'integer', 'exists:instances,uuid'],
+            'instance_id' => ['required', 'string', 'exists:instances,uuid'],
         ]);
 
         if ($validator->fails()) {
@@ -343,7 +343,7 @@ class AdminController extends Controller
                 Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'instance_id' => ['required', 'integer', 'exists:instances,uuid'],
+            'instance_id' => ['required', 'string', 'exists:instances,uuid'],
         ]);
 
         if ($validator->fails()) {

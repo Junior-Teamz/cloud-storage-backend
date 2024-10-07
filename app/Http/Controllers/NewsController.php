@@ -294,14 +294,17 @@ class NewsController extends Controller
                     // Nama folder untuk menyimpan thumbnail
                     $thumbnailDirectory = 'news_thumbnail';
 
-                    // Cek apakah folder news_thumbnail ada, jika tidak, buat folder tersebut
-                    if (!Storage::exists($thumbnailDirectory)) {
-                        Storage::makeDirectory($thumbnailDirectory);
+                    // Cek apakah folder news_thumbnail ada di disk public, jika tidak, buat folder tersebut
+                    if (!Storage::disk('public')->exists($thumbnailDirectory)) {
+                        Storage::disk('public')->makeDirectory($thumbnailDirectory);
                     }
 
-                    // Simpan file thumbnail ke storage/app/news_thumbnail
-                    $thumbnailPath = Storage::putFile($thumbnailDirectory, $file);
+                    // Simpan file thumbnail ke storage/app/public/news_thumbnail
+                    $thumbnailPath = $request->file('thumbnail')->store($thumbnailDirectory, 'public');
 
+                    // Buat URL publik untuk thumbnail
+                    $thumbnailUrl = Storage::url($thumbnailPath);
+                    
                 } else if (is_string($request->thumbnail)) {
                     // Periksa apakah thumbnail adalah URL yang valid
                     if (!filter_var($request->thumbnail, FILTER_VALIDATE_URL)) {

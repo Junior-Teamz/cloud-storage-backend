@@ -130,7 +130,7 @@ class FileController extends Controller
             'file.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xlsx,pptx,ppt,txt,mp3,ogg,wav,aac,opus,mp4,hevc,mkv,mov,h264,h265,php,js,html,css',
             'folder_id' => 'nullable|exists:folders,uuid',
             'tag_ids' => 'required|array',
-            'tag_ids.*' => ['integer', 'exists:tags,uuid'],
+            'tag_ids.*' => ['string', 'exists:tags,uuid'],
         ]);
 
         if ($validator->fails()) {
