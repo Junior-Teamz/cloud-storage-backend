@@ -404,7 +404,7 @@ class FolderController extends Controller
             $request->all(),
             [
                 'name' => 'required|string|unique:folders,name',
-                'parent_id' => 'nullable|integer|exists:folders,uuid',
+                'parent_id' => 'nullable|exists:folders,uuid',
                 'tag_ids' => 'required|array',
             ],
         );
@@ -527,8 +527,8 @@ class FolderController extends Controller
     public function addTagToFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'folder_id' => 'required|integer|exists:folders,uuid',
-            'tag_id' => 'required|integer|exists:tags,uuid',
+            'folder_id' => 'required|exists:folders,uuid',
+            'tag_id' => 'required|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -614,8 +614,8 @@ class FolderController extends Controller
     public function removeTagFromFolder(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'folder_id' => 'required|integer|exists:folders,uuid',
-            'tag_id' => 'required|integer|exists:tags,uuid',
+            'folder_id' => 'required|exists:folders,uuid',
+            'tag_id' => 'required|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {

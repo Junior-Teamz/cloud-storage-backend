@@ -97,8 +97,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'file_id' => 'required|integer|exists:files,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'file_id' => 'required|exists:files,uuid',
             ],
         );
 
@@ -147,8 +147,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'file_id' => 'required|integer|exists:files,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'file_id' => 'required|exists:files,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -217,8 +217,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'file_id' => 'required|integer|exists:files,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'file_id' => 'required|exists:files,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -287,8 +287,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'file_id' => 'required|integer|exists:files,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'file_id' => 'required|exists:files,uuid',
             ],
         );
 

@@ -80,7 +80,7 @@ use Illuminate\Support\Facades\Validator;
 
 //         // Validasi request
 //         $validator = Validator::make($request->all(), [
-//             'file_id' => 'required|integer|exists:files,uuid',
+//             'file_id' => 'required|exists:files,uuid',
 //         ]);
 
 //         // Jika validasi gagal, kirimkan respon error

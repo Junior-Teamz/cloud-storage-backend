@@ -100,8 +100,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'folder_id' => 'required|integer|exists:folders,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'folder_id' => 'required|exists:folders,uuid',
             ],
         );
 
@@ -167,8 +167,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'folder_id' => 'required|integer|exists:folders,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'folder_id' => 'required|exists:folders,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -272,8 +272,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'folder_id' => 'required|integer|exists:folders,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'folder_id' => 'required|exists:folders,uuid',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -342,8 +342,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|integer|exists:users,uuid',
-                'folder_id' => 'required|integer|exists:folders,uuid',
+                'user_id' => 'required|exists:users,uuid',
+                'folder_id' => 'required|exists:folders,uuid',
             ],
         );
 

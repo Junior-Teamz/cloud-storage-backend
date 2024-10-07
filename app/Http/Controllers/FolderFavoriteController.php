@@ -109,7 +109,7 @@ class FolderFavoriteController extends Controller
 
         // Validasi request
         $validator = Validator::make($request->all(), [
-            'folder_id' => 'required|integer|exists:folders,uuid',
+            'folder_id' => 'required|exists:folders,uuid',
         ]);
 
         // Jika validasi gagal, kirimkan respon error

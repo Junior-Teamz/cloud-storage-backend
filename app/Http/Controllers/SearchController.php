@@ -20,9 +20,9 @@ class SearchController extends Controller
         // Validasi input 'name', 'per_page', 'folder_page', dan 'file_page'
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'per_page' => 'nullable|integer|min:1', // Tentukan jumlah item per halaman jika ada
-            'folder_page' => 'nullable|integer|min:1', // Halaman spesifik untuk folder
-            'file_page' => 'nullable|integer|min:1', // Halaman spesifik untuk file
+            'per_page' => 'nullable|min:1', // Tentukan jumlah item per halaman jika ada
+            'folder_page' => 'nullable|min:1', // Halaman spesifik untuk folder
+            'file_page' => 'nullable|min:1', // Halaman spesifik untuk file
         ]);
 
         if ($validator->fails()) {

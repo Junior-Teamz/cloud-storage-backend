@@ -6,6 +6,7 @@ use App\Models\News;
 use App\Models\NewsTag;
 use Illuminate\Support\Str;
 use App\Services\CheckAdminService;
+use App\Services\GenerateURLService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -18,11 +19,13 @@ use Illuminate\Support\Facades\Validator;
 class NewsController extends Controller
 {
     protected $checkAdminService;
+    protected $generateImageURL;
 
     // Inject RoleService ke dalam constructor
-    public function __construct(CheckAdminService $checkAdminService)
+    public function __construct(CheckAdminService $checkAdminService, GenerateURLService $generateURLService)
     {
         $this->checkAdminService = $checkAdminService;
+        $this->generateImageURL = $generateURLService;
     }
 
     public function getAllNews(Request $request)
@@ -85,7 +88,7 @@ class NewsController extends Controller
             $titleNews = $request->query('title');
 
             // Ambil semua data berita beserta nama pembuat dan tag-nya, dengan pagination 10 item per halaman
-            $queryNews = News::with(['creator:name','creator.instances:name,address', 'newsTags:name']);
+            $queryNews = News::with(['creator:name', 'creator.instances:name,address', 'newsTags:name']);
 
             if (!empty($titleNews)) {
                 $queryNews->whereHas('title', function ($q) use ($titleNews) {
@@ -151,7 +154,7 @@ class NewsController extends Controller
 
     public function getNewsBySlug($slug)
     {
-        if(!is_string($slug)){
+        if (!is_string($slug)) {
             return response()->json([
                 'errors' => 'Parameter must be a slug of news.'
             ], 400);
@@ -238,9 +241,11 @@ class NewsController extends Controller
             'content' => 'required|string',
             'status' => 'nullable|in:published,archived',
             'thumbnail' => 'required',
+            'news_tag_id' => 'required|array',
         ], [
             'title.max' => 'News title cannot exceed more than 100 characters.',
             'status.in' => 'Status must be either published or archived.',
+            'news_tag_ids.array' => 'news_tag_id must be an array of news tags.'
         ]);
 
         if ($validator->fails()) {
@@ -273,7 +278,7 @@ class NewsController extends Controller
                 if ($request->hasFile('thumbnail')) {
                     // Thumbnail adalah file, validasi tipe gambar dan ukurannya
                     $file = $request->file('thumbnail');
-                    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/svg'];
+                    $allowedMimeTypes = ['image/jpeg', 'image/png'];
                     if (!in_array($file->getMimeType(), $allowedMimeTypes)) {
                         return response()->json([
                             'errors' => 'The thumbnail must be a valid image (jpeg or png).'
@@ -296,6 +301,7 @@ class NewsController extends Controller
 
                     // Simpan file thumbnail ke storage/app/news_thumbnail
                     $thumbnailPath = Storage::putFile($thumbnailDirectory, $file);
+
                 } else if (is_string($request->thumbnail)) {
                     // Periksa apakah thumbnail adalah URL yang valid
                     if (!filter_var($request->thumbnail, FILTER_VALIDATE_URL)) {
@@ -315,7 +321,12 @@ class NewsController extends Controller
 
             // Siapkan slug dari judul berita, tambahkan tanggal dengan timezone Jakarta
             $date = Carbon::now('Asia/Jakarta')->format('Y-m-d');
-            $slug = Str::slug($request->title) . '-' . $date;
+
+            // Bersihkan tag HTML dari judul berita menggunakan strip_tags
+            $cleanedTitle = strip_tags($request->title);
+
+            // Buat slug dari judul yang sudah dibersihkan
+            $slug = Str::slug($cleanedTitle) . '-' . $date;
 
             DB::beginTransaction();
 
@@ -541,10 +552,11 @@ class NewsController extends Controller
         }
     }
 
-    public function changeStatus(Request $request, $newsId){
+    public function changeStatus(Request $request, $newsId)
+    {
         $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if(!$checkAdmin){
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You are not allowed to perform this action.'
             ], 403);
@@ -556,7 +568,7 @@ class NewsController extends Controller
             'status.in' => 'Status must be either published or archived.',
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors()
             ], 422);
@@ -565,7 +577,7 @@ class NewsController extends Controller
         try {
             $news = News::where('uuid', $newsId)->first()->first();
 
-            if(!$news){
+            if (!$news) {
                 Log::warning('Attempt to change status of non-existence news with news ID: ' . $newsId);
                 return response()->json([
                     'errors' => 'News not found.'

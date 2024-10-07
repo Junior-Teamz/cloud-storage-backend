@@ -128,7 +128,7 @@ class FileController extends Controller
         $validator = Validator::make($request->all(), [
             'file' => 'required|array',
             'file.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xlsx,pptx,ppt,txt,mp3,ogg,wav,aac,opus,mp4,hevc,mkv,mov,h264,h265,php,js,html,css',
-            'folder_id' => 'nullable|integer|exists:folders,uuid',
+            'folder_id' => 'nullable|exists:folders,uuid',
             'tag_ids' => 'required|array',
             'tag_ids.*' => ['integer', 'exists:tags,uuid'],
         ]);
@@ -380,8 +380,8 @@ class FileController extends Controller
     public function addTagToFile(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file_id' => 'required|integer|exists:files,uuid',
-            'tag_id' => 'required|integer|exists:tags,uuid',
+            'file_id' => 'required|exists:files,uuid',
+            'tag_id' => 'required|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -458,8 +458,8 @@ class FileController extends Controller
     public function removeTagFromFile(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'file_id' => 'required|integer|exists:files,uuid',
-            'tag_id' => 'required|integer|exists:tags,uuid',
+            'file_id' => 'required|exists:files,uuid',
+            'tag_id' => 'required|exists:tags,uuid',
         ]);
 
         if ($validator->fails()) {
@@ -623,7 +623,7 @@ class FileController extends Controller
     public function move(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'new_folder_id' => 'required|integer|exists:folders,uuid',
+            'new_folder_id' => 'required|exists:folders,uuid',
         ]);
 
         if ($validator->fails()) {
