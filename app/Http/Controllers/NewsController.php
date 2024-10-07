@@ -88,7 +88,7 @@ class NewsController extends Controller
             $titleNews = $request->query('title');
 
             // Ambil semua data berita beserta nama pembuat dan tag-nya, dengan pagination 10 item per halaman
-            $queryNews = News::with(['creator:name', 'creator.instances:name,address', 'newsTags:name']);
+            $queryNews = News::with(['creator:id,uuid,name', 'creator.instances:name,address', 'newsTags:name']);
 
             if (!empty($titleNews)) {
                 $queryNews->whereHas('title', function ($q) use ($titleNews) {
@@ -117,12 +117,12 @@ class NewsController extends Controller
         }
     }
 
-    public function getNewsById($id)
+    public function getNewsById(Request $request, $id)
     {
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:name',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,uuid,name',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
                 'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
             ])
@@ -137,8 +137,11 @@ class NewsController extends Controller
                 ], 200);
             }
 
-            // Tambahkan jumlah viewer +1
-            $news->increment('viewer');
+            $origin = $request->header('Origin', '');
+            // jika permintaan mengambil informasi berita dari frontend, tambahkan count viewers
+            if(in_array($origin, config('frontend.url_for_cors'))){
+                $news->increment('viewers');
+            }
 
             return response()->json([
                 'message' => 'News successfully retrieved.',
@@ -151,6 +154,42 @@ class NewsController extends Controller
             ], 500);
         }
     }
+
+    // public function addNewsViewers(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'news_id' => 'required|string|exists:news,uuid'
+    //     ]);
+
+    //     if($validator->fails()){
+    //         return response()->json([
+    //             'errors' => $validator->errors()
+    //         ]);
+    //     }
+    //     try {
+    //         $newsIdRequest = $request->news_id;
+    //         $news = News::where('uuid', $newsIdRequest)->first();
+
+    //         DB::beginTransaction();
+    //         $news->increment('viewer');
+    //         $news->save();
+    //         DB::commit();
+
+    //         return response()->json([
+    //             'message' => 'Successfully adding viewers count to the news.'
+    //         ], 200);
+
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         Log::error('Error occurred while adding viewers count to the news', [
+    //             'news_id' => $newsIdRequest,
+    //             'message' => $e->getMessage()
+    //         ]);
+    //         return response()->json([
+    //             'An error occurred while adding viewers count to the news.'
+    //         ], 500);
+    //     }
+    // }
 
     public function getNewsBySlug($slug)
     {
@@ -304,7 +343,6 @@ class NewsController extends Controller
 
                     // Buat URL publik untuk thumbnail
                     $thumbnailUrl = Storage::url($thumbnailPath);
-                    
                 } else if (is_string($request->thumbnail)) {
                     // Periksa apakah thumbnail adalah URL yang valid
                     if (!filter_var($request->thumbnail, FILTER_VALIDATE_URL)) {
@@ -314,7 +352,7 @@ class NewsController extends Controller
                     }
 
                     // Jika thumbnail adalah URL yang valid, simpan string URL tersebut
-                    $thumbnailPath = $request->thumbnail;
+                    $thumbnailUrl = $request->thumbnail;
                 }
             } else {
                 return response()->json([
@@ -337,7 +375,8 @@ class NewsController extends Controller
             $news = News::create([
                 'created_by' => $userLogin->id,
                 'title' => $request->title,
-                'thumbnail' => $thumbnailPath,
+                'thumbnail_path' => $thumbnailPath ?? null,
+                'thumbnail_url' => $thumbnailUrl,
                 'slug' => $slug,
                 'content' => $request->content,
                 'viewer' => 0,  // viewer dimulai dari 0
@@ -457,16 +496,29 @@ class NewsController extends Controller
                         ], 422);
                     }
 
-                    // Simpan file thumbnail ke storage/app/news_thumbnail menggunakan nama asli file
-                    $thumbnailPath = 'news_thumbnail/' . $file->getClientOriginalName();
+                    // Nama folder untuk menyimpan thumbnail
+                    $thumbnailDirectory = 'news_thumbnail';
 
-                    // Cek jika folder belum ada
-                    if (!Storage::exists('news_thumbnail')) {
-                        Storage::makeDirectory('news_thumbnail');
+                    // Cek apakah folder news_thumbnail ada di disk public, jika tidak, buat folder tersebut
+                    if (!Storage::disk('public')->exists($thumbnailDirectory)) {
+                        Storage::disk('public')->makeDirectory($thumbnailDirectory);
                     }
 
-                    Storage::put($thumbnailPath, file_get_contents($file));
-                    $news->thumbnail = $thumbnailPath; // Simpan path thumbnail
+                    // Cek apakah ada thumbnail lama dan hapus jika ada
+                    if ($news->thumbnail_path && Storage::disk('public')->exists($news->thumbnail_path)) {
+                        Storage::disk('public')->delete($news->thumbnail_path);
+                    }
+
+                    // Simpan file thumbnail ke storage/app/public/news_thumbnail
+                    $thumbnailPath = $request->file('thumbnail')->store($thumbnailDirectory, 'public');
+
+                    // Buat URL publik untuk thumbnail
+                    $thumbnailUrl = Storage::url($thumbnailPath);
+
+                    // Simpan path dan URL thumbnail ke dalam model
+                    $news->thumbnail_path = $thumbnailPath;
+                    $news->thumbnail_url = $thumbnailUrl;
+                    
                 } elseif (is_string($request->thumbnail)) {
                     // Thumbnail adalah string, cek apakah ini URL valid
                     if (!filter_var($request->thumbnail, FILTER_VALIDATE_URL)) {
@@ -476,7 +528,14 @@ class NewsController extends Controller
                         ], 422);
                     }
 
-                    $news->thumbnail = $request->thumbnail; // Simpan URL thumbnail
+                    // Jika sebelumnya ada thumbnail file, hapus file lama
+                    if ($news->thumbnail_path && Storage::disk('public')->exists($news->thumbnail_path)) {
+                        Storage::disk('public')->delete($news->thumbnail_path);
+                        $news->thumbnail_path = null; // Setel path ke null
+                    }
+
+                    // Simpan URL thumbnail baru
+                    $news->thumbnail_url = $request->thumbnail;
                 }
             }
 

@@ -15,7 +15,8 @@ class News extends Model
     protected $fillable = [
         'created_by',
         'title',
-        'thumbnail',
+        'thumbnail_path',
+        'thumbnail_url',
         'slug',
         'content',
         'viewer',

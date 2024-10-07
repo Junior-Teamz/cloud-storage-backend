@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->uuid();
             $table->foreignId('created_by')->references('id')->on('users')->cascadeOnDelete();
-            $table->string('thumbnail');
+            $table->string('thumbnail_path')->nullable();
+            $table->string('thumbnail_url');
             $table->string('slug');
             $table->string('title');
             $table->text('content');
