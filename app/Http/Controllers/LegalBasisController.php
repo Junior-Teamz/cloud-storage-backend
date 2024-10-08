@@ -117,45 +117,19 @@ class LegalBasisController extends Controller
             $file = $request->file('file');
             $fileName = $file->getClientOriginalName();
 
-            // Simpan file sementara di folder temp
-            $tempDirectory = 'temp';
-            $tempPath = storage_path('app/' . $tempDirectory . '/' . $fileName);
-            $file->move(storage_path('app/' . $tempDirectory), $fileName);
+            // Nama folder untuk menyimpan thumbnail
+            $fileDirectory = 'dasar_hukum';
 
-            // Pemindaian file dengan PHP Antimalware Scanner
-            $scanner = new Scanner();
-            $scanResult = $scanner->setPathScan($tempPath)->run();
-
-            if ($scanResult->detected >= 1) {
-                // Hapus file jika terdeteksi virus
-                if (file_exists($tempPath)) {
-                    unlink($tempPath);
-                }
-                DB::rollBack();
-                return response()->json(['errors' => 'File detected as malicious.'], 422);
-            }
-
-            // Nama folder untuk menyimpan file di public
-            $fileDirectory = 'news_thumbnail';
-
-            // Cek apakah folder news_thumbnail ada di disk public, jika tidak, buat folder tersebut
+            // Cek apakah folder dasar_hukum ada di disk public, jika tidak, buat folder tersebut
             if (!Storage::disk('public')->exists($fileDirectory)) {
                 Storage::disk('public')->makeDirectory($fileDirectory);
             }
 
-            // Pindahkan file dari folder temp ke folder public/news_thumbnail
-            $filePath = $fileDirectory . '/' . $fileName;
-            Storage::disk('public')->put($filePath, file_get_contents($tempPath)); // Pindahkan file dari temp ke public
+            // Simpan file thumbnail ke storage/app/public/dasar_hukum
+            $filePath = $file->store($fileDirectory, 'public');
 
-            // Hapus file dari folder temp setelah dipindahkan
-            if (file_exists($tempPath)) {
-                unlink($tempPath);
-            }
-
-            $fullPath = Storage::disk('public')->path($filePath);
-
-            // Buat URL publik untuk file
-            $fileUrl = Storage::disk('public')->url($fullPath);
+            // Buat URL publik untuk thumbnail
+            $fileUrl = Storage::disk('public')->url($filePath);
 
             // Daftar kata penghubung yang tidak ingin dikapitalisasi
             $exceptions = ['dan', 'atau', 'di', 'ke', 'dari'];
@@ -234,39 +208,16 @@ class LegalBasisController extends Controller
                 $file = $request->file('file');
                 $fileName = $file->getClientOriginalName();
 
-                // Simpan file sementara di folder temp
-                $tempPath = storage_path('app/temp/' . $fileName);
-                $file->move(storage_path('app/temp'), $fileName);
+                // Nama folder untuk menyimpan file
+                $fileDirectory = 'dasar_hukum';
 
-                // Pemindaian file dengan PHP Antimalware Scanner
-                $scanner = new Scanner();
-                $scanResult = $scanner->setPathScan($tempPath)->run();
-
-                if ($scanResult->detected >= 1) {
-                    // Hapus file jika terdeteksi virus
-                    if (file_exists($tempPath)) {
-                        unlink($tempPath);
-                    }
-                    DB::rollBack();
-                    return response()->json(['errors' => 'File detected as malicious.'], 422);
-                }
-
-                // Hapus file lama dari storage jika ada
+                // Cek apakah ada file lama dan hapus jika ada
                 if ($legalBasis->file_path && Storage::disk('public')->exists($legalBasis->file_path)) {
                     Storage::disk('public')->delete($legalBasis->file_path);
                 }
 
-                // Nama folder untuk menyimpan file di public
-                $fileDirectory = 'dasar_hukum';
-
-                // Cek apakah folder dasar_hukum ada di disk public, jika tidak, buat folder tersebut
-                if (!Storage::disk('public')->exists($fileDirectory)) {
-                    Storage::disk('public')->makeDirectory($fileDirectory);
-                }
-
-                // Pindahkan file dari folder temp ke folder public/dasar_hukum
-                $filePath = $fileDirectory . '/' . $fileName;
-                Storage::disk('public')->move('temp/' . $fileName, $filePath);
+                // Simpan file file ke storage/app/public/dasar_hukum
+                $filePath = $file->store($fileDirectory, 'public');
 
                 // Buat URL publik untuk file
                 $fileUrl = Storage::disk('public')->url($filePath);
