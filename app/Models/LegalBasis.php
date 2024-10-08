@@ -11,6 +11,6 @@ class LegalBasis extends Model
     use HasFactory, HasUUID;
 
     protected $fillable = [
-        'name', 'file_name', 'file_path'
+        'name', 'file_name', 'file_path', 'file_url'
     ];
 }

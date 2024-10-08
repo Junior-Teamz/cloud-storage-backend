@@ -202,7 +202,7 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:name',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,uuid,name',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
                 'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
             ])

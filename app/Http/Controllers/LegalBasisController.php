@@ -48,6 +48,8 @@ class LegalBasisController extends Controller
                 return $legalBasis;
             });
 
+            $allLegalBasis->makeHidden('file_path');
+
             return response()->json([
                 'message' => 'Legal basis fetched successfully.',
                 'data' => $allLegalBasis
@@ -65,7 +67,7 @@ class LegalBasisController extends Controller
     {
         $checkAdmin = $this->checkAdmin();
 
-        if(!$checkAdmin) {
+        if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You do not have permission to perform this action.'
             ], 403);
@@ -74,7 +76,7 @@ class LegalBasisController extends Controller
         try {
             $legalBasis = LegalBasis::where('uuid', $id)->first();
 
-            if(!$legalBasis){
+            if (!$legalBasis) {
                 Log::warning('Attempt to get legal basis with not found id: ' . $id);
 
                 return response()->json([
@@ -83,13 +85,12 @@ class LegalBasisController extends Controller
                 ], 200);
             }
 
-            $legalBasis['file_url'] = $this->GenerateURLService->generateUrlForLegalBasis($legalBasis->id);
+            $legalBasis->makeHidden('file_path');
 
             return response()->json([
                 'message' => 'Legal basis fetched successfully',
                 'data' => $legalBasis
             ], 200);
-            
         } catch (Exception $e) {
             Log::error('Error occurred while fetching legal basis with id: ' . $e->getMessage(), [
                 'id' => $id
@@ -99,33 +100,6 @@ class LegalBasisController extends Controller
                 'errors' => 'An error occured while fetching legal basis with id.'
             ], 500);
         }
-    }
-
-    public function serveFilePdfByHashedId($hashedId)
-    {
-        // Gunakan Sqids untuk memparse hashed ID kembali menjadi ID asli
-        $sqids = new Sqids(env('SQIDS_ALPHABET'), env('SQIDS_LENGTH', 10));
-        $fileIdArray = $sqids->decode($hashedId);
-
-        if (empty($fileIdArray) || !isset($fileIdArray[0])) {
-            return response()->json(['errors' => 'Invalid or non-existent file'], 404);  // File tidak valid
-        }
-
-        // Dapatkan file_id dari hasil decode
-        $file_id = $fileIdArray[0];
-
-        // Cari file berdasarkan ID
-        $file = LegalBasis::where('uuid', $file_id)->first();
-
-        if (!$file) {
-            return response()->json(['errors' => 'Legal Basis not found'], 404);  // File tidak ditemukan
-        }
-
-        // Ambil path file dari storage
-        $file_path = Storage::path($file->file_path);
-
-        // Kembalikan file sebagai respon (mengirim file)
-        return response()->file($file_path);
     }
 
     public function save(Request $request)
@@ -176,36 +150,38 @@ class LegalBasisController extends Controller
                 return response()->json(['errors' => 'File detected as malicious.'], 422);
             }
 
-            // Pastikan folder legal_basis sudah ada, jika belum buat
-            if (!Storage::exists('legal_basis')) {
-                Storage::makeDirectory('legal_basis');
+            // Pastikan folder dasar_hukum sudah ada
+            if (!Storage::exists('public/dasar_hukum')) {
+                Storage::makeDirectory('public/dasar_hukum');
             }
 
-            // Pindahkan file ke folder legal_basis
-            $legalBasisPath = 'legal_basis/' . $fileName;
-            Storage::move('temp/' . $fileName, $legalBasisPath);
+            // Pindahkan file ke storage/app/public/dasar_hukum
+            $path = Storage::putFileAs('public/dasar_hukum', $file, $fileName);
 
             // Daftar kata penghubung yang tidak ingin dikapitalisasi
             $exceptions = ['dan', 'atau', 'di', 'ke', 'dari'];
 
-            // Pisahkan name berdasarkan spasi
+            // Format nama
             $nameParts = explode(' ', strtolower($request->name));
             $nameFormatted = array_map(function ($word) use ($exceptions) {
-                // Jika kata ada di daftar pengecualian, biarkan huruf kecil, jika tidak kapitalisasi
                 return in_array($word, $exceptions) ? $word : ucfirst($word);
             }, $nameParts);
-
-            // Gabungkan kembali menjadi string
             $formattedName = implode(' ', $nameFormatted);
+
+            // Buat URL untuk file yang disimpan
+            $fileUrl = Storage::url($path);
 
             // Simpan data ke database
             $legalBasis = LegalBasis::create([
                 'name' => $formattedName,
                 'file_name' => $fileName,
-                'file_path' => $legalBasisPath
+                'file_path' => $path,
+                'file_url' => $fileUrl
             ]);
 
             DB::commit();
+
+            $legalBasis->makeHidden('file_path');
 
             return response()->json([
                 'message' => 'Legal basis successfully saved.',
@@ -267,18 +243,28 @@ class LegalBasisController extends Controller
                     Storage::delete($legalBasis->file_path);
                 }
 
-                // Simpan file baru ke storage
-                $filePath = $file->storeAs('legal_basis', $fileName);
+                // Pastikan folder dasar_hukum sudah ada
+                if (!Storage::exists('public/dasar_hukum')) {
+                    Storage::makeDirectory('public/dasar_hukum');
+                }
+
+                // Simpan file baru ke storage/app/public/dasar_hukum
+                $filePath = Storage::putFileAs('public/dasar_hukum', $file, $fileName);
+
+                $fileUrl = Storage::url($filePath);
 
                 // Perbarui nama file dan path di database
                 $legalBasis->file_name = $fileName;
                 $legalBasis->file_path = $filePath;
+                $legalBasis->file_url = $fileUrl;
             }
 
             // Simpan perubahan ke database
             $legalBasis->save();
 
             DB::commit();
+
+            $legalBasis->makeHidden('file_path');
 
             return response()->json([
                 'message' => 'Legal basis updated successfully.',

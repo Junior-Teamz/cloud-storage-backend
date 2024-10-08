@@ -40,6 +40,8 @@ class FileController extends Controller
      */
     public function info($id)
     {
+        $user = Auth::user();
+
         $checkPermission = $this->checkPermissionFileServices->checkPermissionFile($id, ['read', 'write']);
 
         if (!$checkPermission) {
@@ -53,7 +55,9 @@ class FileController extends Controller
                 'user:id,uuid,name,email',
                 'folder:id,uuid',
                 'tags',
-                'instances:uuid,name,address'
+                'instances:uuid,name,address',
+                'favorite',
+                'userPermissions.user:id,uuid,name,email',
             ])->where('uuid', $id)->first();
 
             if (!$file) {
@@ -62,8 +66,13 @@ class FileController extends Controller
                 ], 404);
             }
 
+            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $file['folder_id'] = $file->folder->uuid;
+            $file['shared_with'] = $file->userPermissions->user;
+
             // Sembunyikan kolom 'path' dan 'nanoid'
-            $file->makeHidden(['path', 'nanoid', 'user_id']);
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'favorite', 'folder', 'userPermissions']);
 
             return response()->json([
                 'data' => [
@@ -89,7 +98,7 @@ class FileController extends Controller
         try {
             // Ambil semua file dari database dengan paginasi, termasuk user, tags, dan instances
             $filesQuery = File::where('user_id', $user->id)
-                ->with(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
+                ->with(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite', 'userPermissions.user:id,uuid,name,email',]);
 
             // Hitung total ukuran file langsung dari query sebelum paginasi
             $totalSize = $filesQuery->sum('size');
@@ -97,8 +106,16 @@ class FileController extends Controller
             // Lakukan paginasi dari hasil query
             $files = $filesQuery->paginate(10);
 
+            $files->getCollection()->tranform(function ($file) use ($user) {
+                $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
+                $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+                $file['folder_id'] = $file->folder->uuid;
+                $file['shared_with'] = $file->userPermissions->user;
+                return $file;
+            });
+
             // Sembunyikan kolom 'path' dan 'nanoid' dari respon JSON
-            $files->makeHidden(['path', 'nanoid', 'user_id']);
+            $files->makeHidden(['path', 'nanoid', 'user_id', 'favorite', 'folder', 'userPermissions']);
 
             // Return daftar file yang dipaginasi dan total ukuran
             return response()->json([
@@ -238,7 +255,7 @@ class FileController extends Controller
 
                 $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
 
-                $file->folder_id = $file->folder->uuid;
+                $file['folder_id'] = $file->folder->uuid;
 
                 $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -379,6 +396,8 @@ class FileController extends Controller
      */
     public function addTagToFile(Request $request)
     {
+        $user = Auth::user();
+
         $validator = Validator::make($request->all(), [
             'file_id' => 'required|exists:files,uuid',
             'tag_id' => 'required|exists:tags,uuid',
@@ -412,9 +431,11 @@ class FileController extends Controller
             // Menambahkan tag ke file (tabel pivot file_has_tags)
             $file->tags()->attach($tag->id);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
 
-            $file->folder_id = $file->folder->uuid;
+            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $file['folder_id'] = $file->folder->uuid;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -457,6 +478,8 @@ class FileController extends Controller
      */
     public function removeTagFromFile(Request $request)
     {
+        $user = Auth::user();
+
         $validator = Validator::make($request->all(), [
             'file_id' => 'required|exists:files,uuid',
             'tag_id' => 'required|exists:tags,uuid',
@@ -490,9 +513,12 @@ class FileController extends Controller
             // Menghapus tag dari file (tabel pivot file_has_tags)
             $file->tags()->detach($tag->id);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
 
-            $file->folder_id = $file->folder->uuid;
+            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+
+            $file['folder_id'] = $file->folder->uuid;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -532,6 +558,8 @@ class FileController extends Controller
      */
     public function updateFileName(Request $request, $id)
     {
+        $user = Auth::user();
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string',
         ]);
@@ -587,9 +615,12 @@ class FileController extends Controller
                 'public_path' => $publicPath,
             ]);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
+            
+            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
-            $file->folder_id = $file->folder->uuid;
+            $file['folder_id'] = $file->folder->uuid;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -622,6 +653,8 @@ class FileController extends Controller
      */
     public function move(Request $request, $id)
     {
+        $user = Auth::user();
+
         $validator = Validator::make($request->all(), [
             'new_folder_id' => 'required|exists:folders,uuid',
         ]);
@@ -687,9 +720,12 @@ class FileController extends Controller
                 'public_path' => $newPublicPath,
             ]);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
+            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
 
-            $file->folder_id = $file->folder->uuid;
+            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+
+            $file['folder_id'] = $file->folder->uuid;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 

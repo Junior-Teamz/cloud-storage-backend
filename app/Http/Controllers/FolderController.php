@@ -153,9 +153,11 @@ class FolderController extends Controller
                     'subfolders.instances:uuid,name,address', // Ambil instances folder
                     'subfolders.userFolderPermissions.user:id,uuid,name,email',
                     'subfolders.favorite', // Relasi favorite untuk subfolders
+                    'files.folder:id,uuid',
                     'files.user:id,uuid,name,email', // Ambil data user yang terkait dengan file
                     'files.tags:uuid,name', // Ambil tags file
                     'files.instances:uuid,name,address', // Ambil instances file
+                    'files.favorite',
                     'files.userPermissions.user:id,uuid,name,email',
                 ])
                 ->select('id', 'name', 'created_at', 'updated_at', 'user_id') // Pilih hanya kolom yang diperlukan
@@ -192,12 +194,12 @@ class FolderController extends Controller
                     ],
                     'tags' => $folder->tags, // Tags sudah diambil dengan select
                     'instances' => $folder->instances, // Instances sudah diambil dengan select
-                    'shared_with' => $folder->userFolderPermissions
+                    'shared_with' => $folder->userFolderPermissions->user
                 ];
             });
 
             // Optimasi data file
-            $responseFile = $parentFolder->files->map(function ($file) {
+            $responseFile = $parentFolder->files->map(function ($file) use ($user) {
                 $fileResponse = [
                     'id' => $file->uuid,
                     'name' => $file->name,
@@ -206,11 +208,13 @@ class FolderController extends Controller
                     'type' => $file->type,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
-                    'folder_id' => $file->folder_id,
+                    'folder_id' => $file->folder->uuid,
+                    'is_favorite' => $file->favorite->where('user_id', $user->id)->first() ? true : false,
+                    'favorited_at' => $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null,
                     'user' => $file->user, // User sudah diambil dengan select
                     'tags' => $file->tags, // Tags sudah diambil dengan select
                     'instances' => $file->instances, // Instances sudah diambil dengan select
-                    'shared_with' => $file->userPermissions
+                    'shared_with' => $file->userPermissions->user
                 ];
 
                 return $fileResponse;
@@ -274,8 +278,9 @@ class FolderController extends Controller
                 'subfolders.instances:uuid,name,address', // Ambil instances folder
                 'subfolders.userFolderPermissions.user:id,uuid,name,email',
                 'subfolders.favorite', // Relasi favorite untuk subfolders
-                'files:id,folder_id,name,path,size,type,created_at,updated_at,user_id',
                 'files.user:id,uuid,name,email', // Ambil data user yang terkait dengan file
+                'files.favorite',
+                'files.folder:id,uuid',
                 'files.tags:uuid,name', // Ambil tags file
                 'files.instances:uuid,name,address', // Ambil instances file
                 'files.userPermissions.user:id,uuid,name,email'
@@ -299,13 +304,7 @@ class FolderController extends Controller
                 'tags' => $folder->tags,
                 'instances' => $folder->instances,
                 // Map shared users untuk folder
-                'shared_with' => $folder->userFolderPermissions->map(function ($permission) {
-                    return [
-                        'id' => $permission->user->id,
-                        'name' => $permission->user->name,
-                        'email' => $permission->user->email,
-                    ];
-                })
+                'shared_with' => $folder->userFolderPermissions->user
             ];
 
             // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
@@ -329,38 +328,29 @@ class FolderController extends Controller
                     'tags' => $subfolder->tags,
                     'instances' => $subfolder->instances,
                     // Map shared users untuk subfolder
-                    'shared_with' => $subfolder->userFolderPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->user->id,
-                            'name' => $permission->user->name,
-                            'email' => $permission->user->email,
-                        ];
-                    })
+                    'shared_with' => $subfolder->userFolderPermissions->user
                 ];
             });
 
             // Ambil files dan buat hidden beberapa atribut yang tidak diperlukan
-            $files = $folder->files->map(function ($file) {
+            $files = $folder->files->map(function ($file) use ($user) {
                 $fileData = [
                     'id' => $file->uuid,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
-                    'image_url' => null,
+                    'image_url' => $file->image_url ?? null,
+                    'folder_id' => $file->folder->uuid,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
+                    'is_favorite' => $file->favorite->where('user_id', $user->id)->first() ? true : false,
+                    'favorited_at' => $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null,
                     'user' => $file->user,
                     'tags' => $file->tags,
                     'instances' => $file->instances,
                     // Map shared users untuk file
-                    'shared_with' => $file->userPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->user->id,
-                            'name' => $permission->user->name,
-                            'email' => $permission->user->email,
-                        ];
-                    })
+                    'shared_with' => $file->userPermissions->user
                 ];
 
                 return $fileData;
