@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use AMWScan\Scanner;
 use App\Models\LegalBasis;
 use App\Services\CheckAdminService;
-use App\Services\GenerateURLService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,18 +12,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Sqids\Sqids;
 
 class LegalBasisController extends Controller
 {
-    protected $GenerateURLService;
-
-    public function __construct(GenerateURLService $GenerateURLService)
-    {
-        // Simpan service ke dalam property
-        $this->GenerateURLService = $GenerateURLService;
-    }
-
     private function checkAdmin()
     {
         $user = Auth::user();

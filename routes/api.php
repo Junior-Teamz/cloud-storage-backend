@@ -38,14 +38,12 @@ Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 
 
 Route::prefix('/legal_basis')->group(function () {
     Route::get('/getAllLegalBasis', [LegalBasisController::class, 'getAll']);
-
-    Route::get('/file/{hashedId}', [LegalBasisController::class, 'serveFilePdfByHashedId'])->name('pdf.url');
 });
 
 Route::prefix('news')->group(function () {
     Route::get('/getAllNews', [NewsController::class, 'getAllNewsForPublic']); // Mendapatkan semua berita untuk publik
 
-    Route::get('/detail//id/{id}', [NewsController::class, 'getNewsById']); // lihat detail berita
+    Route::get('/detail/id/{id}', [NewsController::class, 'getNewsById']); // lihat detail berita
 
     Route::get('/detail/slug/{newsSlug}', [NewsController::class, 'getNewsBySlug']);
 
