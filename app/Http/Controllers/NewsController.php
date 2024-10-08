@@ -139,7 +139,7 @@ class NewsController extends Controller
 
             $origin = $request->header('Origin', '');
             // jika permintaan mengambil informasi berita dari frontend, tambahkan count viewers
-            if(in_array($origin, config('frontend.url_for_cors'))){
+            if (in_array($origin, config('frontend.url_for_cors'))) {
                 $news->increment('viewers');
             }
 
@@ -315,8 +315,10 @@ class NewsController extends Controller
             // Cek file atau string untuk thumbnail
             if ($request->hasFile('thumbnail') || is_string($request->thumbnail)) {
                 if ($request->hasFile('thumbnail')) {
+                    
                     // Thumbnail adalah file, validasi tipe gambar dan ukurannya
                     $file = $request->file('thumbnail');
+
                     $allowedMimeTypes = ['image/jpeg', 'image/png'];
                     if (!in_array($file->getMimeType(), $allowedMimeTypes)) {
                         return response()->json([
@@ -339,10 +341,11 @@ class NewsController extends Controller
                     }
 
                     // Simpan file thumbnail ke storage/app/public/news_thumbnail
-                    $thumbnailPath = $request->file('thumbnail')->store($thumbnailDirectory, 'public');
+                    $thumbnailPath = $file->store($thumbnailDirectory, 'public');
 
                     // Buat URL publik untuk thumbnail
                     $thumbnailUrl = Storage::url($thumbnailPath);
+
                 } else if (is_string($request->thumbnail)) {
                     // Periksa apakah thumbnail adalah URL yang valid
                     if (!filter_var($request->thumbnail, FILTER_VALIDATE_URL)) {
@@ -518,7 +521,6 @@ class NewsController extends Controller
                     // Simpan path dan URL thumbnail ke dalam model
                     $news->thumbnail_path = $thumbnailPath;
                     $news->thumbnail_url = $thumbnailUrl;
-                    
                 } elseif (is_string($request->thumbnail)) {
                     // Thumbnail adalah string, cek apakah ini URL valid
                     if (!filter_var($request->thumbnail, FILTER_VALIDATE_URL)) {
