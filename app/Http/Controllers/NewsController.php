@@ -280,11 +280,11 @@ class NewsController extends Controller
             'content' => 'required|string',
             'status' => 'nullable|in:published,archived',
             'thumbnail' => 'required',
-            'news_tag_id' => 'required|array',
+            'news_tag_ids' => 'required|array',
         ], [
             'title.max' => 'News title cannot exceed more than 100 characters.',
             'status.in' => 'Status must be either published or archived.',
-            'news_tag_id.array' => 'news_tag_id must be an array of news tags.'
+            'news_tag_ids.array' => 'news_tag_id must be an array of news tags.'
         ]);
 
         if ($validator->fails()) {
