@@ -117,7 +117,7 @@ class LegalBasisController extends Controller
             'file' => 'required|file|max:5120|mimes:pdf,docx,doc'
         ], [
             'name.required' => 'Name is required',
-            'file.max' => 'File is too large, max size is 2MB',
+            'file.max' => 'File is too large, max size is 5MB',
             'file.mimes' => 'File must be type of pdf, docx, or doc'
         ]);
 
@@ -131,32 +131,36 @@ class LegalBasisController extends Controller
             DB::beginTransaction();
 
             $file = $request->file('file');
-            $fileName = $file->getClientOriginalName();
+            $fileName = time() . '_' . $file->getClientOriginalName();  // Tambahkan timestamp agar unik
 
-            // Path sementara
-            $tempPath = storage_path('app/temp/' . $fileName);
-            $file->move(storage_path('app/temp'), $fileName);
+            // Simpan file sementara di folder temp di storage/app/temp
+            $tempPath = $file->storeAs('temp', $fileName);
+
+            // Dapatkan path fisik sementara untuk pemindaian
+            $physicalTempPath = storage_path('app/' . $tempPath);
 
             // Pemindaian file dengan PHP Antimalware Scanner
             $scanner = new Scanner();
-            $scanResult = $scanner->setPathScan($tempPath)->run();
+            $scanResult = $scanner->setPathScan($physicalTempPath)->run();
 
             if ($scanResult->detected >= 1) {
                 // Hapus file jika terdeteksi virus
-                if (file_exists($tempPath)) {
-                    unlink($tempPath);
-                }
+                Storage::delete($tempPath);
                 DB::rollBack();
                 return response()->json(['errors' => 'File detected as malicious.'], 422);
             }
 
-            // Pastikan folder dasar_hukum sudah ada
-            if (!Storage::exists('public/dasar_hukum')) {
-                Storage::makeDirectory('public/dasar_hukum');
-            }
+            // Nama folder untuk menyimpan file di disk public
+            $fileDirectory = 'dasar_hukum';
 
-            // Pindahkan file ke storage/app/public/dasar_hukum
-            $path = Storage::putFileAs('public/dasar_hukum', $file, $fileName);
+            // Pindahkan file dari folder temp ke folder dasar_hukum di disk public
+            $filePath = Storage::disk('public')->putFileAs($fileDirectory, new \Illuminate\Http\File($physicalTempPath), $fileName);
+
+            // Hapus file dari folder temp setelah dipindahkan ke public
+            Storage::delete($tempPath);
+
+            // Buat URL publik untuk file
+            $fileUrl = Storage::disk('public')->url($filePath);
 
             // Daftar kata penghubung yang tidak ingin dikapitalisasi
             $exceptions = ['dan', 'atau', 'di', 'ke', 'dari'];
@@ -168,14 +172,11 @@ class LegalBasisController extends Controller
             }, $nameParts);
             $formattedName = implode(' ', $nameFormatted);
 
-            // Buat URL untuk file yang disimpan
-            $fileUrl = Storage::url($path);
-
             // Simpan data ke database
             $legalBasis = LegalBasis::create([
                 'name' => $formattedName,
                 'file_name' => $fileName,
-                'file_path' => $path,
+                'file_path' => $filePath,
                 'file_url' => $fileUrl
             ]);
 
@@ -190,7 +191,7 @@ class LegalBasisController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occured while saving legal basis: ' . $e->getMessage());
+            Log::error('Error occurred while saving legal basis: ' . $e->getMessage());
             return response()->json([
                 'errors' => 'An error occurred while saving legal basis.'
             ], 500);
@@ -210,9 +211,9 @@ class LegalBasisController extends Controller
         // Validasi input
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
-            'file' => 'nullable|file|max:2000|mimes:pdf,docx,doc'
+            'file' => 'nullable|file|max:5120|mimes:pdf,docx,doc'
         ], [
-            'file.max' => 'File is too large, max size is 2MB',
+            'file.max' => 'File is too large, max size is 5MB',
             'file.mimes' => 'File must be type of pdf, docx, or doc'
         ]);
 
@@ -236,24 +237,43 @@ class LegalBasisController extends Controller
             // Periksa apakah ada file yang diunggah
             if ($request->hasFile('file')) {
                 $file = $request->file('file');
-                $fileName = $file->getClientOriginalName();
+                $fileName = time() . '_' . $file->getClientOriginalName(); // Tambahkan timestamp agar nama unik
+
+                // Path sementara untuk pemindaian file
+                $tempPath = $file->storeAs('temp', $fileName);
+
+                // Path fisik untuk pemindaian
+                $physicalTempPath = storage_path('app/' . $tempPath);
+
+                // Pemindaian file dengan PHP Antimalware Scanner
+                $scanner = new Scanner();
+                $scanResult = $scanner->setPathScan($physicalTempPath)->run();
+
+                if ($scanResult->detected >= 1) {
+                    // Hapus file jika terdeteksi virus
+                    Storage::delete($tempPath);
+                    DB::rollBack();
+                    return response()->json(['errors' => 'File detected as malicious.'], 422);
+                }
 
                 // Hapus file lama dari storage jika ada
                 if ($legalBasis->file_path && Storage::exists($legalBasis->file_path)) {
                     Storage::delete($legalBasis->file_path);
                 }
 
-                // Pastikan folder dasar_hukum sudah ada
-                if (!Storage::exists('public/dasar_hukum')) {
-                    Storage::makeDirectory('public/dasar_hukum');
-                }
+                // Nama folder untuk menyimpan file
+                $fileDirectory = 'dasar_hukum';
 
-                // Simpan file baru ke storage/app/public/dasar_hukum
-                $filePath = Storage::putFileAs('public/dasar_hukum', $file, $fileName);
+                // Pindahkan file dari folder temp ke folder dasar_hukum di disk public
+                $filePath = Storage::disk('public')->putFileAs($fileDirectory, new \Illuminate\Http\File($physicalTempPath), $fileName);
 
-                $fileUrl = Storage::url($filePath);
+                // Hapus file sementara dari folder temp
+                Storage::delete($tempPath);
 
-                // Perbarui nama file dan path di database
+                // Buat URL publik untuk file baru
+                $fileUrl = Storage::disk('public')->url($filePath);
+
+                // Perbarui nama file, path, dan URL di database
                 $legalBasis->file_name = $fileName;
                 $legalBasis->file_path = $filePath;
                 $legalBasis->file_url = $fileUrl;
