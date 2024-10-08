@@ -32,12 +32,6 @@ class LegalBasisController extends Controller
             // Ambil semua dasar hukum
             $allLegalBasis = LegalBasis::all();
 
-            // Tambahkan link file ke setiap dasar hukum
-            $allLegalBasis->transform(function ($legalBasis) {
-                $legalBasis->file_url = $this->GenerateURLService->generateUrlForLegalBasis($legalBasis->id);
-                return $legalBasis;
-            });
-
             $allLegalBasis->makeHidden('file_path');
 
             return response()->json([
