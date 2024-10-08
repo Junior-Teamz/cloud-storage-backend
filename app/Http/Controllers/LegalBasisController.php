@@ -118,8 +118,9 @@ class LegalBasisController extends Controller
             $fileName = $file->getClientOriginalName();
 
             // Simpan file sementara di folder temp
-            $tempPath = storage_path('app/temp/' . $fileName);
-            $file->move(storage_path('app/temp'), $fileName);
+            $tempDirectory = 'temp';
+            $tempPath = storage_path('app/' . $tempDirectory . '/' . $fileName);
+            $file->move(storage_path('app/' . $tempDirectory), $fileName);
 
             // Pemindaian file dengan PHP Antimalware Scanner
             $scanner = new Scanner();
@@ -135,19 +136,26 @@ class LegalBasisController extends Controller
             }
 
             // Nama folder untuk menyimpan file di public
-            $fileDirectory = 'dasar_hukum';
+            $fileDirectory = 'news_thumbnail';
 
-            // Cek apakah folder dasar_hukum ada di disk public, jika tidak, buat folder tersebut
+            // Cek apakah folder news_thumbnail ada di disk public, jika tidak, buat folder tersebut
             if (!Storage::disk('public')->exists($fileDirectory)) {
                 Storage::disk('public')->makeDirectory($fileDirectory);
             }
 
-            // Pindahkan file dari folder temp ke folder public/dasar_hukum
+            // Pindahkan file dari folder temp ke folder public/news_thumbnail
             $filePath = $fileDirectory . '/' . $fileName;
-            Storage::disk('public')->move('temp/' . $fileName, $filePath);
+            Storage::disk('public')->put($filePath, file_get_contents($tempPath)); // Pindahkan file dari temp ke public
+
+            // Hapus file dari folder temp setelah dipindahkan
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+
+            $fullPath = Storage::disk('public')->path($filePath);
 
             // Buat URL publik untuk file
-            $fileUrl = Storage::disk('public')->url($filePath);
+            $fileUrl = Storage::disk('public')->url($fullPath);
 
             // Daftar kata penghubung yang tidak ingin dikapitalisasi
             $exceptions = ['dan', 'atau', 'di', 'ke', 'dari'];

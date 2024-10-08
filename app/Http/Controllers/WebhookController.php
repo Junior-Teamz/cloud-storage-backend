@@ -41,9 +41,72 @@ class WebhookController extends Controller
                 // Cek apakah git pull berhasil tanpa throw error
                 if (!$pullProcess->isSuccessful()) {
                     Log::warning('Git Pull Failed', ['output' => $pullProcess->getErrorOutput()]);
+                    throw new ProcessFailedException($pullProcess);
                 }
 
-                // Setelah git pull, lakukan git merge dengan strategi theirs
+                // Tangani kemungkinan konflik saat pull
+                if (strpos($pullProcess->getOutput(), 'CONFLICT') !== false) {
+                    Log::info('Merge conflict detected. Attempting to resolve by accepting all incoming changes.');
+
+                    // Accept all incoming changes (theirs) during conflict
+                    $checkoutTheirsProcess = new Process([
+                        'git', 'checkout', '--theirs', '.'
+                    ], base_path());
+
+                    $checkoutTheirsProcess->run();
+
+                    if (!$checkoutTheirsProcess->isSuccessful()) {
+                        Log::error('Failed to checkout --theirs during conflict resolution', ['output' => $checkoutTheirsProcess->getErrorOutput()]);
+                        throw new ProcessFailedException($checkoutTheirsProcess);
+                    }
+
+                    // Tambahkan semua perubahan yang diterima
+                    $addProcess = new Process([
+                        'git', 'add', '.'
+                    ], base_path());
+
+                    $addProcess->run();
+
+                    if (!$addProcess->isSuccessful()) {
+                        Log::error('Failed to add changes during conflict resolution', ['output' => $addProcess->getErrorOutput()]);
+                        throw new ProcessFailedException($addProcess);
+                    }
+
+                    // Simpan merge message otomatis
+                    $commitProcess = new Process([
+                        'git', 'commit', '-m', 'Resolved all conflicts by accepting incoming changes'
+                    ], base_path());
+
+                    $commitProcess->run();
+
+                    if (!$commitProcess->isSuccessful()) {
+                        Log::error('Failed to commit during conflict resolution', ['output' => $commitProcess->getErrorOutput()]);
+                        throw new ProcessFailedException($commitProcess);
+                    }
+
+                    Log::info('Merge conflict resolved by accepting all incoming changes.');
+                }
+
+                // Tangani kemungkinan git membuka editor merge message
+                if (strpos($pullProcess->getOutput(), 'Automatic merge went well;') !== false) {
+                    Log::info('Merge successful. Preparing to handle merge message.');
+
+                    // Buat merge message otomatis
+                    $autoMergeMessage = new Process([
+                        'git', 'commit', '--no-edit'
+                    ], base_path());
+
+                    $autoMergeMessage->run();
+
+                    if (!$autoMergeMessage->isSuccessful()) {
+                        Log::error('Failed to automatically commit merge message', ['output' => $autoMergeMessage->getErrorOutput()]);
+                        throw new ProcessFailedException($autoMergeMessage);
+                    }
+
+                    Log::info('Merge message handled successfully.');
+                }
+
+                // Lanjutkan merge jika tidak ada konflik
                 $mergeProcess = new Process([
                     'git', 'merge', '--strategy-option=theirs'
                 ], base_path());
