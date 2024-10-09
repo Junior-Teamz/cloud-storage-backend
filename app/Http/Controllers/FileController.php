@@ -106,7 +106,7 @@ class FileController extends Controller
             // Lakukan paginasi dari hasil query
             $files = $filesQuery->paginate(10);
 
-            $files->getCollection()->tranform(function ($file) use ($user) {
+            $files->getCollection()->transform(function ($file) use ($user) {
                 $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
                 $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
                 $file['folder_id'] = $file->folder->uuid;
