@@ -68,7 +68,7 @@ class TagController extends Controller
 
             // Tambahkan usage_count untuk setiap tag
             $allTag->getCollection()->transform(function ($tag) {
-                $tag->usage_count = $tag->usage_count;
+                $tag->usage_count = $tag->calculateUsageCount();
                 return $tag;
             });
 
