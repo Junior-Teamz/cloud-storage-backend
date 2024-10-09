@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use App\Traits\HasUUID;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class NewsTag extends Model
 {
-    use HasFactory, HasUUID;
+    use HasFactory, HasUuids;
 
     protected $fillable = ['name'];
 

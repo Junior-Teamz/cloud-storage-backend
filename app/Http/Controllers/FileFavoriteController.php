@@ -24,11 +24,7 @@ class FileFavoriteController extends Controller
 
     private function checkPermissionFile2($fileId) {
         $user = Auth::user();
-        if(is_int($fileId)){
-            $file = File::find($fileId);
-        } else {
-            $file = File::where('uuid', $fileId)->first();
-        }
+        $file = File::where('id', $fileId)->first();
 
         // If file not found, return 404 error and stop the process
         if (!$file) {
@@ -72,7 +68,7 @@ class FileFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query file favorit user dengan pivot data
-            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'userPermissions.user:id,uuid,name,email',]);
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email',]);
 
             // Filter berdasarkan nama file jika ada parameter 'search'
             if ($search) {
@@ -120,7 +116,7 @@ class FileFavoriteController extends Controller
 
         // Validasi request
         $validator = Validator::make($request->all(), [
-            'file_id' => 'required|exists:files,uuid',
+            'file_id' => 'required|exists:files,id',
         ]);
 
         // Jika validasi gagal, kirimkan respon error
@@ -143,9 +139,9 @@ class FileFavoriteController extends Controller
             }
 
             // Ambil file yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-            $file = File::with(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:id,uuid,name', 'instances:id,uuid,name,address', 'favorite' => function ($query) use ($userLogin) {
+            $file = File::with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite' => function ($query) use ($userLogin) {
                 $query->where('user_id', $userLogin->id);
-            }])->where('uuid', $request->file_id)->first();
+            }])->where('id', $request->file_id)->first();
 
             // Cek apakah user memiliki izin untuk memfavoritkan file
             $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, ['write']);
@@ -164,14 +160,14 @@ class FileFavoriteController extends Controller
                 return response()->json([
                     'message' => 'File sudah ada di daftar favorit.',
                     'file' => [
-                        'id' => $file->uuid,
+                        'id' => $file->id,
                         'name' => $file->name,
                         'public_path' => $file->public_path,
                         'size' => $file->size,
                         'type' => $file->type,
                         'created_at' => $file->created_at,
                         'updated_at' => $file->updated_at,
-                        'folder_id' => $file->folder->uuid,
+                        'folder_id' => $file->folder->id,
                         'is_favorited' => $existingFavorite ? true : false,
                         'favorited_at' => $existingFavorite->pivot->created_at ?? null,
                         'user' => $file->user, // User sudah diambil dengan select
@@ -197,14 +193,14 @@ class FileFavoriteController extends Controller
             return response()->json([
                 'message' => 'File berhasil ditambahkan ke favorit.',
                 'file' => [
-                    'id' => $file->uuid,
+                    'id' => $file->id,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
-                    'folder_id' => $file->folder->uuid,
+                    'folder_id' => $file->folder->id,
                     'is_favorited' => $file->favorite->where('user_id', $user->id)->first() ? true : false,
                     'favorited_at' => $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null,
                     'user' => $file->user, // User sudah diambil dengan select
@@ -235,7 +231,7 @@ class FileFavoriteController extends Controller
             // Ambil data user
             $user = User::with('favoriteFiles')->find($userLogin->id);
 
-            $file = File::where('uuid', $fileId)->first();
+            $file = File::where('id', $fileId)->first();
 
             if(!$file){
                 Log::warning('Attempt to delete non-existence file favorite.');
@@ -260,19 +256,19 @@ class FileFavoriteController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:id,uuid,name', 'instances:id,uuid,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
             return response()->json([
                 'message' => 'Successfully removed file from favorite.',
                 'file' => [
-                    'id' => $file->uuid,
+                    'id' => $file->id,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
-                    'folder_id' => $file->folder->uuid,
+                    'folder_id' => $file->folder->id,
                     'is_favorited' => $file->favorite->isNotEmpty() ? true : false,
                     'favorited_at' => null,
                     'user' => $file->user, // User sudah diambil dengan select

@@ -11,7 +11,7 @@ class GenerateURLService
     public function generateUrlForImage($file_id)
     {
         // Cari file berdasarkan ID
-        $file = File::where('uuid', $file_id)->first();
+        $file = File::where('id', $file_id)->first();
 
         if (!$file) {
             return null; // Jika file tidak ditemukan, kembalikan null
@@ -24,7 +24,7 @@ class GenerateURLService
     public function generateUrlForLegalBasis($id)
     {
         // Cari file berdasarkan ID
-        $file = LegalBasis::where('uuid', $id)->first();
+        $file = LegalBasis::where('id', $id)->first();
 
         if (!$file) {
             return null; // Jika file tidak ditemukan, kembalikan null

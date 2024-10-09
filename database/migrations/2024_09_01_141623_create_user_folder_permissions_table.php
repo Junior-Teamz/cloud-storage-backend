@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_folder_permissions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreignId('folder_id')->references('id')->on('folders')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignUuid('folder_id')->references('id')->on('folders')->cascadeOnDelete();
             $table->enum('permissions', ['read', 'write']);
             $table->timestamps();
         });

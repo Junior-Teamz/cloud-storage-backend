@@ -12,14 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('folders', function (Blueprint $table) {
-            $table->id();
-            $table->uuid();
+            $table->uuid('id')->primary();
             $table->string('nanoid');
             $table->string('name');
             $table->string('type');
             $table->string('public_path');
-            $table->foreignId('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
-            $table->foreignId('parent_id')->index()->nullable()->references('id')->on('folders')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignUuid('parent_id')->index()->nullable()->references('id')->on('folders')->cascadeOnDelete();
             $table->timestamps();
         });
     }

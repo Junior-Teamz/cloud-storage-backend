@@ -54,7 +54,7 @@ class UserController extends Controller
     //             },
     //         ],
     //         'password' => ['required', 'string', 'min:8', 'confirmed'],
-    //         'instance_id' => ['required', 'string', 'exists:instances,uuid'],
+    //         'instance_id' => ['required', 'string', 'exists:instances,id'],
     //     ]);
 
     //     if ($validator->fails()) {
@@ -64,7 +64,7 @@ class UserController extends Controller
     //     }
 
     //     try {
-    //         $instance = Instance::where('uuid', $request->instance_id)->first();
+    //         $instance = Instance::where('id', $request->instance_id)->first();
     
     //         // MEMULAI TRANSACTION MYSQL
     //         DB::beginTransaction();
@@ -81,7 +81,7 @@ class UserController extends Controller
 
     //         $user->instances()->sync($instance->id);
 
-    //         $user->load('instances:uuid,name,address');
+    //         $user->load('instances:id,name,address');
 
     //         $user['role'] = $user->roles->pluck('name');
 
@@ -121,7 +121,7 @@ class UserController extends Controller
 
         try {
 
-            $userInfo = User::where('id', $user->id)->with(['instances:uuid,name,address'])->first();
+            $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
 
             $userInfo['role'] = $userInfo->roles->pluck('name');
 
@@ -180,7 +180,7 @@ class UserController extends Controller
                 },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'instance_id' => ['required', 'exists:instances,uuid'],
+            'instance_id' => ['required', 'exists:instances,id'],
         ]);
 
         if ($validator->fails()) {
@@ -190,7 +190,7 @@ class UserController extends Controller
         }
 
         try {
-            $instance = Instance::where('uuid', $request->instance_id)->first();
+            $instance = Instance::where('id', $request->instance_id)->first();
 
             DB::beginTransaction();
 
@@ -204,7 +204,7 @@ class UserController extends Controller
 
             DB::commit();
 
-            $updatedUser->load('instances:uuid,name,address');
+            $updatedUser->load('instances:id,name,address');
 
             return response()->json([
                 'message' => 'Data user berhasil diperbarui',

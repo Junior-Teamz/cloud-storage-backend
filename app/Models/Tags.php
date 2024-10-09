@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
-use App\Traits\HasUUID;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Tags extends Model
 {
-    use HasFactory, HasUUID;
+    use HasFactory, HasUuids;
 
     protected $fillable = ['name'];
 

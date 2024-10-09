@@ -86,7 +86,7 @@ class TagController extends Controller
     public function getTagsInformation($id)
     {
         try {
-            $tagData = Tags::where('uuid', $id)->first();
+            $tagData = Tags::where('id', $id)->first();
 
             if (!$tagData) {
                 return response()->json([
@@ -372,7 +372,7 @@ class TagController extends Controller
         }
         try {
 
-            $tag = Tags::where('uuid', $id)->first();
+            $tag = Tags::where('id', $id)->first();
 
             if (!$tag) {
                 return response()->json([
@@ -436,12 +436,11 @@ class TagController extends Controller
 
         try {
             // Exclude "Root" tag dari query untuk menghindari penghapusan
-            $tags = Tags::whereIn('uuid', $tagIds)->where('name', '!=', 'Root')->get();
+            $tags = Tags::whereIn('id', $tagIds)->where('name', '!=', 'Root')->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundTagIds = $tags->pluck('id')->toArray();
-            $foundTagIdsToCheck = $tags->pluck('uuid')->toArray();
-            $notFoundTagIds = array_diff($tagIds, $foundTagIdsToCheck);
+            $notFoundTagIds = array_diff($tagIds, $foundTagIds);
 
             if (!empty($notFoundTagIds)) {
                 Log::info('Attempt to delete non-existent tags: ' . implode(',', $notFoundTagIds));

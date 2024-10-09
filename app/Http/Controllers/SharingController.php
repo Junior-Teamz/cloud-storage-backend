@@ -43,7 +43,7 @@ class SharingController extends Controller
 
         try {
             // Ambil folder beserta userFolderPermissions dan user yang terkait
-            $folder = Folder::where('uuid', $id)->first();
+            $folder = Folder::where('id', $id)->first();
 
             // Cek apakah folder dimiliki oleh user yang sedang login
             if ($folder->user_id !== $user->id) {
@@ -54,7 +54,7 @@ class SharingController extends Controller
 
             // Ambil daftar user (id, name, email) yang memiliki akses ke folder
             $sharedUsers = UserFolderPermission::where('folder_id', $folder->id)
-                ->with(['user:id,uuid,name,email', 'user.instances:id,uuid,name,address']) // Hanya memuat kolom yang dibutuhkan
+                ->with(['user:id,name,email', 'user.instances:id,name,address']) // Hanya memuat kolom yang dibutuhkan
                 ->get()
                 ->map(function ($permission) {
                     return [
@@ -99,7 +99,7 @@ class SharingController extends Controller
             $sharedFolders = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->with(['user:id,uuid,name,email', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite', 'subfolders'])
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders'])
                 ->get();
 
             // Filter folder induk yang dibagikan jika subfolder-nya juga dibagikan
@@ -126,7 +126,7 @@ class SharingController extends Controller
             $sharedFiles = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->with(['user:id,uuid,name,email', 'tags:uuid,name', 'instances:uuid,name,address'])
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address'])
                 ->paginate($perPage, ['*'], 'file_page', $filePage);
 
             // Format response untuk folder
@@ -137,7 +137,7 @@ class SharingController extends Controller
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
                 return [
-                    'id' => $folder->uuid,
+                    'id' => $folder->id,
                     'name' => $folder->name,
                     'public_path' => $folder->public_path,
                     'type' => $folder->type,
@@ -154,7 +154,7 @@ class SharingController extends Controller
             // Format response untuk file
             $formattedFiles = $sharedFiles->map(function ($file) {
                 $fileData = [
-                    'id' => $file->uuid,
+                    'id' => $file->id,
                     'name' => $file->name,
                     'public_path' => $file->public_path,
                     'size' => $file->size,

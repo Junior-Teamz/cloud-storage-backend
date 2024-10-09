@@ -29,7 +29,7 @@ class UserSeeder extends Seeder
 
         $instance = Instance::where('name', 'KemenkopUKM')->first();
 
-        $folderUser = Folder::where('id', $adminSeeder->id)->whereNull('parent_id')->first();
+        $folderUser = Folder::where('user_id', $adminSeeder->id)->whereNull('parent_id')->first();
 
         $adminSeeder->instances()->attach($instance->id);
 

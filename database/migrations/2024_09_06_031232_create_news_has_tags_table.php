@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,9 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('news_has_tags', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('news_id')->references('id')->on('news')->cascadeOnDelete();
-            $table->foreignId('news_tag_id')->references('id')->on('news_tags')->cascadeOnDelete();
+            $table->uuid('id')->primary()->default(DB::raw('(UUID())'));
+            $table->foreignUuid('news_id')->references('id')->on('news')->cascadeOnDelete();
+            $table->foreignUuid('news_tag_id')->references('id')->on('news_tags')->cascadeOnDelete();
             $table->timestamps();
         });
     }

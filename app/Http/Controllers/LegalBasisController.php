@@ -58,7 +58,7 @@ class LegalBasisController extends Controller
         }
 
         try {
-            $legalBasis = LegalBasis::where('uuid', $id)->first();
+            $legalBasis = LegalBasis::where('id', $id)->first();
 
             if (!$legalBasis) {
                 Log::warning('Attempt to get legal basis with not found id: ' . $id);
@@ -196,7 +196,7 @@ class LegalBasisController extends Controller
             DB::beginTransaction();
 
             // Temukan dasar hukum berdasarkan ID
-            $legalBasis = LegalBasis::where('uuid', $id)->first();
+            $legalBasis = LegalBasis::where('id', $id)->first();
 
             // Perbarui nama jika ada
             if ($request->has('name')) {
@@ -264,7 +264,7 @@ class LegalBasisController extends Controller
             DB::beginTransaction();
 
             // Temukan dasar hukum berdasarkan ID
-            $legalBasis = LegalBasis::where('uuid', $id)->first();
+            $legalBasis = LegalBasis::where('id', $id)->first();
 
             // Hapus file dari storage jika ada
             if ($legalBasis->file_path && Storage::exists($legalBasis->file_path)) {

@@ -12,9 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('news', function (Blueprint $table) {
-            $table->id();
-            $table->uuid();
-            $table->foreignId('created_by')->references('id')->on('users')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('created_by')->references('id')->on('users')->cascadeOnDelete();
             $table->string('thumbnail_path')->nullable();
             $table->string('thumbnail_url');
             $table->string('slug');

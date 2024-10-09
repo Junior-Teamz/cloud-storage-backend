@@ -20,11 +20,7 @@ class PermissionFileController extends Controller
     private function checkPermission($fileId)
     {
         $user = Auth::user();
-        if (is_int($fileId)) {
-            $file = File::find($fileId);
-        } else {
-            $file = File::where('uuid', $fileId)->first();
-        }
+        $file = File::where('id', $fileId)->first();
 
         // If file not found, return 404 error and stop the process
         if (!$file) {
@@ -43,7 +39,7 @@ class PermissionFileController extends Controller
 
     public function getAllPermissionOnFile($fileIdParam)
     {
-        $file = File::where('uuid', $fileIdParam)->first();
+        $file = File::where('id', $fileIdParam)->first();
         $fileId = $file->id;
 
         // Periksa apakah pengguna yang meminta memiliki izin untuk melihat perizinan file ini
@@ -97,8 +93,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'file_id' => 'required|exists:files,uuid',
+                'user_id' => 'required|exists:users,id',
+                'file_id' => 'required|exists:files,id',
             ],
         );
 
@@ -108,8 +104,8 @@ class PermissionFileController extends Controller
             ], 422);
         }
 
-        $file = File::where('uuid', $request->file_id)->first();
-        $userInfo = User::where('uuid', $request->user_id)->first();
+        $file = File::where('id', $request->file_id)->first();
+        $userInfo = User::where('id', $request->user_id)->first();
 
         $fileId = $file->id;
         $userId = $userInfo->id;
@@ -147,8 +143,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'file_id' => 'required|exists:files,uuid',
+                'user_id' => 'required|exists:users,id',
+                'file_id' => 'required|exists:files,id',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -160,26 +156,8 @@ class PermissionFileController extends Controller
         }
 
         try {
-            $file = File::where('uuid', $request->file_id)->first();
-            $userInfo = User::where('uuid', $request->user_id)->first();
-
-            if (!$file) {
-                Log::warning('Attempt to add a file permission on non-existence file', [
-                    'file_id' => $request->file_id
-                ]);
-                return response()->json([
-                    'errors' => 'File not found.'
-                ], 404);
-            }
-
-            if (!$userInfo) {
-                Log::warning('Attempt to add a folder permission on non-existence user', [
-                    'user_id' => $request->user_id
-                ]);
-                return response()->json([
-                    'errors' => 'User not found.'
-                ], 404);
-            }
+            $file = File::where('id', $request->file_id)->first();
+            $userInfo = User::where('id', $request->user_id)->first();
 
             $fileId = $file->id;
             $userId = $userInfo->id;
@@ -235,8 +213,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'file_id' => 'required|exists:files,uuid',
+                'user_id' => 'required|exists:users,id',
+                'file_id' => 'required|exists:files,id',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -249,26 +227,8 @@ class PermissionFileController extends Controller
 
         try {
             // Cek apakah user yang dimaksud adalah pemilik file
-            $file = File::where('uuid', $request->file_id)->first();
-            $userInfo = User::where('uuid', $request->user_id)->first();
-
-            if (!$file) {
-                Log::warning('Attempt to change a file permission on non-existence file', [
-                    'file_id' => $request->file_id
-                ]);
-                return response()->json([
-                    'errors' => 'File not found.'
-                ], 404);
-            }
-
-            if (!$userInfo) {
-                Log::warning('Attempt to change a folder permission on non-existence user', [
-                    'user_id' => $request->user_id
-                ]);
-                return response()->json([
-                    'errors' => 'User not found.'
-                ], 404);
-            }
+            $file = File::where('id', $request->file_id)->first();
+            $userInfo = User::where('id', $request->user_id)->first();
 
             $fileId = $file->id;
             $userId = $userInfo->id;
@@ -322,8 +282,8 @@ class PermissionFileController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'file_id' => 'required|exists:files,uuid',
+                'user_id' => 'required|exists:users,id',
+                'file_id' => 'required|exists:files,id',
             ],
         );
 
@@ -335,26 +295,8 @@ class PermissionFileController extends Controller
 
         try {
             // Cek apakah user yang dimaksud adalah pemilik file
-            $file = File::where('uuid', $request->file_id)->first();
-            $userInfo = User::where('uuid', $request->user_id)->first();
-
-            if (!$file) {
-                Log::warning('Attempt to delete a file permission on non-existence file', [
-                    'file_id' => $request->file_id
-                ]);
-                return response()->json([
-                    'errors' => 'File not found.'
-                ], 404);
-            }
-
-            if (!$userInfo) {
-                Log::warning('Attempt to delete a folder permission on non-existence user', [
-                    'user_id' => $request->user_id
-                ]);
-                return response()->json([
-                    'errors' => 'User not found.'
-                ], 404);
-            }
+            $file = File::where('id', $request->file_id)->first();
+            $userInfo = User::where('id', $request->user_id)->first();
 
             $fileId = $file->id;
             $userId = $userInfo->id;

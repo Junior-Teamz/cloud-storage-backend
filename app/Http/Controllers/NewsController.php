@@ -45,7 +45,7 @@ class NewsController extends Controller
             $status = $request->query('status');
 
             // Query dasar untuk mengambil berita dengan relasi creator dan newsTags
-            $query = News::with(['creator:id,uuid,name,email', 'creator.instances:uuid,name,address', 'newsTags:id,uuid,name']);
+            $query = News::with(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
 
             // Tambahkan filter berdasarkan nama creator jika ada
             if (!empty($titleNews)) {
@@ -88,7 +88,7 @@ class NewsController extends Controller
             $titleNews = $request->query('title');
 
             // Ambil semua data berita beserta nama pembuat dan tag-nya, dengan pagination 10 item per halaman
-            $queryNews = News::with(['creator:id,uuid,name', 'creator.instances:name,address', 'newsTags:name']);
+            $queryNews = News::with(['creator:id,name', 'creator.instances:name,address', 'newsTags:name']);
 
             if (!empty($titleNews)) {
                 $queryNews->whereHas('title', function ($q) use ($titleNews) {
@@ -122,12 +122,12 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,uuid,name',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,name',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
                 'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
             ])
                 ->where('status', 'published')
-                ->where('uuid', $id)->first();
+                ->where('id', $id)->first();
 
             // Jika berita tidak ditemukan, kembalikan response 404
             if (!$news) {
@@ -158,7 +158,7 @@ class NewsController extends Controller
     // public function addNewsViewers(Request $request)
     // {
     //     $validator = Validator::make($request->all(), [
-    //         'news_id' => 'required|string|exists:news,uuid'
+    //         'news_id' => 'required|string|exists:news,id'
     //     ]);
 
     //     if($validator->fails()){
@@ -168,7 +168,7 @@ class NewsController extends Controller
     //     }
     //     try {
     //         $newsIdRequest = $request->news_id;
-    //         $news = News::where('uuid', $newsIdRequest)->first();
+    //         $news = News::where('id', $newsIdRequest)->first();
 
     //         DB::beginTransaction();
     //         $news->increment('viewer');
@@ -202,7 +202,7 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,uuid,name',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,name',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
                 'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
             ])
@@ -237,10 +237,10 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,uuid,name,email',  // Ambil id dan name dari relasi creator (User)
-                'creator.instances:uuid,name,address',
-                'newsTags:id,uuid,name'  // Ambil id dan name dari relasi newsTags (NewsTag)
-            ])->where('uuid', $newsId)->first();
+                'creator:id,name,email',  // Ambil id dan name dari relasi creator (User)
+                'creator.instances:id,name,address',
+                'newsTags:id,name'  // Ambil id dan name dari relasi newsTags (NewsTag)
+            ])->where('id', $newsId)->first();
 
             // Jika berita tidak ditemukan, kembalikan response 404
             if (!$news) {
@@ -296,11 +296,11 @@ class NewsController extends Controller
         $newsTagIdRequest = $request->news_tag_ids;
 
         try {
-            $newsTags = NewsTag::whereIn('uuid', $newsTagIdRequest)->get();
+            $newsTags = NewsTag::whereIn('id', $newsTagIdRequest)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundNewsTagIds = $newsTags->pluck('id')->toArray();
-            $foundNewsTagIdsToCheck = $newsTags->pluck('uuid')->toArray();
+            $foundNewsTagIdsToCheck = $newsTags->pluck('id')->toArray();
             $notFoundTagIds = array_diff($newsTagIdRequest, $foundNewsTagIdsToCheck);
 
             if (!empty($notFoundTagIds)) {
@@ -391,7 +391,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,uuid,name,email', 'creator.instances:uuid,name,address', 'newsTags:id,uuid,name']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
 
             return response()->json([
                 'message' => 'News successfully created.',
@@ -443,11 +443,11 @@ class NewsController extends Controller
 
         try {
             if (!is_null($newsTagIdRequest)) {
-                $newsTags = NewsTag::whereIn('uuid', $newsTagIdRequest)->get();
+                $newsTags = NewsTag::whereIn('id', $newsTagIdRequest)->get();
 
                 // Bandingkan ID yang ditemukan dengan yang diminta
                 $foundNewsTagIds = $newsTags->pluck('id')->toArray();
-                $foundNewsTagIdsToCheck = $newsTags->pluck('uuid')->toArray();
+                $foundNewsTagIdsToCheck = $newsTags->pluck('id')->toArray();
                 $notFoundTagIds = array_diff($newsTagIdRequest, $foundNewsTagIdsToCheck);
 
                 if (!empty($notFoundTagIds)) {
@@ -461,7 +461,7 @@ class NewsController extends Controller
             }
 
             // Ambil berita berdasarkan ID
-            $news = News::where('uuid', $id)->first();
+            $news = News::where('id', $id)->first();
 
             if (!$news) {
                 return response()->json([
@@ -551,7 +551,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,uuid,name,email', 'creator.instances:uuid,name,address', 'newsTags:id,uuid,name']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
 
             return response()->json([
                 'message' => 'News updated successfully.',
@@ -577,7 +577,7 @@ class NewsController extends Controller
         }
 
         try {
-            $news = News::where('uuid', $id)->first();
+            $news = News::where('id', $id)->first();
             if (!$news) {
                 Log::warning('Attempt to delete non-existence news with news ID: ' . $id);
                 return response()->json([
@@ -639,7 +639,7 @@ class NewsController extends Controller
         }
 
         try {
-            $news = News::where('uuid', $newsId)->first()->first();
+            $news = News::where('id', $newsId)->first()->first();
 
             if (!$news) {
                 Log::warning('Attempt to change status of non-existence news with news ID: ' . $newsId);
@@ -656,7 +656,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,uuid,name,email', 'creator.instances:uuid,name,address', 'newsTags:id,uuid,name']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
 
             return response()->json([
                 'message' => 'News status changed successfully.',

@@ -52,13 +52,13 @@ class FileController extends Controller
 
         try {
             $file = File::with([
-                'user:id,uuid,name,email',
-                'folder:id,uuid',
+                'user:id,name,email',
+                'folder:id',
                 'tags',
-                'instances:uuid,name,address',
+                'instances:id,name,address',
                 'favorite',
-                'userPermissions.user:id,uuid,name,email',
-            ])->where('uuid', $id)->first();
+                'userPermissions.user:id,name,email',
+            ])->where('id', $id)->first();
 
             if (!$file) {
                 return response()->json([
@@ -68,7 +68,7 @@ class FileController extends Controller
 
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
-            $file['folder_id'] = $file->folder->uuid;
+            
             $file['shared_with'] = $file->userPermissions;
 
             // Sembunyikan kolom 'path' dan 'nanoid'
@@ -98,7 +98,7 @@ class FileController extends Controller
         try {
             // Ambil semua file dari database dengan paginasi, termasuk user, tags, dan instances
             $filesQuery = File::where('user_id', $user->id)
-                ->with(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite', 'userPermissions.user:id,uuid,name,email',]);
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email',]);
 
             // Hitung total ukuran file langsung dari query sebelum paginasi
             $totalSize = $filesQuery->sum('size');
@@ -109,7 +109,7 @@ class FileController extends Controller
             $files->getCollection()->transform(function ($file) use ($user) {
                 $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
                 $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
-                $file['folder_id'] = $file->folder->uuid;
+                
                 $file['shared_with'] = $file->userPermissions;
                 return $file;
             });
@@ -145,9 +145,9 @@ class FileController extends Controller
         $validator = Validator::make($request->all(), [
             'file' => 'required|array',
             'file.*' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx,xlsx,pptx,ppt,txt,mp3,ogg,wav,aac,opus,mp4,hevc,mkv,mov,h264,h265,php,js,html,css',
-            'folder_id' => 'nullable|exists:folders,uuid',
+            'folder_id' => 'nullable|exists:folders,id',
             'tag_ids' => 'required|array',
-            'tag_ids.*' => ['string', 'exists:tags,uuid'],
+            'tag_ids.*' => ['string', 'exists:tags,id'],
         ]);
 
         if ($validator->fails()) {
@@ -174,7 +174,7 @@ class FileController extends Controller
 
             $filesData = []; // Array untuk menyimpan data file yang berhasil diunggah
 
-            $userData = User::where('id', $user->id)->first();
+            $userData = User::find($user->id);
             $userInstances = $userData->instances->pluck('id')->toArray();  // Mengambil instance user
 
             foreach ($request->file('file') as $uploadedFile) {
@@ -245,7 +245,7 @@ class FileController extends Controller
                     $file->save();
                 }
 
-                $getTagIds = Tags::whereIn('uuid', $request->tag_ids)->get();
+                $getTagIds = Tags::whereIn('id', $request->tag_ids)->get();
 
                 $tagIds = $getTagIds->pluck('id')->toArray();
 
@@ -253,10 +253,8 @@ class FileController extends Controller
 
                 $file->instances()->sync($userInstances);
 
-                $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address']);
-
-                $file['folder_id'] = $file->folder->uuid;
-
+                $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                
                 $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
                 // Tambahkan file ke dalam array yang akan dikembalikan
@@ -303,7 +301,7 @@ class FileController extends Controller
         // Validasi input request
         $validate = Validator::make($request->all(), [
             'file_ids' => 'required|array',
-            'file_ids.*' => 'required|exists:files,uuid',
+            'file_ids.*' => 'required|exists:files,id',
         ]);
 
         if ($validate->fails()) {
@@ -326,10 +324,10 @@ class FileController extends Controller
 
         try {
             // Ambil files berdasarkan file_ids
-            $files = File::whereIn('uuid', $fileIds)->get();
+            $files = File::whereIn('id', $fileIds)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
-            $foundFileIdsToCheck = $files->pluck('uuid')->toArray();
+            $foundFileIdsToCheck = $files->pluck('id')->toArray();
             $notFoundFileIds = array_diff($fileIds, $foundFileIdsToCheck);
 
             if (!empty($notFoundFileIds)) {
@@ -399,8 +397,8 @@ class FileController extends Controller
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'file_id' => 'required|exists:files,uuid',
-            'tag_id' => 'required|exists:tags,uuid',
+            'file_id' => 'required|exists:files,id',
+            'tag_id' => 'required|exists:tags,id',
         ]);
 
         if ($validator->fails()) {
@@ -416,8 +414,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::where('uuid', $request->file_id)->first();
-            $tag = Tags::where('uuid', $request->tag_id)->first();
+            $file = File::find($request->file_id);
+            $tag = Tags::find($request->tag_id);
 
             // Memeriksa apakah tag sudah terkait dengan file
             if ($file->tags->contains($tag->id)) {
@@ -431,11 +429,10 @@ class FileController extends Controller
             // Menambahkan tag ke file (tabel pivot file_has_tags)
             $file->tags()->attach($tag->id);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
-            $file['folder_id'] = $file->folder->uuid;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -481,8 +478,8 @@ class FileController extends Controller
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'file_id' => 'required|exists:files,uuid',
-            'tag_id' => 'required|exists:tags,uuid',
+            'file_id' => 'required|exists:files,id',
+            'tag_id' => 'required|exists:tags,id',
         ]);
 
         if ($validator->fails()) {
@@ -498,8 +495,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::where('uuid', $request->file_id);
-            $tag = Tags::where('uuid', $request->tag_id);
+            $file = File::find($request->file_id);
+            $tag = Tags::find($request->tag_id);
 
             // Memeriksa apakah tag terkait dengan file
             if (!$file->tags->contains($tag->id)) {
@@ -513,12 +510,10 @@ class FileController extends Controller
             // Menghapus tag dari file (tabel pivot file_has_tags)
             $file->tags()->detach($tag->id);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
-
-            $file['folder_id'] = $file->folder->uuid;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -579,7 +574,14 @@ class FileController extends Controller
         try {
             DB::beginTransaction();
 
-            $file = File::where('uuid', $id)->first();
+            $file = File::find($id);
+
+            if (!$file) {
+                Log::warning('Attempt to edit file on non-existence file id: ' . $id);
+                return response()->json([
+                    'errors' => 'File not found.'
+                ], 404);
+            }
 
             // Dapatkan ekstensi asli dari nama file yang ada
             $currentFileNameWithExtension = $file->name;
@@ -615,12 +617,12 @@ class FileController extends Controller
                 'public_path' => $publicPath,
             ]);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
             
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
-            $file['folder_id'] = $file->folder->uuid;
+            
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -656,7 +658,7 @@ class FileController extends Controller
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'new_folder_id' => 'required|exists:folders,uuid',
+            'new_folder_id' => 'required|exists:folders,id',
         ]);
 
         if ($validator->fails()) {
@@ -672,7 +674,7 @@ class FileController extends Controller
         }
 
         // Periksa apakah user memiliki izin ke folder tujuan
-        $permissionFolderCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->new_folder_id, 'folder_edit');
+        $permissionFolderCheck = $this->checkPermissionFolderService->checkPermissionFolder($request->new_folder_id, 'write');
         if (!$permissionFolderCheck) {
             return response()->json([
                 'errors' => 'You do not have permission on the destination folder.',
@@ -682,14 +684,15 @@ class FileController extends Controller
         try {
             DB::beginTransaction();
 
-            $file = File::where('uuid', $id)->first();
+            $file = File::find($id);
 
             if (!$file) {
-                Log::warning('Attempt to move file on non-existence folder: ' . $id);
+                Log::warning('Attempt to move file on non-existence file id: ' . $id);
                 return response()->json([
-                    'errors' => 'Folder destination to move the file was not found.'
+                    'errors' => 'File not found.'
                 ], 404);
             }
+
             $oldPath = $file->path;
 
             // Intinya, kode dibawah ini adalah persiapan untuk menyiapkan path baru.
@@ -720,12 +723,12 @@ class FileController extends Controller
                 'public_path' => $newPublicPath,
             ]);
 
-            $file->load(['user:id,uuid,name,email', 'folder:id,uuid', 'tags:uuid,name', 'instances:uuid,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
-            $file['folder_id'] = $file->folder->uuid;
+            
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -775,12 +778,11 @@ class FileController extends Controller
 
         try {
             // Periksa apakah semua file ada
-            $files = File::whereIn('uuid', $fileIds)->get();
+            $files = File::whereIn('id', $fileIds)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundFileIds = $files->pluck('id')->toArray();
-            $foundFileIdsToCheck = $files->pluck('uuid')->toArray();
-            $notFoundFileIds = array_diff($fileIds, $foundFileIdsToCheck);
+            $notFoundFileIds = array_diff($fileIds, $foundFileIds);
 
             if (!empty($notFoundFileIds)) {
                 Log::info('Attempt to delete non-existent files: ' . implode(',', $notFoundFileIds));
@@ -850,7 +852,7 @@ class FileController extends Controller
         if ($user) {
 
             // Cari file berdasarkan ID
-            $file = File::where('uuid', $fileId)->first();
+            $file = File::find($fileId);
 
             if (!$file) {
                 return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
@@ -886,11 +888,7 @@ class FileController extends Controller
         // If folderId is provided, build the path from the folder to the root
         while ($folderId) {
             // Find the folder by ID
-            if (is_int($folderId)) {
-                $folder = Folder::find($folderId);
-            } else {
-                $folder = Folder::where('uuid', $folderId)->first();
-            }
+            $folder = Folder::findOrFail($folderId);
             if ($folder) {
                 // Prepend the folder name to the path array
                 array_unshift($path, $folder->name);
@@ -920,11 +918,7 @@ class FileController extends Controller
         // If folderId is provided, build the path from the folder to the root
         while ($folderId) {
             // Find the folder by ID
-            if (is_int($folderId)) {
-                $folder = Folder::find($folderId);
-            } else {
-                $folder = Folder::where('uuid', $folderId)->first();
-            }
+            $folder = Folder::findOrFail($folderId);
             if ($folder) {
                 // Prepend the folder name to the path array
                 array_unshift($path, $folder->nanoid);

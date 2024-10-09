@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use App\Traits\HasUUID;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class FAQ extends Model
 {
-    use HasFactory, HasUUID;
+    use HasFactory, HasUuids;
 
     protected $table = 'faq';
 

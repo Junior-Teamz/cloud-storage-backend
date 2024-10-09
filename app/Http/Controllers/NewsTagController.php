@@ -151,7 +151,7 @@ class NewsTagController extends Controller
         }
 
         try {
-            $newsTag = NewsTag::where('uuid', $id)->first();
+            $newsTag = NewsTag::where('id', $id)->first();
 
             if (!$newsTag){
                 return response()->json([
@@ -212,7 +212,7 @@ class NewsTagController extends Controller
         try {
 
             // Exclude "Root" tag dari query untuk menghindari penghapusan
-            $newsTags = NewsTag::whereIn('uuid', $newsTagIds)->get();
+            $newsTags = NewsTag::whereIn('id', $newsTagIds)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundNewsTagIds = $newsTags->pluck('id')->toArray();

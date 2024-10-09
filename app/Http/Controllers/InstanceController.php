@@ -397,7 +397,7 @@ class InstanceController extends Controller
         try {
             DB::beginTransaction();
 
-            $instance = Instance::where('uuid', $id)->first();
+            $instance = Instance::where('id', $id)->first();
 
             if (!$instance) {
                 return response()->json([
@@ -451,7 +451,7 @@ class InstanceController extends Controller
         }
 
         try {
-            $instance = Instance::where('uuid', $instanceId)->first();
+            $instance = Instance::where('id', $instanceId)->first();
 
             if (!$instance) {
                 Log::error('Attempt to delete non-existent instance: ' . $instanceId);

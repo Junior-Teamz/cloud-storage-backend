@@ -14,11 +14,7 @@ class CheckFolderPermissionService
     public function checkPermissionFolder($folderId, $actions)
     {
         $user = Auth::user();
-        if(is_int($folderId)){
-            $folder = Folder::find($folderId);
-        } else {
-            $folder = Folder::where('uuid', $folderId)->first();
-        }
+        $folder = Folder::find($folderId);
 
         // If folder not found, return 404 error and stop the process
         if (!$folder) {

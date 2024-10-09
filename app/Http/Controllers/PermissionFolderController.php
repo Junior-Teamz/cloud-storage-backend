@@ -22,11 +22,7 @@ class PermissionFolderController extends Controller
     private function checkPermission($folderId)
     {
         $user = Auth::user();
-        if (is_int($folderId)) {
-            $folder = Folder::find($folderId);
-        } else {
-            $folder = Folder::where('uuid', $folderId)->first();
-        }
+        $folder = Folder::where('id', $folderId)->first();
 
         // If folder not found, return 404 error and stop the process
         if (!$folder) {
@@ -45,7 +41,7 @@ class PermissionFolderController extends Controller
 
     public function getAllPermissionOnFolder($folderIdParam)
     {
-        $folder = Folder::where('uuid', $folderIdParam)->first();
+        $folder = Folder::where('id', $folderIdParam)->first();
         $folderId = $folder->id;
 
         // Periksa apakah pengguna yang meminta memiliki izin untuk melihat perizinan folder ini
@@ -100,8 +96,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'folder_id' => 'required|exists:folders,uuid',
+                'user_id' => 'required|exists:users,id',
+                'folder_id' => 'required|exists:folders,id',
             ],
         );
 
@@ -111,17 +107,11 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        $folder = Folder::where('uuid', $request->folder_id)->first();
-        $userInfo = User::where('uuid', $request->user_id)->first();
+        $folder = Folder::where('id', $request->folder_id)->first();
+        $userInfo = User::where('id', $request->user_id)->first();
 
         $folderId = $folder->id;
         $userId = $userInfo->id;
-
-        if (!$folder) {
-            return response()->json([
-                'errors' => 'Folder not found.'
-            ], 404);
-        }
 
         // Asumsi folder memiliki kolom 'owner_id' yang menyimpan ID pemilik folder
         if ($folder->user_id == $userId) {
@@ -167,8 +157,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'folder_id' => 'required|exists:folders,uuid',
+                'user_id' => 'required|exists:users,id',
+                'folder_id' => 'required|exists:folders,id',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -180,26 +170,8 @@ class PermissionFolderController extends Controller
         }
 
         try {
-            $folder = Folder::where('uuid', $request->folder_id)->first();
-            $userInfo = User::where('uuid', $request->user_id)->first();
-
-            if (!$folder) {
-                Log::warning('Attempt to add a folder permission on non-existence folder', [
-                    'folder_id' => $request->folder_id
-                ]);
-                return response()->json([
-                    'errors' => 'Folder not found.'
-                ], 404);
-            }
-
-            if (!$userInfo) {
-                Log::warning('Attempt to add a folder permission on non-existence user', [
-                    'user_id' => $request->user_id
-                ]);
-                return response()->json([
-                    'errors' => 'User not found.'
-                ], 404);
-            }
+            $folder = Folder::where('id', $request->folder_id)->first();
+            $userInfo = User::where('id', $request->user_id)->first();
 
             $folderId = $folder->id;
             $userId = $userInfo->id;
@@ -290,8 +262,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'folder_id' => 'required|exists:folders,uuid',
+                'user_id' => 'required|exists:users,id',
+                'folder_id' => 'required|exists:folders,id',
                 'permissions' => 'required|in:read,write',
             ],
         );
@@ -303,26 +275,8 @@ class PermissionFolderController extends Controller
         }
 
         try {
-            $folder = Folder::where('uuid', $request->folder_id)->first();
-            $userInfo = User::where('uuid', $request->user_id)->first();
-
-            if (!$folder) {
-                Log::warning('Attempt to change a folder permission on non-existence folder', [
-                    'folder_id' => $request->folder_id
-                ]);
-                return response()->json([
-                    'errors' => 'Folder not found.'
-                ], 404);
-            }
-
-            if (!$userInfo) {
-                Log::warning('Attempt to change a folder permission on non-existence user', [
-                    'user_id' => $request->user_id
-                ]);
-                return response()->json([
-                    'errors' => 'User not found.'
-                ], 404);
-            }
+            $folder = Folder::where('id', $request->folder_id)->first();
+            $userInfo = User::where('id', $request->user_id)->first();
 
             $folderId = $folder->id;
             $userId = $userInfo->id;
@@ -378,8 +332,8 @@ class PermissionFolderController extends Controller
         $validator = Validator::make(
             request()->all(),
             [
-                'user_id' => 'required|exists:users,uuid',
-                'folder_id' => 'required|exists:folders,uuid',
+                'user_id' => 'required|exists:users,id',
+                'folder_id' => 'required|exists:folders,id',
             ],
         );
 
@@ -391,26 +345,8 @@ class PermissionFolderController extends Controller
 
 
         try {
-            $folder = Folder::where('uuid', $request->folder_id)->first();
-            $userInfo = User::where('uuid', $request->user_id)->first();
-
-            if (!$folder) {
-                Log::warning('Attempt to delete a folder permission on non-existence folder', [
-                    'folder_id' => $request->folder_id
-                ]);
-                return response()->json([
-                    'errors' => 'Folder not found.'
-                ], 404);
-            }
-
-            if (!$userInfo) {
-                Log::warning('Attempt to delete a folder permission on non-existence user', [
-                    'user_id' => $request->user_id
-                ]);
-                return response()->json([
-                    'errors' => 'User not found.'
-                ], 404);
-            }
+            $folder = Folder::where('id', $request->folder_id)->first();
+            $userInfo = User::where('id', $request->user_id)->first();
 
             $folderId = $folder->id;
             $userId = $userInfo->id;

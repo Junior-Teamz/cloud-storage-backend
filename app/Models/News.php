@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use App\Traits\HasUUID;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class News extends Model
 {
-    use HasFactory, HasUUID;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'created_by',

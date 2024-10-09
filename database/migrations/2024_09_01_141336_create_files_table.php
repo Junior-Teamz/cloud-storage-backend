@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('files', function (Blueprint $table) {
-            $table->id();
-            $table->uuid();
+            $table->uuid('id')->primary();
             $table->string('name');
             $table->string('nanoid');
             $table->string('path');
@@ -21,8 +20,8 @@ return new class extends Migration
             $table->string('image_url')->nullable();
             $table->unsignedBigInteger('size');
             $table->string('type');
-            $table->foreignId('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
-            $table->foreignId('folder_id')->index()->nullable()->references('id')->on('folders')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignUuid('folder_id')->index()->nullable()->references('id')->on('folders')->cascadeOnDelete();
             $table->timestamps();
         });
     }
