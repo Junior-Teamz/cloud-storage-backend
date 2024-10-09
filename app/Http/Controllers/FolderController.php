@@ -534,8 +534,8 @@ class FolderController extends Controller
         }
 
         try {
-            $folder = Folder::where('uuid', $request->folder_id);
-            $tag = Tags::where('uuid', $request->tag_id);
+            $folder = Folder::where('uuid', $request->folder_id)->first();
+            $tag = Tags::where('uuid', $request->tag_id)->first();
 
             // Memeriksa apakah tag sudah terkait dengan folder
             if ($folder->tags->contains($tag->id)) {

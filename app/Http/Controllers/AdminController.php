@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
+use App\Models\Instance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -260,6 +261,8 @@ class AdminController extends Controller
         }
 
         try {
+            $instance = Instance::where('uuid', $request->instance_id)->first();
+
             DB::beginTransaction();
 
             $newUser = User::create([
@@ -270,16 +273,24 @@ class AdminController extends Controller
 
             $newUser->assignRole($request->role);
 
-            $newUser->instances()->sync($request->instance_id);
-
-            DB::commit();
+            $newUser->instances()->sync($instance->id);
 
             $newUser->load('instances:uuid,name,address');
 
             $newUser['role'] = $newUser->roles->pluck('name');
 
+            // Cari folder yang terkait dengan user yang baru dibuat
+            $userFolders = Folder::where('user_id', $newUser->id)->get();
+
+            foreach ($userFolders as $folder) {
+                // Perbarui relasi instance pada setiap folder terkait
+                $folder->instances()->sync($instance->id);
+            }
+
             // Sembunyikan relasi roles dari hasil response
             $newUser->makeHidden('roles');
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'User created successfully.',
@@ -354,6 +365,7 @@ class AdminController extends Controller
 
         try {
             $userToBeUpdated = User::where('uuid', $userIdToBeUpdated)->first();
+            $instance = Instance::where('uuid', $request->instance_id)->first();
 
             if (!$userToBeUpdated) {
                 return response()->json([
@@ -376,14 +388,14 @@ class AdminController extends Controller
             ]);
 
             // Perbarui instance user
-            $userToBeUpdated->instances()->sync($request->instance_id);
+            $userToBeUpdated->instances()->sync($instance->id);
 
             // Cari folder yang terkait dengan user
             $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
 
             foreach ($userFolders as $folder) {
                 // Perbarui relasi instance pada setiap folder terkait
-                $folder->instances()->sync($request->instance_id);
+                $folder->instances()->sync($instance->id);
             }
 
             DB::commit();

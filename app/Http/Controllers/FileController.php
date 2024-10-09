@@ -416,8 +416,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::where('uuid', $request->file_id);
-            $tag = Tags::where('uuid', $request->tag_id);
+            $file = File::where('uuid', $request->file_id)->first();
+            $tag = Tags::where('uuid', $request->tag_id)->first();
 
             // Memeriksa apakah tag sudah terkait dengan file
             if ($file->tags->contains($tag->id)) {

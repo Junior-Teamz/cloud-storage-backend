@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Folder;
+use App\Models\Instance;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class UserController extends Controller
     //             function ($attribute, $value, $fail) {
     //                 // Validasi format email menggunakan Laravel's 'email' rule
     //                 if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
-    //                     $fail('Format email tidak valid.');
+    //                     $fail('Invalid email format.');
     //                 }
 
     //                 // Daftar domain yang valid
@@ -48,11 +49,12 @@ class UserController extends Controller
 
     //                 // Periksa apakah domain email diizinkan
     //                 if (!in_array($domain, $allowedDomains)) {
-    //                     $fail('Domain email tidak valid.');
+    //                     $fail('Invalid email domain.');
     //                 }
     //             },
     //         ],
     //         'password' => ['required', 'string', 'min:8', 'confirmed'],
+    //         'instance_id' => ['required', 'string', 'exists:instances,uuid'],
     //     ]);
 
     //     if ($validator->fails()) {
@@ -61,21 +63,41 @@ class UserController extends Controller
     //         ], 422);
     //     }
 
-    //     // MEMULAI TRANSACTION MYSQL
-    //     DB::beginTransaction();
-
     //     try {
+    //         $instance = Instance::where('uuid', $request->instance_id)->first();
+    
+    //         // MEMULAI TRANSACTION MYSQL
+    //         DB::beginTransaction();
+
     //         $user = User::create([
     //             'name' => $request->name,
     //             'email' => $request->email,
     //             'password' => bcrypt($request->password),
     //         ]);
 
+    //         $role = 'user';
+
+    //         $user->assignRole($role);
+
+    //         $user->instances()->sync($instance->id);
+
+    //         $user->load('instances:uuid,name,address');
+
+    //         $user['role'] = $user->roles->pluck('name');
+
+    //         // Cari folder yang terkait dengan user yang baru dibuat
+    //         $userFolders = Folder::where('user_id', $user->id)->get();
+
+    //         foreach ($userFolders as $folder) {
+    //             // Perbarui relasi instance pada setiap folder terkait
+    //             $folder->instances()->sync($instance->id);
+    //         }
+
+    //         // Sembunyikan relasi roles dari hasil response
+    //         $user->makeHidden('roles');
+
     //         // COMMIT JIKA TIDAK ADA KESALAHAN
     //         DB::commit();
-
-    //         $roles = 'user';
-    //         $user->assignRole($roles);
 
     //         return response()->json([
     //             'message' => 'Berhasil Mendaftarkan Akun!',
@@ -92,30 +114,30 @@ class UserController extends Controller
     //     }
     // }
 
-   // Informasi tentang akun yang sedang login saat ini
-   public function index()
-   {
-       $user = Auth::user();
+    // Informasi tentang akun yang sedang login saat ini
+    public function index()
+    {
+        $user = Auth::user();
 
-       try {
+        try {
 
-           $userInfo = User::where('id', $user->id)->with(['instances:uuid,name,address'])->first();
+            $userInfo = User::where('id', $user->id)->with(['instances:uuid,name,address'])->first();
 
-           $userInfo['role'] = $userInfo->roles->pluck('name');
+            $userInfo['role'] = $userInfo->roles->pluck('name');
 
-           // Sembunyikan relasi roles dari hasil response
-           $userInfo->makeHidden('roles');
+            // Sembunyikan relasi roles dari hasil response
+            $userInfo->makeHidden('roles');
 
-           return response()->json([
-               'data' => $userInfo
-           ]);
-       } catch (Exception $e) {
-           Log::error('Error occurred on getting user information: ' . $e->getMessage());
-           return response()->json([
-               'errors' => 'An error occured on getting user information.',
-           ], 500);
-       }
-   }
+            return response()->json([
+                'data' => $userInfo
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error occurred on getting user information: ' . $e->getMessage());
+            return response()->json([
+                'errors' => 'An error occured on getting user information.',
+            ], 500);
+        }
+    }
 
     public function update(Request $request)
     {
@@ -168,6 +190,8 @@ class UserController extends Controller
         }
 
         try {
+            $instance = Instance::where('uuid', $request->instance_id)->first();
+
             DB::beginTransaction();
 
             $updatedUser = User::where('id', $user->id)->update([
@@ -176,7 +200,7 @@ class UserController extends Controller
                 'password' => bcrypt($request->password),
             ]);
 
-            $updatedUser->instances()->sync($request->instance_id);
+            $updatedUser->instances()->sync($instance->id);
 
             DB::commit();
 
@@ -212,8 +236,8 @@ class UserController extends Controller
 
             // Hapus folder dan file terkait dari local storage
             $folders = Folder::where('user_id', $user->id)->get();
-            
-            if(!!$folders){
+
+            if (!!$folders) {
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder);
                 }

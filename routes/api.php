@@ -5,6 +5,7 @@ use App\Http\Controllers\FolderController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\FileFavoriteController;
 use App\Http\Controllers\FolderFavoriteController;
 use App\Http\Controllers\InstanceController;
 use App\Http\Controllers\LegalBasisController;
@@ -204,15 +205,15 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
     Route::prefix('file')->group(function () {
 
-        Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file admin, tidak peduli dari folder apapun.
+        Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua file dan total ukurannya.
 
         Route::get('/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
 
-        // Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
+        Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFiles']); // Mendapatkan semua file yang di favoritkan
 
-        // Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
+        Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
 
-        // Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
+        Route::delete('/deleteFavorite', [FileFavoriteController::class, 'deleteFavoriteFolder']);
 
         // Route::post('/create', [FileController::class, 'create']); // Membuat file baru
 
