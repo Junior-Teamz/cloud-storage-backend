@@ -159,8 +159,8 @@ class PermissionFileController extends Controller
             ], 422);
         }
 
-        $file = File::where('uuid', $request->file_id)->first();
-        $userInfo = User::where('uuid', $request->user_id)->first();
+        $file = File::where('uuid', $request->file_id);
+        $userInfo = User::where('uuid', $request->user_id);
 
         $fileId = $file->pluck('id');
         $userId = $userInfo->pluck('id');
