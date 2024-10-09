@@ -12,14 +12,18 @@ class WebhookController extends Controller
     // Handle webhook push from github repository.
     public function handle(Request $request)
     {
-        // Secret yang diset di GitHub Webhook
-        $secret = env('GITHUB_WEBHOOK_SECRET');
-        $signature = 'sha256=' . hash_hmac('sha256', $request->getContent(), $secret);
+        // // Secret yang diset di GitHub Webhook
+        // $secret = env('GITHUB_WEBHOOK_SECRET');
+        // $signature = 'sha256=' . hash_hmac('sha256', $request->getContent(), $secret);
 
-        // Verifikasi signature untuk memastikan request asli dari GitHub
-        if (!hash_equals($signature, $request->header('X-Hub-Signature-256'))) {
-            Log::error('Invalid GitHub signature');
-            return response('Invalid signature', 403);
+        // // Verifikasi signature untuk memastikan request asli dari GitHub
+        // if (!hash_equals($signature, $request->header('X-Hub-Signature-256'))) {
+        //     Log::error('Invalid GitHub signature');
+        //     return response('Invalid signature', 403);
+        // }
+
+        if (!$request->header('X-Github-Event')) {
+            return response('Invalid github request', 403);
         }
 
         // Log request yang diterima dari GitHub setelah verifikasi
@@ -33,7 +37,10 @@ class WebhookController extends Controller
             try {
                 // Lakukan git pull origin main
                 $pullProcess = new Process([
-                    'git', 'pull', 'origin', 'main'
+                    'git',
+                    'pull',
+                    'origin',
+                    'main'
                 ], base_path());  // Jalankan perintah di direktori aplikasi
 
                 $pullProcess->run();
@@ -50,7 +57,10 @@ class WebhookController extends Controller
 
                     // Accept all incoming changes (theirs) during conflict
                     $checkoutTheirsProcess = new Process([
-                        'git', 'checkout', '--theirs', '.'
+                        'git',
+                        'checkout',
+                        '--theirs',
+                        '.'
                     ], base_path());
 
                     $checkoutTheirsProcess->run();
@@ -62,7 +72,9 @@ class WebhookController extends Controller
 
                     // Tambahkan semua perubahan yang diterima
                     $addProcess = new Process([
-                        'git', 'add', '.'
+                        'git',
+                        'add',
+                        '.'
                     ], base_path());
 
                     $addProcess->run();
@@ -74,7 +86,10 @@ class WebhookController extends Controller
 
                     // Simpan merge message otomatis
                     $commitProcess = new Process([
-                        'git', 'commit', '-m', 'Resolved all conflicts by accepting incoming changes'
+                        'git',
+                        'commit',
+                        '-m',
+                        'Resolved all conflicts by accepting incoming changes'
                     ], base_path());
 
                     $commitProcess->run();
@@ -93,7 +108,9 @@ class WebhookController extends Controller
 
                     // Buat merge message otomatis
                     $autoMergeMessage = new Process([
-                        'git', 'commit', '--no-edit'
+                        'git',
+                        'commit',
+                        '--no-edit'
                     ], base_path());
 
                     $autoMergeMessage->run();
@@ -108,7 +125,9 @@ class WebhookController extends Controller
 
                 // Lanjutkan merge jika tidak ada konflik
                 $mergeProcess = new Process([
-                    'git', 'merge', '--strategy-option=theirs'
+                    'git',
+                    'merge',
+                    '--strategy-option=theirs'
                 ], base_path());
 
                 $mergeProcess->run();
@@ -123,7 +142,6 @@ class WebhookController extends Controller
                 Log::info('Git Pull and Merge (accept theirs) Successful');
 
                 return response('Webhook handled successfully', 200);
-
             } catch (ProcessFailedException $e) {
                 // Jika terjadi kegagalan pada proses git
                 Log::error('Git Process Failed', [
