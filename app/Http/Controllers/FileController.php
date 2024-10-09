@@ -69,7 +69,7 @@ class FileController extends Controller
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
             $file['folder_id'] = $file->folder->uuid;
-            $file['shared_with'] = $file->userPermissions->user;
+            $file['shared_with'] = $file->userPermissions;
 
             // Sembunyikan kolom 'path' dan 'nanoid'
             $file->makeHidden(['path', 'nanoid', 'user_id', 'favorite', 'folder', 'userPermissions']);
@@ -110,7 +110,7 @@ class FileController extends Controller
                 $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
                 $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
                 $file['folder_id'] = $file->folder->uuid;
-                $file['shared_with'] = $file->userPermissions->user;
+                $file['shared_with'] = $file->userPermissions;
                 return $file;
             });
 
