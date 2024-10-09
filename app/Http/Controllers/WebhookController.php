@@ -23,6 +23,7 @@ class WebhookController extends Controller
         // }
 
         if (!$request->header('X-Github-Event')) {
+            Log::error('Invalid GitHub request');
             return response('Invalid github request', 403);
         }
 
