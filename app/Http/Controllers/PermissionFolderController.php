@@ -22,7 +22,7 @@ class PermissionFolderController extends Controller
     private function checkPermission($folderId)
     {
         $user = Auth::user();
-        if(is_int($folderId)){
+        if (is_int($folderId)) {
             $folder = Folder::find($folderId);
         } else {
             $folder = Folder::where('uuid', $folderId)->first();
@@ -46,7 +46,7 @@ class PermissionFolderController extends Controller
     public function getAllPermissionOnFolder($folderIdParam)
     {
         $folder = Folder::where('uuid', $folderIdParam)->first();
-        $folderId = $folder->pluck('id');
+        $folderId = $folder->id;
 
         // Periksa apakah pengguna yang meminta memiliki izin untuk melihat perizinan folder ini
         $permission = $this->checkPermission($folderId);
@@ -114,8 +114,8 @@ class PermissionFolderController extends Controller
         $folder = Folder::where('uuid', $request->folder_id)->first();
         $userInfo = User::where('uuid', $request->user_id)->first();
 
-        $folderId = $folder->pluck('id');
-        $userId = $userInfo->pluck('id');
+        $folderId = $folder->id;
+        $userId = $userInfo->id;
 
         if (!$folder) {
             return response()->json([
@@ -179,27 +179,45 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        $folder = Folder::where('uuid', $request->folder_id)->first();
-        $userInfo = User::where('uuid', $request->user_id)->first();
-
-        $folderId = $folder->id;
-        $userId = $userInfo->id;
-
-        if ($folder->user_id == $userId) {
-            return response()->json([
-                'errors' => 'You cannot modify permissions for the owner of the folder.'
-            ], 403);
-        }
-
-        // check if the user who owns the folder will grant permissions.
-        $permission = $this->checkPermission($folderId);
-        if (!$permission) {
-            return response()->json([
-                'errors' => 'You do not have the authority to grant permissions on this Folder.'
-            ], 403);
-        }
-
         try {
+            $folder = Folder::where('uuid', $request->folder_id)->first();
+            $userInfo = User::where('uuid', $request->user_id)->first();
+
+            if (!$folder) {
+                Log::warning('Attempt to add a folder permission on non-existence folder', [
+                    'folder_id' => $request->folder_id
+                ]);
+                return response()->json([
+                    'errors' => 'Folder not found.'
+                ], 404);
+            }
+
+            if (!$userInfo) {
+                Log::warning('Attempt to add a folder permission on non-existence user', [
+                    'user_id' => $request->user_id
+                ]);
+                return response()->json([
+                    'errors' => 'User not found.'
+                ], 404);
+            }
+
+            $folderId = $folder->id;
+            $userId = $userInfo->id;
+
+            if ($folder->user_id == $userId) {
+                return response()->json([
+                    'errors' => 'You cannot modify permissions for the owner of the folder.'
+                ], 403);
+            }
+
+            // check if the user who owns the folder will grant permissions.
+            $permission = $this->checkPermission($folderId);
+            if (!$permission) {
+                return response()->json([
+                    'errors' => 'You do not have the authority to grant permissions on this Folder.'
+                ], 403);
+            }
+
             $checkUserFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if ($checkUserFolderPermission) {
@@ -284,27 +302,45 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        $folder = Folder::where('uuid', $request->folder_id)->first();
-        $userInfo = User::where('uuid', $request->user_id)->first();
-
-        $folderId = $folder->id;
-        $userId = $userInfo->id;
-
-        if ($folder->user_id == $userId) {
-            return response()->json([
-                'errors' => 'You cannot modify permissions for the owner of the folder.'
-            ], 403);
-        }
-
-        // check if the user who owns the folder will revoke permissions.
-        $permission = $this->checkPermission($folderId);
-        if (!$permission) {
-            return response()->json([
-                'errors' => 'You do not have the authority to change permissions on this Folder.'
-            ], 403);
-        }
-
         try {
+            $folder = Folder::where('uuid', $request->folder_id)->first();
+            $userInfo = User::where('uuid', $request->user_id)->first();
+
+            if (!$folder) {
+                Log::warning('Attempt to change a folder permission on non-existence folder', [
+                    'folder_id' => $request->folder_id
+                ]);
+                return response()->json([
+                    'errors' => 'Folder not found.'
+                ], 404);
+            }
+
+            if (!$userInfo) {
+                Log::warning('Attempt to change a folder permission on non-existence user', [
+                    'user_id' => $request->user_id
+                ]);
+                return response()->json([
+                    'errors' => 'User not found.'
+                ], 404);
+            }
+
+            $folderId = $folder->id;
+            $userId = $userInfo->id;
+
+            if ($folder->user_id == $userId) {
+                return response()->json([
+                    'errors' => 'You cannot modify permissions for the owner of the folder.'
+                ], 403);
+            }
+
+            // check if the user who owns the folder will revoke permissions.
+            $permission = $this->checkPermission($folderId);
+            if (!$permission) {
+                return response()->json([
+                    'errors' => 'You do not have the authority to change permissions on this Folder.'
+                ], 403);
+            }
+
             $userFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if (!$userFolderPermission) {
@@ -353,27 +389,46 @@ class PermissionFolderController extends Controller
             ], 422);
         }
 
-        $folder = Folder::where('uuid', $request->folder_id)->first();
-        $userInfo = User::where('uuid', $request->user_id)->first();
-
-        $folderId = $folder->pluck('id');
-        $userId = $userInfo->pluck('id');
-
-        if ($folder->user_id == $userId) {
-            return response()->json([
-                'errors' => 'You cannot modify permissions for the owner of the folder.'
-            ], 403);
-        }
-
-        // check if the user who owns the folder will revoke permissions.
-        $permission = $this->checkPermission($folderId);
-        if (!$permission) {
-            return response()->json([
-                'errors' => 'You do not have the authority to revoke permissions on this Folder.'
-            ], 403);
-        }
 
         try {
+            $folder = Folder::where('uuid', $request->folder_id)->first();
+            $userInfo = User::where('uuid', $request->user_id)->first();
+
+            if (!$folder) {
+                Log::warning('Attempt to delete a folder permission on non-existence folder', [
+                    'folder_id' => $request->folder_id
+                ]);
+                return response()->json([
+                    'errors' => 'Folder not found.'
+                ], 404);
+            }
+
+            if (!$userInfo) {
+                Log::warning('Attempt to delete a folder permission on non-existence user', [
+                    'user_id' => $request->user_id
+                ]);
+                return response()->json([
+                    'errors' => 'User not found.'
+                ], 404);
+            }
+
+            $folderId = $folder->id;
+            $userId = $userInfo->id;
+
+            if ($folder->user_id == $userId) {
+                return response()->json([
+                    'errors' => 'You cannot modify permissions for the owner of the folder.'
+                ], 403);
+            }
+
+            // check if the user who owns the folder will revoke permissions.
+            $permission = $this->checkPermission($folderId);
+            if (!$permission) {
+                return response()->json([
+                    'errors' => 'You do not have the authority to revoke permissions on this Folder.'
+                ], 403);
+            }
+
             $userFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if (!$userFolderPermission) {
