@@ -34,4 +34,14 @@ class Tags extends Model
         return $this->folders()->count() + $this->files()->count();
     }
 
+    public function calculateFolderUsageCount()
+    {
+        return $this->folders()->count();
+    }
+
+    public function calculateFileUsageCount()
+    {
+        return $this->files()->count();
+    }
+
 }

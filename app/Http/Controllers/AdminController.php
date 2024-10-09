@@ -148,20 +148,25 @@ class AdminController extends Controller
         }
 
         try {
-            $userCount = User::count();
+            $totalUserCount = User::count();
+            $userRoleCount = User::where('role', 'user')->count();
+            $adminRoleCount = User::where('role', 'admin')->count();
 
-            if (!$userCount) {
+            if ($totalUserCount === 0) {
                 return response()->json([
-                    'message' => 'User registered is empty.',
-                    'user_count' => $userCount
+                    'message' => 'No users are registered.',
+                    'total_user_count' => $totalUserCount,
+                    'user_role_count' => $userRoleCount,
+                    'admin_role_count' => $adminRoleCount
                 ]);
             }
 
             return response()->json([
-                'user_count' => $userCount
+                'total_user_count' => $totalUserCount,
+                'user_role_count' => $userRoleCount,
+                'admin_role_count' => $adminRoleCount
             ]);
         } catch (Exception $e) {
-
             Log::error('Error occurred on getting user count: ' . $e->getMessage());
 
             return response()->json([

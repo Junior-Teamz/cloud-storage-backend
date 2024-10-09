@@ -30,36 +30,57 @@ class SearchController extends Controller
         }
 
         try {
-            // Pencarian folder berdasarkan nama yang cocok (LIKE)
-            $foldersQuery = Folder::where('user_id', $user->id)
-                ->where('name', 'LIKE', '%' . $request->name . '%')
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
-
-            // Pencarian file berdasarkan nama yang cocok (LIKE)
-            $filesQuery = File::where('user_id', $user->id)
-                ->where('name', 'LIKE', '%' . $request->name . '%')
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
-
             // Ambil jumlah item per halaman, default 10
             $perPage = $request->get('per_page', 10);
-
             // Ambil halaman spesifik untuk folder dan file, default ke halaman 1
             $folderPage = $request->get('folder_page', 1);
             $filePage = $request->get('file_page', 1);
 
-            // Paginasi untuk folder dan file dengan halaman terpisah
-            $folders = $foldersQuery->paginate($perPage, ['*'], 'folders_page', $folderPage);
-            $files = $filesQuery->paginate($perPage, ['*'], 'files_page', $filePage);
+            // Pencarian folder milik user
+            $ownFoldersQuery = Folder::where('user_id', $user->id)
+                ->where('name', 'LIKE', '%' . $request->name . '%')
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+
+            // Pencarian file milik user
+            $ownFilesQuery = File::where('user_id', $user->id)
+                ->where('name', 'LIKE', '%' . $request->name . '%')
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+
+            // Pencarian folder yang dibagikan kepada user
+            $sharedFoldersQuery = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+                ->where('name', 'LIKE', '%' . $request->name . '%')
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+
+            // Pencarian file yang dibagikan kepada user
+            $sharedFilesQuery = File::whereHas('userPermissions', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+                ->where('name', 'LIKE', '%' . $request->name . '%')
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+
+            // Paginasi untuk folder milik user dan folder yang dibagikan
+            $ownFolders = $ownFoldersQuery->paginate($perPage, ['*'], 'own_folders_page', $folderPage);
+            $sharedFolders = $sharedFoldersQuery->paginate($perPage, ['*'], 'shared_folders_page', $folderPage);
+
+            // Paginasi untuk file milik user dan file yang dibagikan
+            $ownFiles = $ownFilesQuery->paginate($perPage, ['*'], 'own_files_page', $filePage);
+            $sharedFiles = $sharedFilesQuery->paginate($perPage, ['*'], 'shared_files_page', $filePage);
 
             // Menyembunyikan kolom 'path' dan 'nanoid' pada hasil pencarian
-            $folders->makeHidden(['path', 'nanoid']);
-            $files->makeHidden(['path', 'nanoid']);
+            $ownFolders->makeHidden(['path', 'nanoid']);
+            $sharedFolders->makeHidden(['path', 'nanoid']);
+            $ownFiles->makeHidden(['path', 'nanoid']);
+            $sharedFiles->makeHidden(['path', 'nanoid']);
 
-            // Return hasil pencarian untuk folder dan file
+            // Return hasil pencarian untuk folder dan file milik sendiri dan yang dibagikan
             return response()->json([
                 'data' => [
-                    'folders' => $folders,
-                    'files' => $files,
+                    'own_folders' => $ownFolders,
+                    'own_files' => $ownFiles,
+                    'shared_folders' => $sharedFolders,
+                    'shared_files' => $sharedFiles,
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -79,7 +100,7 @@ class SearchController extends Controller
             $keywordEmail = $request->query('email');
 
             // Buat query dasar dengan relasi dan kolom yang dipilih
-            $query = User::with('instances:id,name,address')->select('id', 'name', 'email');
+            $query = User::with('instances:id,name,address')->select('name', 'email');
 
             // Jika ada query name, tambahkan kondisi pencarian untuk name
             if ($keywordName) {

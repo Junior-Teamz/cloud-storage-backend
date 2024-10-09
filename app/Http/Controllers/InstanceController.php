@@ -147,74 +147,94 @@ class InstanceController extends Controller
     }
 
     public function getInstanceUsageStatistics(Request $request)
-    {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+{
+    $checkAdmin = $this->checkAdminService->checkAdmin();
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
-
-        try {
-            // Ambil semua instansi dengan pagination
-            $perPage = $request->query('per_page', 10); // Default paginate 10 item per halaman
-            $instances = Instance::paginate($perPage);
-
-            // Buat array untuk menampung data
-            $data = [];
-
-            // Loop melalui setiap instansi untuk menghitung statistik
-            foreach ($instances as $instance) {
-                // Hitung jumlah user yang menggunakan instansi ini
-                $userTotal = DB::table('user_has_instances')
-                    ->where('instance_id', $instance->id)
-                    ->distinct('user_id')
-                    ->count('user_id');
-
-                // Hitung jumlah folder yang menggunakan instansi ini
-                $folderTotal = DB::table('folder_has_instances')
-                    ->where('instance_id', $instance->id)
-                    ->distinct('folder_id')
-                    ->count('folder_id');
-
-                // Hitung jumlah file yang menggunakan instansi ini
-                $fileTotal = DB::table('file_has_instances')
-                    ->where('instance_id', $instance->id)
-                    ->distinct('file_id')
-                    ->count('file_id');
-
-                // Masukkan data ke dalam array
-                $data[] = [
-                    'id' => $instance->id,
-                    'name' => $instance->name,
-                    'address' => $instance->address,
-                    'user_total' => $userTotal,
-                    'folder_total' => $folderTotal,
-                    'file_total' => $fileTotal,
-                ];
-            }
-
-            // Gunakan pagination data dan tambahkan data statistik yang dihasilkan
-            $paginatedData = [
-                'data' => $data,
-                'pagination' => [
-                    'current_page' => $instances->currentPage(),
-                    'per_page' => $instances->perPage(),
-                    'total' => $instances->total(),
-                    'last_page' => $instances->lastPage(),
-                ]
-            ];
-
-            // Mengembalikan data dalam format JSON
-            return response()->json($paginatedData, 200);
-        } catch (Exception $e) {
-            Log::error('Error occurred while fetching instance usage statistics: ' . $e->getMessage());
-            return response()->json([
-                'errors' => 'An error occurred while fetching instance usage statistics.'
-            ], 500);
-        }
+    if (!$checkAdmin) {
+        return response()->json([
+            'errors' => 'You are not allowed to perform this action.'
+        ], 403);
     }
+
+    try {
+        // Ambil semua instansi dengan pagination
+        $perPage = $request->query('per_page', 10); // Default paginate 10 item per halaman
+        $instances = Instance::paginate($perPage);
+
+        // Buat array untuk menampung data
+        $data = [];
+
+        // Loop melalui setiap instansi untuk menghitung statistik
+        foreach ($instances as $instance) {
+            // Hitung jumlah total user yang menggunakan instansi ini
+            $userTotal = DB::table('user_has_instances')
+                ->where('instance_id', $instance->id)
+                ->distinct('user_id')
+                ->count('user_id');
+
+            // Hitung jumlah user dengan role 'user' dalam instansi ini
+            $userRoleCount = DB::table('users')
+                ->join('user_has_instances', 'users.id', '=', 'user_has_instances.user_id')
+                ->where('user_has_instances.instance_id', $instance->id)
+                ->where('users.role', 'user')
+                ->distinct('users.id')
+                ->count('users.id');
+
+            // Hitung jumlah user dengan role 'admin' dalam instansi ini
+            $adminRoleCount = DB::table('users')
+                ->join('user_has_instances', 'users.id', '=', 'user_has_instances.user_id')
+                ->where('user_has_instances.instance_id', $instance->id)
+                ->where('users.role', 'admin')
+                ->distinct('users.id')
+                ->count('users.id');
+
+            // Hitung jumlah folder yang menggunakan instansi ini
+            $folderTotal = DB::table('folder_has_instances')
+                ->where('instance_id', $instance->id)
+                ->distinct('folder_id')
+                ->count('folder_id');
+
+            // Hitung jumlah file yang menggunakan instansi ini
+            $fileTotal = DB::table('file_has_instances')
+                ->where('instance_id', $instance->id)
+                ->distinct('file_id')
+                ->count('file_id');
+
+            // Masukkan data ke dalam array
+            $data[] = [
+                'id' => $instance->id,
+                'name' => $instance->name,
+                'address' => $instance->address,
+                'user_count' => [
+                    'user_total' => $userTotal,
+                    'role_user_total' => $userRoleCount,
+                    'role_admin_total' => $adminRoleCount
+                ],
+                'folder_total' => $folderTotal,
+                'file_total' => $fileTotal,
+            ];
+        }
+
+        // Gunakan pagination data dan tambahkan data statistik yang dihasilkan
+        $paginatedData = [
+            'data' => $data,
+            'pagination' => [
+                'current_page' => $instances->currentPage(),
+                'per_page' => $instances->perPage(),
+                'total' => $instances->total(),
+                'last_page' => $instances->lastPage(),
+            ]
+        ];
+
+        // Mengembalikan data dalam format JSON
+        return response()->json($paginatedData, 200);
+    } catch (Exception $e) {
+        Log::error('Error occurred while fetching instance usage statistics: ' . $e->getMessage());
+        return response()->json([
+            'errors' => 'An error occurred while fetching instance usage statistics.'
+        ], 500);
+    }
+}
 
     /**
      * Membuat instansi baru.

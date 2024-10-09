@@ -69,13 +69,14 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
 
-        Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFolderLink']);
-
         Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
 
         Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
 
         Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
+
+        Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFolderLink']);
+
 
         Route::post('/create', [FolderController::class, 'create']);  // Membuat folder baru
 
@@ -95,6 +96,12 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
     Route::prefix('file')->group(function () {
 
         Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file user, tidak peduli dari folder apapun.
+
+        Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFile']); // Mendapatkan semua file yang di favoritkan
+
+        Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
+
+        Route::delete('/deleteFavorite', [FileFavoriteController::class, 'deleteFavoriteFolder']);
 
         Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
 
@@ -164,6 +171,8 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
     Route::prefix('users')->group(function () {
         Route::get('/list', [AdminController::class, 'listUser']); // dapatkan list user (bisa juga menggunakan query seperti ini: /list?name=namauseryangingindicari)
 
+        Route::get('/countTotalUser', [AdminController::class, 'countAllUser']); // dapatkan informasi total user dengan role yang terdaftar.
+
         Route::get('/info/{userId}', [AdminController::class, 'user_info']); // dapatkan informasi tentang user
 
         Route::post('/create_user', [AdminController::class, 'createUserFromAdmin']); // route untuk membuat user baru melalui admin.
@@ -209,7 +218,7 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::get('/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
 
-        Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFiles']); // Mendapatkan semua file yang di favoritkan
+        Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFile']); // Mendapatkan semua file yang di favoritkan
 
         Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
 

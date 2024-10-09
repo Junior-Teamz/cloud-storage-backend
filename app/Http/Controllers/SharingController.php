@@ -94,13 +94,25 @@ class SharingController extends Controller
         $folderPage = $request->get('folder_page', 1);
         $filePage = $request->get('file_page', 1);
 
+        // Ambil filter instansi jika ada
+        $instanceNameFilter = $request->get('instance_name');
+
         try {
             // Ambil semua folder yang dibagikan kepada user login
-            $sharedFolders = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
+            $sharedFoldersQuery = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders'])
-                ->get();
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders']);
+
+            // Jika ada filter berdasarkan nama instansi, tambahkan ke query
+            if ($instanceNameFilter) {
+                $sharedFoldersQuery->whereHas('instances', function ($query) use ($instanceNameFilter) {
+                    $query->where('name', 'like', '%' . $instanceNameFilter . '%');
+                });
+            }
+
+            // Ambil folder setelah filtering instansi
+            $sharedFolders = $sharedFoldersQuery->get();
 
             // Filter folder induk yang dibagikan jika subfolder-nya juga dibagikan
             $filteredFolders = $sharedFolders->filter(function ($folder) use ($sharedFolders) {
@@ -123,11 +135,20 @@ class SharingController extends Controller
             );
 
             // Ambil semua file yang dibagikan kepada user login dengan pagination
-            $sharedFiles = File::whereHas('userPermissions', function ($query) use ($user) {
+            $sharedFilesQuery = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address'])
-                ->paginate($perPage, ['*'], 'file_page', $filePage);
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+
+            // Jika ada filter berdasarkan nama instansi, tambahkan ke query untuk file juga
+            if ($instanceNameFilter) {
+                $sharedFilesQuery->whereHas('instances', function ($query) use ($instanceNameFilter) {
+                    $query->where('name', 'like', '%' . $instanceNameFilter . '%');
+                });
+            }
+
+            // Ambil file setelah filtering instansi
+            $sharedFiles = $sharedFilesQuery->paginate($perPage, ['*'], 'file_page', $filePage);
 
             // Format response untuk folder
             $formattedFolders = $paginatedFolders->map(function ($folder) use ($user) {

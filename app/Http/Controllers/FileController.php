@@ -68,7 +68,7 @@ class FileController extends Controller
 
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
-            
+
             $file['shared_with'] = $file->userPermissions;
 
             // Sembunyikan kolom 'path' dan 'nanoid'
@@ -91,17 +91,28 @@ class FileController extends Controller
     }
 
     // dapatkan semua file dan total filenya
-    public function getAllFilesAndTotalSize()
+    public function getAllFilesAndTotalSize(Request $request)
     {
         $user = Auth::user();
 
         try {
+            // Ambil query parameter untuk sorting, default ke 'desc' jika tidak ada
+            // Validasi parameter sort, hanya izinkan 'asc' atau 'desc', default ke 'desc'
+            $sortOrder = strtolower($request->query('sort', 'desc'));
+            if (!in_array($sortOrder, ['asc', 'desc'])) {
+                $sortOrder = 'desc'; // Set default ke 'desc' jika parameter tidak valid
+            }
+
             // Ambil semua file dari database dengan paginasi, termasuk user, tags, dan instances
             $filesQuery = File::where('user_id', $user->id)
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email',]);
+                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email',])
+                ->orderBy('size', $sortOrder); // Urutkan berdasarkan ukuran file (size)
 
             // Hitung total ukuran file langsung dari query sebelum paginasi
             $totalSize = $filesQuery->sum('size');
+
+            // Hitung total file yang dimiliki user
+            $totalFile = $filesQuery->count();
 
             // Lakukan paginasi dari hasil query
             $files = $filesQuery->paginate(10);
@@ -109,7 +120,7 @@ class FileController extends Controller
             $files->getCollection()->transform(function ($file) use ($user) {
                 $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
                 $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
-                
+
                 $file['shared_with'] = $file->userPermissions;
                 return $file;
             });
@@ -117,15 +128,15 @@ class FileController extends Controller
             // Sembunyikan kolom 'path' dan 'nanoid' dari respon JSON
             $files->makeHidden(['path', 'nanoid', 'user_id', 'favorite', 'folder', 'userPermissions']);
 
-            // Return daftar file yang dipaginasi dan total ukuran
+            // Return daftar file yang dipaginasi, total file, dan total ukuran
             return response()->json([
                 'data' => [
+                    'total_file' => $totalFile,
                     'total_size' => $totalSize,
                     'files' => $files,
                 ],
             ], 200);
         } catch (\Exception $e) {
-
             Log::error('An error occurred while fetching all files and total size: ' . $e->getMessage());
 
             return response()->json([
@@ -254,7 +265,7 @@ class FileController extends Controller
                 $file->instances()->sync($userInstances);
 
                 $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
-                
+
                 $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
                 // Tambahkan file ke dalam array yang akan dikembalikan
@@ -618,11 +629,11 @@ class FileController extends Controller
             ]);
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
-            
+
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
-            
+
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -728,7 +739,7 @@ class FileController extends Controller
             $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
             $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
-            
+
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 

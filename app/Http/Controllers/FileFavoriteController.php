@@ -48,6 +48,8 @@ class FileFavoriteController extends Controller
         return false;
     }
 
+    // TODO: new function count all favorite files
+
     public function getAllFavoriteFile(Request $request)
     {
         $userLogin = Auth::user();
