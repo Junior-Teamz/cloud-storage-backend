@@ -162,8 +162,8 @@ class PermissionFileController extends Controller
         $file = File::where('uuid', $request->file_id)->first();
         $userInfo = User::where('uuid', $request->user_id)->first();
 
-        $fileId = $file->pluck('id');
-        $userId = $userInfo->pluck('id');
+        $fileId = $file->id;
+        $userId = $userInfo->id;
 
         if ($file->user_id == $userId) {
             return response()->json([
@@ -233,8 +233,8 @@ class PermissionFileController extends Controller
         $file = File::where('uuid', $request->file_id)->first();
         $userInfo = User::where('uuid', $request->user_id)->first();
 
-        $fileId = $file->pluck('id');
-        $userId = $userInfo->pluck('id');
+        $fileId = $file->id;
+        $userId = $userInfo->id;
 
         if ($file->user_id == $userId) {
             return response()->json([
