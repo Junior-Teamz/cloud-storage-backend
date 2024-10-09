@@ -94,7 +94,7 @@ class TagController extends Controller
                 ]);
             }
 
-            $tagData['usage_count'] = $tagData->usage_count;
+            $tagData['usage_count'] = $tagData->calculateUsageCount();
 
             return response()->json([
                 'data' => $tagData
