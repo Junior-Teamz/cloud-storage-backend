@@ -182,8 +182,8 @@ class PermissionFolderController extends Controller
         $folder = Folder::where('uuid', $request->folder_id)->first();
         $userInfo = User::where('uuid', $request->user_id)->first();
 
-        $folderId = $folder->pluck('id');
-        $userId = $userInfo->pluck('id');
+        $folderId = $folder->id;
+        $userId = $userInfo->id;
 
         if ($folder->user_id == $userId) {
             return response()->json([
@@ -287,8 +287,8 @@ class PermissionFolderController extends Controller
         $folder = Folder::where('uuid', $request->folder_id)->first();
         $userInfo = User::where('uuid', $request->user_id)->first();
 
-        $folderId = $folder->pluck('id');
-        $userId = $userInfo->pluck('id');
+        $folderId = $folder->id;
+        $userId = $userInfo->id;
 
         if ($folder->user_id == $userId) {
             return response()->json([
