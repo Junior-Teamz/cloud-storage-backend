@@ -25,13 +25,13 @@ Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
 
-Route::post('/login', [AuthController::class, 'login'])->name('login'); // login user
+Route::post('/login', [AuthController::class, 'login']); // login user
 
 Route::post('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // TODO: periksa apakah token jwt masih valid atau tidak
 
 // Route::post('/refreshToken', [AuthController::class, 'refreshToken'])->middleware('auth:api'); // TODO: refresh token jwt
 
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api')->name('logout');  // logout user
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
 
 Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['auth:api']);
 
