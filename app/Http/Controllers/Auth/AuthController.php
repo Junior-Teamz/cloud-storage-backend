@@ -78,7 +78,9 @@ class AuthController extends Controller
             return response()->json($responseData);
             // return response()->json($responseData);
         } catch (\Exception $e) {
-            Log::error('Login error: ' . $e->getMessage());
+            Log::error('Login error: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json(['errors' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
         }
     }
@@ -110,7 +112,9 @@ class AuthController extends Controller
                     'errors' => 'Token is Blacklisted'
                 ], 403); // HTTP 403 Forbidden
             } else {
-                Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage());
+                Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage(), [
+                    'trace' => $e->getTrace()
+                ]);
                 return response()->json([
                     'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
                 ], 500); // HTTP 500 Internal Server Error
@@ -156,7 +160,9 @@ class AuthController extends Controller
     //     } catch (TokenBlacklistedException $e) {
     //         return response()->json(['errors' => 'Refresh Token telah diblacklist.'], 403); // 403 Forbidden
     //     } catch (JWTException $e) {
-    //         Log::error('Terjadi kesalahan saat mencoba me-refresh token: ' . $e->getMessage());
+    //         Log::error('Terjadi kesalahan saat mencoba me-refresh token: ' . $e->getMessage(), [
+    //         'trace' => $e->getTrace()
+    // ]);
     //         return response()->json(['errors' => 'Terjadi kesalahan, harap coba lagi nanti.'], 500); // 500 Internal Server Error
     //     }
     // }
@@ -170,7 +176,9 @@ class AuthController extends Controller
 
             return response()->json(['message' => 'Logout berhasil']);
         } catch (JWTException $e) {
-            Log::error('Logout error: ' . $e->getMessage());
+            Log::error('Logout error: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json(['errors' => 'Terjadi kesalahan ketika logout'], 500); // 500 Internal Server Error
         }
     }

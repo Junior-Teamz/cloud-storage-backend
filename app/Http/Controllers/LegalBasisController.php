@@ -39,7 +39,9 @@ class LegalBasisController extends Controller
                 'data' => $allLegalBasis
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while fetching all legal basis: ' . $e->getMessage());
+            Log::error('Error occurred while fetching all legal basis: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching all legal basis.'
@@ -77,7 +79,8 @@ class LegalBasisController extends Controller
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred while fetching legal basis with id: ' . $e->getMessage(), [
-                'id' => $id
+                'id' => $id,
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -160,7 +163,9 @@ class LegalBasisController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while saving legal basis: ' . $e->getMessage());
+            Log::error('Error occurred while saving legal basis: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while saving legal basis.'
             ], 500);
@@ -242,7 +247,9 @@ class LegalBasisController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while updating legal basis: ' . $e->getMessage());
+            Log::error('Error occurred while updating legal basis: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while updating legal basis.'
@@ -282,7 +289,9 @@ class LegalBasisController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while deleting legal basis: ' . $e->getMessage());
+            Log::error('Error occurred while deleting legal basis: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while deleting the legal basis.'

@@ -64,7 +64,9 @@ class InstanceController extends Controller
             }
         } catch (Exception $e) {
 
-            Log::error('Error occured while fetching instance data: ' . $e->getMessage());
+            Log::error('Error occured while fetching instance data: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching instance data.'
@@ -107,7 +109,9 @@ class InstanceController extends Controller
                 'data' => $instanceId
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occured while fetching instance data: ' . $e->getMessage());
+            Log::error('Error occured while fetching instance data: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while fetching instance data.'
             ], 500);
@@ -138,7 +142,9 @@ class InstanceController extends Controller
                 'instance_count' => $countInstance
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occured while fetching count all instance: ' . $e->getMessage());
+            Log::error('Error occured while fetching count all instance: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching count all instance.'
@@ -233,7 +239,9 @@ class InstanceController extends Controller
             // Mengembalikan data dalam format JSON
             return response()->json($paginatedData, 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while fetching instance usage statistics: ' . $e->getMessage());
+            Log::error('Error occurred while fetching instance usage statistics: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while fetching instance usage statistics.'
             ], 500);
@@ -304,7 +312,9 @@ class InstanceController extends Controller
 
             DB::rollBack();
 
-            Log::error('Error occurred while creating instance: ' . $e->getMessage());
+            Log::error('Error occurred while creating instance: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while creating instance.'
@@ -358,15 +368,19 @@ class InstanceController extends Controller
             DB::rollBack();
 
             // Tangani error ketika kolom tidak ditemukan
-            Log::error($e->getMessage());
+            Log::error('Column not found: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
-                'errors' => $e->getMessage()
+                'errors' => 'Required Column not found in excel file.'
             ], 422);
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while importing instances: ' . $e->getMessage());
+            Log::error('Error occurred while importing instances: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while importing instances.'
@@ -448,7 +462,9 @@ class InstanceController extends Controller
 
             DB::rollBack();
 
-            Log::error('Error occurred while updating instance: ' . $e->getMessage());
+            Log::error('Error occurred while updating instance: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while updating instance.'
@@ -480,7 +496,7 @@ class InstanceController extends Controller
             $instance = Instance::where('id', $instanceId)->first();
 
             if (!$instance) {
-                Log::error('Attempt to delete non-existent instance: ' . $instanceId);
+                Log::warning('Attempt to delete non-existent instance: ' . $instanceId);
                 return response()->json([
                     'errors' => 'Instance not found.'
                 ], 404);
@@ -513,9 +529,9 @@ class InstanceController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occured while deleting instance data.', [
+            Log::error('Error occured while deleting instance data: ' . $e->getMessage(), [
                 'instance_id' => $instanceId,
-                'message' => $e->getMessage()
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([

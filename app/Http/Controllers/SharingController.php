@@ -75,7 +75,9 @@ class SharingController extends Controller
                 'shared_users' => $sharedUsers
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while getting list of users shared for folder: ' . $e->getMessage());
+            Log::error('Error occurred while getting list of users shared for folder: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while getting list of users shared for folder.'

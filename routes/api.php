@@ -25,13 +25,13 @@ Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
 
-Route::post('/login', [AuthController::class, 'login']); // login user
+Route::post('/login', [AuthController::class, 'login'])->name('login'); // login user
 
 Route::post('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // TODO: periksa apakah token jwt masih valid atau tidak
 
 // Route::post('/refreshToken', [AuthController::class, 'refreshToken'])->middleware('auth:api'); // TODO: refresh token jwt
 
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api')->name('logout');  // logout user
 
 Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['auth:api']);
 
@@ -73,12 +73,13 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
 
+        Route::get('/countFavorite', [FolderFavoriteController::class, 'countAllFavoriteFolders']); // Mendapatkan informasi total folder yang di favoritkan
+
         Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
 
         Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
 
         Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFolderLink']);
-
 
         Route::post('/create', [FolderController::class, 'create']);  // Membuat folder baru
 
@@ -100,6 +101,8 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
         Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file user, tidak peduli dari folder apapun.
 
         Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFile']); // Mendapatkan semua file yang di favoritkan
+
+        Route::get('/countFavorite', [FileFavoriteController::class, 'countAllFavoriteFiles']); // Mendapatkan informasi total file yang di favoritkan
 
         Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
 

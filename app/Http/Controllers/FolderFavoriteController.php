@@ -39,6 +39,41 @@ class FolderFavoriteController extends Controller
         return $totalSize;
     }
 
+    public function countAllFavoriteFolders()
+    {
+        $userLogin = Auth::user();
+
+        try {
+            $userInfo = User::find($userLogin->id);
+            // Hitung total folder yang difavoritkan oleh user saat ini
+            $totalFavoriteFolders = $userInfo->favoriteFolders()->count();
+
+            // Hitung folder milik sendiri yang difavoritkan oleh user
+            $ownFavoriteFolders = $userInfo->favoriteFolders()
+                ->where('user_id', $userInfo->id)
+                ->count();
+
+            // Hitung folder yang dibagikan (bukan milik user), namun difavoritkan oleh user
+            $sharedFavoriteFolders = $userInfo->favoriteFolders()
+                ->where('user_id', '!=', $userInfo->id)
+                ->count();
+
+            return response()->json([
+                'total_favorite_folders' => $totalFavoriteFolders,
+                'own_favorite_folders' => $ownFavoriteFolders,
+                'shared_favorite_folders' => $sharedFavoriteFolders,
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error counting favorite folders: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'error' => 'An error occurred while counting favorite folders.'
+            ], 500);
+        }
+    }
+
     public function getAllFavoriteFolders(Request $request)
     {
         $userLogin = Auth::user();
@@ -95,7 +130,9 @@ class FolderFavoriteController extends Controller
                 'favorite_folders' => $favoriteFolders
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while fetching favorite folders: ' . $e->getMessage());
+            Log::error('Error occurred while fetching favorite folders: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching favorite folders'
@@ -122,14 +159,6 @@ class FolderFavoriteController extends Controller
         try {
             // Ambil data user
             $user = User::find($userLogin->id);
-
-            if (!$user) {
-                Log::error('Error occured: user not found: ' . $userLogin->id);
-
-                return response()->json([
-                    'errors' => 'Internal error occured, Please try again later.'
-                ], 500);
-            }
 
             // Ambil folder yang akan difavoritkan beserta relasi tags, instances, dan favorite status
             $folder = Folder::with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite' => function ($query) use ($userLogin) {
@@ -159,7 +188,7 @@ class FolderFavoriteController extends Controller
                         'total_size' => $this->calculateFolderSize($folder),
                         'type' => $folder->type,
                         'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
-                        'is_favorited' => $existingFavorite ? true : false, 
+                        'is_favorited' => $existingFavorite ? true : false,
                         'favorited_at' => $folder->favorite->first()->pivot->created_at,
                         'user' => $folder->user,
                         'tags' => $folder->tags,
@@ -180,8 +209,6 @@ class FolderFavoriteController extends Controller
                 $query->where('user_id', $userLogin->id);
             }]);
 
-            
-
             // Setelah berhasil ditambahkan ke favorit, kirimkan respon dengan data lengkap folder
             return response()->json([
                 'message' => 'Folder berhasil ditambahkan ke favorit.',
@@ -199,6 +226,10 @@ class FolderFavoriteController extends Controller
         } catch (Exception $e) {
             // Jika terjadi error, rollback transaksi
             DB::rollBack();
+
+            Log::error('Error occured while adding folder to favorite: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'error' => 'Terjadi kesalahan saat menambahkan favorit.'
@@ -236,7 +267,9 @@ class FolderFavoriteController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while removing folder from favorites: ' . $e->getMessage());
+            Log::error('Error occurred while removing folder from favorites: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while removing folder from favorites'

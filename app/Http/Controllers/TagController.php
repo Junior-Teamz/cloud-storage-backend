@@ -75,7 +75,9 @@ class TagController extends Controller
             return response()->json($allTag, 200);  // Kembalikan isi pagination
         } catch (\Exception $e) {
             // Tangani jika ada error
-            Log::error('Error occurred while fetching tag data: ' . $e->getMessage());
+            Log::error('Error occurred while fetching tag data: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching tag data.'
@@ -104,7 +106,9 @@ class TagController extends Controller
                 'data' => $tagData
             ]);
         } catch (\Exception $e) {
-            Log::error('Error occured while fetching tag data: ' . $e->getMessage());
+            Log::error('Error occured while fetching tag data: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while fetching tag data.'
             ], 500);
@@ -135,7 +139,9 @@ class TagController extends Controller
                 'tag_count' => $countTag
             ]);
         } catch (Exception $e) {
-            Log::error('Error occurred on getting tag count: ' . $e->getMessage());
+            Log::error('Error occurred on getting tag count: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred on getting tag count.'
@@ -189,7 +195,9 @@ class TagController extends Controller
                 ]
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while fetching tag usage statistics: ' . $e->getMessage());
+            Log::error('Error occurred while fetching tag usage statistics: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching tag usage statistics.'
@@ -247,7 +255,9 @@ class TagController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occured while creating tag: ' . $e->getMessage());
+            Log::error('Error occured while creating tag: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while creating tag.'
@@ -281,7 +291,9 @@ class TagController extends Controller
             return Storage::download($filePath, 'TagImport_Example.xlsx');
         } catch (Exception $e) {
             // Log error jika terjadi exception
-            Log::error('Error occurred while downloading example file: ' . $e->getMessage());
+            Log::error('Error occurred while downloading example file: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while downloading the example file.'
@@ -345,10 +357,12 @@ class TagController extends Controller
             Storage::delete($path);
 
             // Tangani error ketika kolom tidak ditemukan
-            Log::error($e->getMessage());
+            Log::error('Column not found in file excel: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
-                'errors' => $e->getMessage()
+                'errors' => 'Required Column was not found in excel file.'
             ], 422);
         } catch (Exception $e) {
             DB::rollBack();
@@ -356,7 +370,9 @@ class TagController extends Controller
             // Hapus file meskipun terjadi error
             Storage::delete($path);
 
-            Log::error('Error occured while importing tags: ' . $e->getMessage());
+            Log::error('Error occured while importing tags: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while importing tags.'
@@ -425,7 +441,9 @@ class TagController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occured while updating tag: ' . $e->getMessage());
+            Log::error('Error occured while updating tag: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while updating tag.'
@@ -492,7 +510,9 @@ class TagController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while deleting tags: ' . $e->getMessage());
+            Log::error('Error occurred while deleting tags: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while deleting tags.'

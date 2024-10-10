@@ -118,7 +118,9 @@ class FolderController extends Controller
                 ]
             ]);
         } catch (Exception $e) {
-            Log::error('Error occured while retrieving storage usage: ' . $e->getMessage());
+            Log::error('Error occured while retrieving storage usage: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occured while retrieving storage usage.'
@@ -140,7 +142,9 @@ class FolderController extends Controller
                 ]
             ]);
         } catch (Exception $e) {
-            Log::error('Error occured while counting all user folder: ' . $e->getMessage());
+            Log::error('Error occured while counting all user folder: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occured while counting all user folder.'
@@ -258,7 +262,7 @@ class FolderController extends Controller
         } catch (Exception $e) {
             Log::error('Error occurred on getting folders and files: ' . $e->getMessage(), [
                 'parent_id' => isset($parentFolder) ? $parentFolder->id : null,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -406,7 +410,7 @@ class FolderController extends Controller
         } catch (Exception $e) {
             Log::error('Error occurred on getting folder info: ' . $e->getMessage(), [
                 'folderId' => $id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -532,7 +536,7 @@ class FolderController extends Controller
                 'name' => $request->name,
                 'parentId' => $request->parent_id,
                 'userId' => $userId,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -618,7 +622,7 @@ class FolderController extends Controller
             Log::error('Error occurred on adding tag to folder: ' . $e->getMessage(), [
                 'folder_id' => $request->folder_id,
                 'tag_id' => $request->tag_id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -703,7 +707,7 @@ class FolderController extends Controller
             Log::error('Error occurred on removing tag from folder: ' . $e->getMessage(), [
                 'folder_id' => $request->folder_id,
                 'tag_id' => $request->tag_id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -807,7 +811,7 @@ class FolderController extends Controller
             Log::error('Error occurred on updating folder name: ' . $e->getMessage(), [
                 'folderId' => $id,
                 'name' => $request->name,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -907,7 +911,7 @@ class FolderController extends Controller
 
             Log::error('Error occurred while deleting folder(s): ' . $e->getMessage(), [
                 'folderIds' => $folderIds,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -1023,7 +1027,7 @@ class FolderController extends Controller
             Log::error('Error occurred on moving folder: ' . $e->getMessage(), [
                 'folderId' => $request->folder_id,
                 'newParentId' => $request->new_parent_id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -1085,7 +1089,7 @@ class FolderController extends Controller
         } catch (Exception $e) {
             Log::error('Error occurred on getting folder path: ' . $e->getMessage(), [
                 'folder_id' => $id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -1128,7 +1132,7 @@ class FolderController extends Controller
         } catch (Exception $e) {
             Log::error('Error occurred on getting folder path: ' . $e->getMessage(), [
                 'folder_id' => $id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([

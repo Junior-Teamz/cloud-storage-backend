@@ -74,7 +74,9 @@ class NewsController extends Controller
                 'data' => $news
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error while getting all news: ' . $e->getMessage());
+            Log::error('Error while getting all news: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while getting all news.'
             ], 500);
@@ -110,7 +112,9 @@ class NewsController extends Controller
                 'data' => $news
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occured while getting news: ' . $e->getMessage());
+            Log::error('Error occured while getting news: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured while getting news.'
             ], 500);
@@ -148,7 +152,9 @@ class NewsController extends Controller
                 'data' => $news
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while getting news by ID: ' . $e->getMessage());
+            Log::error('Error occurred while getting news by ID: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while getting the news.'
             ], 500);
@@ -181,9 +187,9 @@ class NewsController extends Controller
 
     //     } catch (Exception $e) {
     //         DB::rollBack();
-    //         Log::error('Error occurred while adding viewers count to the news', [
+    //         Log::error('Error occurred while adding viewers count to the news: ' . $e->getMessage(), [
     //             'news_id' => $newsIdRequest,
-    //             'message' => $e->getMessage()
+    //             'trace' => $e->getTrace()
     //         ]);
     //         return response()->json([
     //             'An error occurred while adding viewers count to the news.'
@@ -225,7 +231,9 @@ class NewsController extends Controller
                 'data' => $news
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while getting news by ID: ' . $e->getMessage());
+            Log::error('Error occurred while getting news by ID: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while getting the news.'
             ], 500);
@@ -255,7 +263,9 @@ class NewsController extends Controller
                 'data' => $news
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while getting news by ID: ' . $e->getMessage());
+            Log::error('Error occurred while getting news by ID: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while getting the news.'
             ], 500);
@@ -399,7 +409,9 @@ class NewsController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error creating news: ' . $e->getMessage());
+            Log::error('Error while creating news: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'Internal error occurred, please try again later.'
             ], 500);
@@ -559,7 +571,9 @@ class NewsController extends Controller
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error occurred while updating news: ' . $e->getMessage());
+            Log::error('Error occurred while updating news: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while updating the news.'
             ], 500);
@@ -609,7 +623,9 @@ class NewsController extends Controller
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error occured while deleting news: ' . $e->getMessage());
+            Log::error('Error occured while deleting news: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while deleting the news.'
             ], 500);
@@ -664,7 +680,9 @@ class NewsController extends Controller
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error occured while changing news status: ' . $e->getMessage());
+            Log::error('Error occured while changing news status: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred while changing the news status.'
             ], 500);

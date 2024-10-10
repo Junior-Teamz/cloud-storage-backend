@@ -107,7 +107,9 @@ class UserController extends Controller
     //         // ROLLBACK JIKA ADA KESALAHAN
     //         DB::rollBack();
 
-    //         Log::error('Error occurred on registering user: ' . $e->getMessage());
+    //         Log::error('Error occurred on registering user: ' . $e->getMessage(), [
+    //                'trace' => $e->getTrace()
+    //            ]);
     //         return response()->json([
     //             'errors' => 'Terjadi kesalahan ketika mendaftarkan akun.',
     //         ], 500);
@@ -132,7 +134,9 @@ class UserController extends Controller
                 'data' => $userInfo
             ]);
         } catch (Exception $e) {
-            Log::error('Error occurred on getting user information: ' . $e->getMessage());
+            Log::error('Error occurred on getting user information: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured on getting user information.',
             ], 500);
@@ -213,7 +217,9 @@ class UserController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred on updating user: ' . $e->getMessage());
+            Log::error('Error occurred on updating user: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'Terjadi kesalahan ketika mengupdate data user.',
             ], 500);
@@ -259,7 +265,9 @@ class UserController extends Controller
             DB::rollBack();
 
             // Log error jika terjadi exception
-            Log::error('Error occurred on deleting user: ' . $e->getMessage());
+            Log::error('Error occurred on deleting user: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             // Kembalikan respons error
             return response()->json([

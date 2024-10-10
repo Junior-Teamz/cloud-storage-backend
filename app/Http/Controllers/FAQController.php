@@ -57,7 +57,9 @@ class FAQController extends Controller
             ], 200);
         } catch (\Exception $e) {
             // Log error jika terjadi exception
-            Log::error('An error occurred while fetching FAQs: ' . $e->getMessage());
+            Log::error('An error occurred while fetching FAQs: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching FAQs.'
@@ -88,7 +90,9 @@ class FAQController extends Controller
                 'data' => $faq
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Error occured while fetching spesific FAQ: ' . $e->getMessage());
+            Log::error('Error occured while fetching spesific FAQ: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching spesific FAQ.'
@@ -137,7 +141,9 @@ class FAQController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('An error occurred while creating FAQ: ' . $e->getMessage());
+            Log::error('An error occurred while creating FAQ: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while creating FAQ.'
@@ -193,7 +199,9 @@ class FAQController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('An error occurred while updating FAQ: ' . $e->getMessage());
+            Log::error('An error occurred while updating FAQ: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while updating FAQ.'
@@ -233,7 +241,9 @@ class FAQController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('An error occurred while deleting FAQ: ' . $e->getMessage());
+            Log::error('An error occurred while deleting FAQ: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while deleting FAQ.'

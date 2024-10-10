@@ -82,7 +82,7 @@ class FileController extends Controller
         } catch (Exception $e) {
             Log::error('Error encountered while fetching file info: ', [
                 'fileId' => $id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace() 
             ]);
             return response()->json([
                 'errors' => 'An error occurred while fetching the file info.',
@@ -137,7 +137,9 @@ class FileController extends Controller
                 ],
             ], 200);
         } catch (\Exception $e) {
-            Log::error('An error occurred while fetching all files and total size: ' . $e->getMessage());
+            Log::error('An error occurred while fetching all files and total size: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json([
                 'error' => 'An error occurred while fetching all files and total size.'
@@ -296,7 +298,7 @@ class FileController extends Controller
             }
 
             Log::error('Error occurred while uploading files: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace(),
                 'userId' => $user->id,
                 'fileId' => $request->input('file_id', null),
             ]);
@@ -391,7 +393,9 @@ class FileController extends Controller
             }
         } catch (Exception $e) {
 
-            Log::error('Error occurred while downloading files: ' . $e->getMessage());
+            Log::error('Error occurred while downloading files: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json(['error' => 'An error occurred while downloading files'], 500);
         }
@@ -469,7 +473,7 @@ class FileController extends Controller
             Log::error('Error occurred on adding tag to file: ' . $e->getMessage(), [
                 'file_id' => $request->file_id,
                 'tag_id' => $request->tag_id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -550,7 +554,7 @@ class FileController extends Controller
             Log::error('Error occurred on removing tag from file: ' . $e->getMessage(), [
                 'file_id' => $request->file_id,
                 'tag_id' => $request->tag_id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -653,7 +657,7 @@ class FileController extends Controller
             Log::error('Error occurred while updating file name: ' . $e->getMessage(), [
                 'fileId' => $id,
                 'name' => $request->name,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace() 
             ]);
             return response()->json([
                 'errors' => 'An error occurred while updating the file name.',
@@ -759,7 +763,7 @@ class FileController extends Controller
             Log::error('Error occurred while moving file: ' . $e->getMessage(), [
                 'fileId' => $id,
                 'newFolderId' => $request->new_folder_id,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
             return response()->json([
                 'errors' => 'An error occurred while moving the file.',
@@ -849,7 +853,7 @@ class FileController extends Controller
             DB::rollBack();
             Log::error('Error occurred while deleting file(s): ' . $e->getMessage(), [
                 'fileIds' => $fileIds,
-                'trace' => $e->getTraceAsString(),
+                'trace' => $e->getTrace()
             ]);
             return response()->json([
                 'errors' => 'An error occurred while deleting the file(s).',

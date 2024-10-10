@@ -131,7 +131,9 @@ class PermissionFileController extends Controller
                 'data' => $userFilePermission
             ]);
         } catch (Exception $e) {
-            Log::error($e->getMessage());
+            Log::error('Error occured while retrieving user permission: '. $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured while retrieving user permission.'
             ], 500);
@@ -201,7 +203,9 @@ class PermissionFileController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('An error occured while granting user permission: ' . $e->getMessage());
+            Log::error('An error occured while granting user permission: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured while granting user permission.'
             ], 500);
@@ -270,7 +274,9 @@ class PermissionFileController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('An error occured while changing user permission: ' . $e->getMessage());
+            Log::error('An error occured while changing user permission: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured while changing user permission.'
             ], 500);
@@ -335,7 +341,9 @@ class PermissionFileController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('An error occured while revoking user permission: ' . $e->getMessage());
+            Log::error('An error occured while revoking user permission: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured while revoking user permission.'
             ], 500);

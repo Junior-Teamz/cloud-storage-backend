@@ -53,7 +53,9 @@ class NewsTagController extends Controller
                 return response()->json($allTag, 200);
             }
         } catch (\Exception $e) {
-            Log::error('Error occured while fetching tag data: ' . $e->getMessage());
+            Log::error('Error occured while fetching tag data: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching tag data.'
@@ -111,7 +113,9 @@ class NewsTagController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occured while saving news tag: ' . $e->getMessage());
+            Log::error('Error occured while saving news tag: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occured while adding news tag.'
@@ -176,7 +180,9 @@ class NewsTagController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occured while updating news tag: ' . $e->getMessage());
+            Log::error('Error occured while updating news tag: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occured while updating news tag.'
@@ -243,7 +249,9 @@ class NewsTagController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while deleting tags: ' . $e->getMessage());
+            Log::error('Error occurred while deleting tags: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while deleting tags.'

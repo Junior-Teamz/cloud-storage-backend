@@ -130,7 +130,9 @@ class AdminController extends Controller
                 return response()->json($allUser, 200);
             }
         } catch (\Exception $e) {
-            Log::error("Error occurred on getting user list: " . $e->getMessage());
+            Log::error("Error occurred on getting user list: " . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred on getting user list.',
@@ -171,7 +173,9 @@ class AdminController extends Controller
                 'admin_role_count' => $adminRoleCount
             ]);
         } catch (Exception $e) {
-            Log::error('Error occurred on getting user count: ' . $e->getMessage());
+            Log::error('Error occurred on getting user count: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred on getting user count.',
@@ -205,7 +209,9 @@ class AdminController extends Controller
                 'data' => $user
             ]);
         } catch (Exception $e) {
-            Log::error('Error occurred on getting user information: ' . $e->getMessage());
+            Log::error('Error occurred on getting user information: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured on getting user information.',
             ], 500);
@@ -308,7 +314,9 @@ class AdminController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred on adding user: ' . $e->getMessage());
+            Log::error('Error occurred on adding user: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occurred on adding user.',
             ], 500);
@@ -423,7 +431,9 @@ class AdminController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred on updating user: ' . $e->getMessage());
+            Log::error('Error occurred on updating user: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured on updating user.',
             ], 500);
@@ -493,7 +503,9 @@ class AdminController extends Controller
             DB::rollBack();
 
             // Log the error if an exception occurs.
-            Log::error('Error occurred on deleting user: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+            Log::error('Error occurred on deleting user: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             return response()->json([
                 'errors' => 'An error occured on deleting user.',
             ], 500);
@@ -520,7 +532,9 @@ class AdminController extends Controller
                     // Hapus data file dari database
                     $file->delete();
                 } catch (\Exception $e) {
-                    Log::error('Error occurred while deleting file with ID ' . $file->id . ': ' . $e->getMessage());
+                    Log::error('Error occurred while deleting file with ID ' . $file->id . ': ' . $e->getMessage(), [
+     'trace' => $e->getTrace()
+]);
                     // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
                     throw $e;
                 }
@@ -539,7 +553,9 @@ class AdminController extends Controller
                     Storage::deleteDirectory($folderPath);
                 }
             } catch (\Exception $e) {
-                Log::error('Error occurred while deleting folder with ID ' . $folder->id . ': ' . $e->getMessage());
+                Log::error('Error occurred while deleting folder with ID ' . $folder->id . ': ' . $e->getMessage(), [
+                    'trace' => $e->getTrace()
+                ]);
                 // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
                 throw $e;
             }
@@ -548,7 +564,9 @@ class AdminController extends Controller
             try {
                 $folder->delete();
             } catch (\Exception $e) {
-                Log::error('Error occurred while deleting folder record with ID ' . $folder->id . ': ' . $e->getMessage());
+                Log::error('Error occurred while deleting folder record with ID ' . $folder->id . ': ' . $e->getMessage(), [
+                    'trace' => $e->getTrace()
+                ]);
                 // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
                 throw $e;
             }
@@ -558,7 +576,9 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             // Rollback transaksi jika terjadi kesalahan
             DB::rollBack();
-            Log::error('Error occurred while processing folder with ID ' . $folder->id . ': ' . $e->getMessage());
+            Log::error('Error occurred while processing folder with ID ' . $folder->id . ': ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
             // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
             throw $e;
         }
@@ -628,8 +648,8 @@ class AdminController extends Controller
                 ]
             ]);
         } catch (Exception $e) {
-            Log::error('Error occured while retrieving storage usage total', [
-                'error_message' => $e->getMessage()
+            Log::error('Error occured while retrieving storage usage total: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
             ]);
 
             return response()->json([
@@ -671,8 +691,8 @@ class AdminController extends Controller
                 'count_folder' => $countAllFolder
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occured while counting all folder', [
-                'error_message' => $e->getMessage()
+            Log::error('Error occured while counting all folder: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
             ]);
             return response()->json([
                 'errors' => 'An error occured while fetching count all folder,'
@@ -721,8 +741,8 @@ class AdminController extends Controller
                 'formatted_count_size_all_files' => $formattedCountFileSize
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occured while counting all files', [
-                'error_message' => $e->getMessage()
+            Log::error('Error occured while counting all files: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
             ]);
             return response()->json([
                 'errors' => 'An error occured while fetching count all files,'

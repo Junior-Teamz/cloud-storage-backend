@@ -84,7 +84,9 @@ class SearchController extends Controller
                 ],
             ], 200);
         } catch (\Exception $e) {
-            Log::error('An error occurred while searching for folders and files: ' . $e->getMessage());
+            Log::error('An error occurred while searching for folders and files: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'error' => 'An error occurred while searching for folders and files.'
@@ -100,7 +102,7 @@ class SearchController extends Controller
             $keywordEmail = $request->query('email');
 
             // Buat query dasar dengan relasi dan kolom yang dipilih
-            $query = User::with('instances:id,name,address')->select('name', 'email');
+            $query = User::with('instances:id,name,address')->select('id', 'name', 'email');
 
             // Jika ada query name, tambahkan kondisi pencarian untuk name
             if ($keywordName) {
@@ -121,7 +123,9 @@ class SearchController extends Controller
             // Kembalikan hasil pagination tanpa membungkus lagi
             return response()->json($allUser, 200);
         } catch (\Exception $e) {
-            Log::error("Error occurred on getting user list: " . $e->getMessage());
+            Log::error("Error occurred on getting user list: " . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred on getting user list.',

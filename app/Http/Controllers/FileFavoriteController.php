@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Facades\Excel;
 
 class FileFavoriteController extends Controller
 {
@@ -48,7 +49,40 @@ class FileFavoriteController extends Controller
         return false;
     }
 
-    // TODO: new function count all favorite files
+    public function countAllFavoriteFiles()
+    {
+        $userLogin = Auth::user();
+
+        try {
+            $userInfo = User::find($userLogin->id);
+            // Hitung total file yang difavoritkan oleh user saat ini
+            $totalFavoriteFiles = $userInfo->favoriteFiles()->count();
+
+            // Hitung file milik sendiri yang difavoritkan oleh user
+            $ownFavoriteFiles = $userInfo->favoriteFiles()
+                ->where('user_id', $userInfo->id)
+                ->count();
+
+            // Hitung file yang dibagikan (bukan milik user), namun difavoritkan oleh user
+            $sharedFavoriteFiles = $userInfo->favoriteFiles()
+                ->where('user_id', '!=', $userInfo->id)
+                ->count();
+
+            return response()->json([
+                'total_favorite_files' => $totalFavoriteFiles,
+                'own_favorite_files' => $ownFavoriteFiles,
+                'shared_favorite_files' => $sharedFavoriteFiles,
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error counting favorite files: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
+
+            return response()->json([
+                'error' => 'An error occurred while counting favorite files.'
+            ], 500);
+        }
+    }
 
     public function getAllFavoriteFile(Request $request)
     {
@@ -104,7 +138,9 @@ class FileFavoriteController extends Controller
                 'favorite_files' => $favoriteFiles
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while fetching favorite files: ' . $e->getMessage());
+            Log::error('Error occurred while fetching favorite files: ' . $e->getMessage(), [
+                'trace' => $e->getTrace() 
+            ]);
 
             return response()->json([
                 'errors' => 'An error occurred while fetching favorite files'
@@ -131,14 +167,6 @@ class FileFavoriteController extends Controller
         try {
             // Ambil data user
             $user = User::find($userLogin->id);
-
-            if (!$user) {
-                Log::error('Error occured: user not found: ' . $userLogin->id);
-
-                return response()->json([
-                    'errors' => 'Internal error occured, Please try again later.'
-                ], 500);
-            }
 
             // Ambil file yang akan difavoritkan beserta relasi tags, instances, dan favorite status
             $file = File::with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite' => function ($query) use ($userLogin) {
@@ -216,9 +244,9 @@ class FileFavoriteController extends Controller
             // Jika terjadi error, rollback transaksi
             DB::rollBack();
 
-            Log::error('Error occured while adding file to favorite.', [
+            Log::error('Error occured while adding file to favorite: ' . $e->getMessage(), [
                 'file_id' => $request->file_id,
-                'message' => $e->getMessage()
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -284,9 +312,9 @@ class FileFavoriteController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
 
-            Log::error('Error occurred while removing file from favorites', [
+            Log::error('Error occurred while removing file from favorites: ' . $e->getMessage(), [
                 'fileId' => $fileId,
-                'message' => $e->getMessage()
+                'trace' => $e->getTrace() 
             ]);
 
             return response()->json([
