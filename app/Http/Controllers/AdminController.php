@@ -148,9 +148,12 @@ class AdminController extends Controller
         }
 
         try {
+            // Menghitung total user
             $totalUserCount = User::count();
-            $userRoleCount = User::where('role', 'user')->count();
-            $adminRoleCount = User::where('role', 'admin')->count();
+
+            // Menghitung user dengan role 'user' dan 'admin' menggunakan Spatie Laravel Permission
+            $userRoleCount = User::role('user')->count(); // Menggunakan metode role() dari Spatie
+            $adminRoleCount = User::role('admin')->count(); // Menggunakan metode role() dari Spatie
 
             if ($totalUserCount === 0) {
                 return response()->json([
