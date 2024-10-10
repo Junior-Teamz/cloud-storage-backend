@@ -610,7 +610,7 @@ class AdminController extends Controller
 
             if (!$allFolders) {
                 return response()->json([
-                    'errors' => 'No folder was created.'
+                    'message' => 'No folder was created.'
                 ], 200);
             }
 
