@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\File;
 use App\Models\Folder;
 use App\Models\Instance;
 use Illuminate\Http\Request;
@@ -579,5 +580,187 @@ class AdminController extends Controller
         $folderNameWithNanoId = $parentFolder->nanoid;
 
         return $path . '/' . $folderNameWithNanoId;
+    }
+
+
+
+    /**
+     * Dibawah ini, function endpoint untuk mendapatkan statistik semua
+     * folder dan file yang ada. HANYA DIGUNAKAN UNTUK SUPERADMIN.
+     */
+     public function storageUsage()
+    {
+        $userInfo = Auth::user();
+
+        $checkSuperAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkSuperAdmin) {
+            Log::warning('Attempt to access features that can only be accessed by super admins', [
+                'user_id' => $userInfo->id,
+                'user_role' => $userInfo->roles->pluck('name'),
+            ]);
+            return response()->json([
+                'errors' => 'You cannot perform this action.'
+            ], 403);
+        }
+        
+        try {
+            // Dapatkan semua folder
+            $allFolders = Folder::whereNull('parent_id')->get();
+
+            if (!$allFolders) {
+                return response()->json([
+                    'errors' => 'No folder was created.'
+                ], 200);
+            }
+
+            // Hitung total penyimpanan
+            $totalUsedStorage = $this->calculateFolderSize($allFolders);
+
+            // Format ukuran penyimpanan ke dalam KB, MB, atau GB
+            $formattedStorageSize = $this->formatSizeUnits($totalUsedStorage);
+
+            return response()->json([
+                'message' => 'Storage Usage Total: ' . $formattedStorageSize,
+                'data' => [
+                    'rawSize' => $totalUsedStorage,
+                    'formattedSize' => $formattedStorageSize
+                ]
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error occured while retrieving storage usage total', [
+                'error_message' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occured while retrieving storage usage total.'
+            ], 500);
+        }
+    }
+
+    public function allFolderCount()
+    {
+        // variable ini hanya untuk mendapatkan user info yang mengakses endpoint ini.
+        $userInfo = Auth::user();
+
+        $checkSuperAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkSuperAdmin) {
+            Log::warning('Attempt to access features that can only be accessed by super admins', [
+                'user_id' => $userInfo->id,
+                'user_role' => $userInfo->roles->pluck('name'),
+            ]);
+            return response()->json([
+                'errors' => 'You cannot perform this action.'
+            ], 403);
+        }
+
+        try {
+            $countAllFolder = Folder::whereNotNull('parent_id')->count();
+
+            if ($countAllFolder == 0) {
+                return response()->json([
+                    'message' => 'No folders created.',
+                    'data' => [
+                        'count_folder' => $countAllFolder
+                    ]
+                ], 200);
+            }
+
+            return response()->json([
+                'count_folder' => $countAllFolder
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error occured while counting all folder', [
+                'error_message' => $e->getMessage()
+            ]);
+            return response()->json([
+                'errors' => 'An error occured while fetching count all folder,'
+            ], 500);
+        }
+    }
+
+    public function allFileCount()
+    {
+        // variable ini hanya untuk mendapatkan user info yang mengakses endpoint ini.
+        $userInfo = Auth::user();
+
+        $checkSuperAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkSuperAdmin) {
+            Log::warning('Attempt to access features that can only be accessed by super admins', [
+                'user_id' => $userInfo->id,
+                'user_role' => $userInfo->roles->pluck('name'),
+            ]);
+            return response()->json([
+                'errors' => 'You cannot perform this action.'
+            ], 403);
+        }
+
+        try {
+            $getAllFile = File::get();
+
+            $countFileTotal = $getAllFile->count();
+            $countFileSize = $getAllFile->sum('size');
+            $formattedCountFileSize = $this->formatSizeUnits($countFileSize);
+
+            if ($countFileTotal == 0) {
+                return response()->json([
+                    'message' => 'No files.',
+                    'data' => [
+                        'count_file' => $countFileTotal,
+                        'count_size_all_files' => $countFileSize,
+                        'formatted_count_size_all_files' => $formattedCountFileSize
+                    ]
+                ], 200);
+            }
+
+            return response()->json([
+                'count_all_files' => $countFileTotal,
+                'count_size_all_files' => $countFileSize,
+                'formatted_count_size_all_files' => $formattedCountFileSize
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error occured while counting all files', [
+                'error_message' => $e->getMessage()
+            ]);
+            return response()->json([
+                'errors' => 'An error occured while fetching count all files,'
+            ], 500);
+        }
+    }
+
+    private function formatSizeUnits($bytes)
+    {
+        if ($bytes >= 1073741824) {
+            return number_format($bytes / 1073741824, 2) . ' GB';
+        } elseif ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2) . ' KB';
+        } elseif ($bytes > 1) {
+            return $bytes . ' bytes';
+        } elseif ($bytes == 1) {
+            return $bytes . ' byte';
+        } else {
+            return '0 bytes';
+        }
+    }
+
+    private function calculateFolderSize(Folder $folder)
+    {
+        $totalSize = 0;
+
+        // Hitung ukuran semua file di folder
+        foreach ($folder->files as $file) {
+            $totalSize += $file->size;
+        }
+
+        // Rekursif menghitung ukuran semua subfolder
+        foreach ($folder->subfolders as $subfolder) {
+            $totalSize += $this->calculateFolderSize($subfolder);
+        }
+
+        return $totalSize;
     }
 }

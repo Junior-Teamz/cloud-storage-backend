@@ -111,7 +111,7 @@ class FolderController extends Controller
             $formattedStorageSize = $this->formatSizeUnits($totalUsedStorage);
 
             return response()->json([
-                'message' => 'Your storage usage: ' . $totalUsedStorage,
+                'message' => 'Your storage usage: ' . $formattedStorageSize,
                 'data' => [
                     'rawSize' => $totalUsedStorage,
                     'formattedSize' => $formattedStorageSize
@@ -122,6 +122,28 @@ class FolderController extends Controller
 
             return response()->json([
                 'errors' => 'An error occured while retrieving storage usage.'
+            ], 500);
+        }
+    }
+
+    public function countTotalFolderUser()
+    {
+        $user = Auth::user();
+
+        try {
+            // mendapatkan semua folder user (KECUALI FOLDER ROOT) lalu hitung totalnya
+            $countAllFolder = Folder::where('user_id', $user->id)->whereNotNull('parent_id')->count();
+
+            return response()->json([
+                'data' => [
+                    'total_folder' => $countAllFolder
+                ]
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error occured while counting all user folder: ' . $e->getMessage());
+
+            return response()->json([
+                'errors' => 'An error occured while counting all user folder.'
             ], 500);
         }
     }

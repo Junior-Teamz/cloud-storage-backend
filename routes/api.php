@@ -69,6 +69,8 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
 
+        Route::get('/countAllFolder', [FolderController::class, 'countTotalFolderUser']); // mendapatkan count semua folder user yang sedang login saat ini.
+
         Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
 
         Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
@@ -168,6 +170,14 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
     Route::get('/getSharedFolderAndFile', [SharingController::class, 'getSharedFolderAndFile']); // Mendapatkan semua folder dan file yang dibagikan kepada user
 
+    Route::prefix('statistic_superadmin')->group(function () {
+        Route::get('/getStorageUsageTotal', [AdminController::class, 'storageUsage']); // Mendapatkan informasi total penyimpanan digunakan
+
+        Route::get('/getFolderCreated', [AdminController::class, 'allFolderCount']); // Mendapatkan informasi total folder dibuat
+
+        Route::get('/getFiles', [AdminController::class, 'allFileCount']); // Mendapatkan informasi total file
+    });
+
     Route::prefix('users')->group(function () {
         Route::get('/list', [AdminController::class, 'listUser']); // dapatkan list user (bisa juga menggunakan query seperti ini: /list?name=namauseryangingindicari)
 
@@ -185,11 +195,13 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
     Route::prefix('folder')->group(function () {
         Route::get('/', [FolderController::class, 'index']); // dapatkan list folder dan file yang ada pada user yang login saat ini pada folder rootnya.
 
+        Route::get('/countAllFolder', [FolderController::class, 'countTotalFolderUser']); // mendapatkan count semua folder user yang sedang login saat ini.
+
+        Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
+
         Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
 
         Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
-
-        Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
 
         Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
 

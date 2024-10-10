@@ -10,8 +10,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckStorageLimit
 {
-    // Batas penyimpanan dalam bytes (10GB = 10 * 1024 * 1024 * 1024 bytes)
-    protected $storageLimit = 10 * 1024 * 1024 * 1024;
+    protected $storageLimit;
+
+    public function __construct()
+    {
+        // Mengambil nilai dari config dan mengubahnya ke byte (GB -> Byte)
+        $this->storageLimit = config('storage-limit.storage_limit') * 1024 * 1024 * 1024;
+    }
 
     private function calculateFolderSize(Folder $folder)
     {
@@ -50,7 +55,7 @@ class CheckStorageLimit
                 // Jika total penyimpanan melebihi batas yang ditentukan
                 if ($totalUsedStorage >= $this->storageLimit) {
                     return response()->json([
-                        'errors' => 'You have exceeded your storage limit of 10GB.',
+                        'errors' => 'You have exceeded your storage limit of ' . ($this->storageLimit / (1024 * 1024 * 1024)) . 'GB.',
                     ], 403); // Kirimkan respons forbidden
                 }
             }
