@@ -319,6 +319,13 @@ class FolderController extends Controller
                 'files.userPermissions.user:id,name,email'
             ])->where('id', $id)->first();
 
+            if(!$folder){
+                Log::warning('Attempt to get folder on non-existence folder id: ' . $id);
+                return response()->json([
+                    'errors' => 'Folder not found.'
+                ], 404);
+            }
+
             $favorite = $folder->favorite->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;

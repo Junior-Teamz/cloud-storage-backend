@@ -61,6 +61,7 @@ class FileController extends Controller
             ])->where('id', $id)->first();
 
             if (!$file) {
+                Log::warning('Attempt to get file on non-existence folder id: ' . $id);
                 return response()->json([
                     'errors' => 'File not found',
                 ], 404);
