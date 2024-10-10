@@ -312,7 +312,7 @@ class FileController extends Controller
         // Validasi input request
         $validate = Validator::make($request->all(), [
             'file_ids' => 'required|array',
-            'file_ids.*' => 'required|exists:files,id',
+            'file_ids.*' => 'required|uuid|exists:files,id',
         ]);
 
         if ($validate->fails()) {
@@ -776,6 +776,7 @@ class FileController extends Controller
         // Validasi bahwa file_ids dikirim dalam request
         $validator = Validator::make($request->all(), [
             'file_ids' => 'required|array',
+            'file_ids.*' => 'required|uuid'
         ], [
             'file_ids.required' => 'file_ids are required.',
             'file_ids.array' => 'file_ids must be an array of file ID.',
@@ -827,7 +828,7 @@ class FileController extends Controller
             DB::table('user_file_permissions')->whereIn('file_id', $foundFileIds)->delete();
             DB::table('file_has_tags')->whereIn('file_id', $foundFileIds)->delete();
             DB::table('file_has_instances')->whereIn('file_id', $foundFileIds)->delete();
-            // TODO: tambahkan penghapusan file favorite disini
+            DB::table('file_has_favorited')->whereIn('file_id', $foundFileIds)->delete();
 
             // Hapus file secara batch
             File::whereIn('id', $foundFileIds)->delete();

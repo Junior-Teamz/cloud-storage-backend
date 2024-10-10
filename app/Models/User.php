@@ -130,12 +130,12 @@ class User extends Authenticatable implements JWTSubject
 
     public function favoriteFolders(): BelongsToMany
     {
-        return $this->belongsToMany(Folder::class, 'folder_user_favorited')->withTimestamps();
+        return $this->belongsToMany(Folder::class, 'folder_has_favorited')->withTimestamps();
     }
 
     public function favoriteFiles(): BelongsToMany
     {
-        return $this->belongsToMany(File::class, 'file_user_favorited')->withTimestamps();
+        return $this->belongsToMany(File::class, 'file_has_favorited')->withTimestamps();
     }
 
     // // Tambahkan accessor untuk mengambil instansi terkait
