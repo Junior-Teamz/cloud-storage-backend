@@ -175,7 +175,7 @@ class InstanceController extends Controller
                 // Hitung jumlah user dengan role 'user' dalam instansi ini
                 $userRoleCount = DB::table('users')
                     ->join('user_has_instances', 'users.id', '=', 'user_has_instances.user_id')
-                    ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
+                    ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_uuid')
                     ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
                     ->where('user_has_instances.instance_id', $instance->id)
                     ->where('roles.name', 'user') // Gunakan role dari tabel roles
@@ -185,7 +185,7 @@ class InstanceController extends Controller
                 // Hitung jumlah user dengan role 'admin' dalam instansi ini
                 $adminRoleCount = DB::table('users')
                     ->join('user_has_instances', 'users.id', '=', 'user_has_instances.user_id')
-                    ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
+                    ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_uuid')
                     ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
                     ->where('user_has_instances.instance_id', $instance->id)
                     ->where('roles.name', 'admin') // Gunakan role dari tabel roles
