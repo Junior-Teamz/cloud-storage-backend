@@ -188,7 +188,7 @@ class FileFavoriteController extends Controller
             }
 
             // Cek apakah file sudah ada di daftar favorit pengguna
-            $existingFavorite = $file->favorite->where('user_id', $user->id)->first();
+            $existingFavorite = $file->favorite()->where('user_id', $user->id)->first();
 
             if ($existingFavorite) {
                 // Jika sudah ada, kembalikan respon bahwa sudah difavoritkan
@@ -204,7 +204,7 @@ class FileFavoriteController extends Controller
                         'updated_at' => $file->updated_at,
                         'folder_id' => $file->folder->id,
                         'image_url' => $file->image_url,
-                        'is_favorited' => $existingFavorite ? true : false,
+                        'is_favorited' => is_null($existingFavorite),
                         'favorited_at' => $existingFavorite->pivot->created_at ?? null,
                         'user' => $file->user, // User sudah diambil dengan select
                         'tags' => $file->tags, // Tags sudah diambil dengan select
