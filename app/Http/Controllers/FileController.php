@@ -67,8 +67,12 @@ class FileController extends Controller
                 ], 404);
             }
 
-            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $favorite = $file->favorite()->where('user_id', $user->id)->first();
+            $isFavorite = !is_null($favorite);
+            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+            $file['is_favorite'] = $isFavorite;
+            $file['favorited_at'] = $favoritedAt;
 
             $file['shared_with'] = $file->userPermissions;
 
@@ -83,7 +87,7 @@ class FileController extends Controller
         } catch (Exception $e) {
             Log::error('Error encountered while fetching file info: ', [
                 'fileId' => $id,
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
             return response()->json([
                 'errors' => 'An error occurred while fetching the file info.',
@@ -119,8 +123,12 @@ class FileController extends Controller
             $files = $filesQuery->paginate(10);
 
             $files->getCollection()->transform(function ($file) use ($user) {
-                $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
-                $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+                $favorite = $file->favorite()->where('user_id', $user->id)->first();
+                $isFavorite = !is_null($favorite);
+                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+                $file['is_favorite'] = $isFavorite;
+                $file['favorited_at'] = $favoritedAt;
 
                 $file['shared_with'] = $file->userPermissions;
                 return $file;
@@ -139,7 +147,7 @@ class FileController extends Controller
             ], 200);
         } catch (\Exception $e) {
             Log::error('An error occurred while fetching all files and total size: ' . $e->getMessage(), [
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -395,7 +403,7 @@ class FileController extends Controller
         } catch (Exception $e) {
 
             Log::error('Error occurred while downloading files: ' . $e->getMessage(), [
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json(['error' => 'An error occurred while downloading files'], 500);
@@ -447,8 +455,12 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $favorite = $file->favorite()->where('user_id', $user->id)->first();
+            $isFavorite = !is_null($favorite);
+            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+            $file['is_favorite'] = $isFavorite;
+            $file['favorited_at'] = $favoritedAt;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -528,8 +540,12 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $favorite = $file->favorite()->where('user_id', $user->id)->first();
+            $isFavorite = !is_null($favorite);
+            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+            $file['is_favorite'] = $isFavorite;
+            $file['favorited_at'] = $favoritedAt;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -635,8 +651,12 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $favorite = $file->favorite()->where('user_id', $user->id)->first();
+            $isFavorite = !is_null($favorite);
+            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+            $file['is_favorite'] = $isFavorite;
+            $file['favorited_at'] = $favoritedAt;
 
 
 
@@ -658,7 +678,7 @@ class FileController extends Controller
             Log::error('Error occurred while updating file name: ' . $e->getMessage(), [
                 'fileId' => $id,
                 'name' => $request->name,
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
             return response()->json([
                 'errors' => 'An error occurred while updating the file name.',
@@ -741,8 +761,12 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $favorite = $file->favorite()->where('user_id', $user->id)->first();
+            $isFavorite = !is_null($favorite);
+            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+            $file['is_favorite'] = $isFavorite;
+            $file['favorited_at'] = $favoritedAt;
 
 
 

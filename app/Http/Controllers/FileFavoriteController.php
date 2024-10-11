@@ -23,7 +23,8 @@ class FileFavoriteController extends Controller
         $this->checkPermissionFileService = $checkPermissionFileService;
     }
 
-    private function checkPermissionFile2($fileId) {
+    private function checkPermissionFile2($fileId)
+    {
         $user = Auth::user();
         $file = File::where('id', $fileId)->first();
 
@@ -45,7 +46,7 @@ class FileFavoriteController extends Controller
         } else if ($user->hasRole('admin')) {
             return false; // Regular admin without SUPERADMIN privilege
         }
-        
+
         return false;
     }
 
@@ -75,7 +76,7 @@ class FileFavoriteController extends Controller
             ], 200);
         } catch (Exception $e) {
             Log::error('Error counting favorite files: ' . $e->getMessage(), [
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -122,10 +123,14 @@ class FileFavoriteController extends Controller
             $favoriteFiles = $favoriteFilesQuery->paginate($perPage);
 
             $favoriteFiles->getCollection()->transform(function ($file) use ($user) {
-                $file['is_favorite'] = true; // Otomatis menjadi true karena file yang diambil adalah file yang di favoritkan.
-                $file['favorited_at'] = $file->pivot->created_at;
+                $favorite = $file->favorite()->where('user_id', $user->id)->first();
+                $isFavorite = !is_null($favorite);
+                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+                $file['is_favorite'] = $isFavorite; // Otomatis menjadi true karena file yang diambil adalah file yang di favoritkan.
+                $file['favorited_at'] = $favoritedAt;
                 $checkPermission = $this->checkPermissionFile2($file->id, 'read');
-                if($checkPermission){
+                if ($checkPermission) {
                     $file['shared_with'] = $file->userPermissions->user;
                 }
                 return $file;
@@ -139,7 +144,7 @@ class FileFavoriteController extends Controller
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred while fetching favorite files: ' . $e->getMessage(), [
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
@@ -216,9 +221,11 @@ class FileFavoriteController extends Controller
             DB::commit();
 
             // Ambil ulang file setelah ditambahkan ke favorit
-            $file->load(['favorite' => function ($query) use ($userLogin) {
-                $query->where('user_id', $userLogin->id);
-            }]);
+            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address']);
+
+            $favorite = $file->favorite()->where('user_id', $user->id)->first();
+            $isFavorite = !is_null($favorite);
+            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
             // Setelah berhasil ditambahkan ke favorit, kirimkan respon dengan data lengkap file
             return response()->json([
@@ -233,8 +240,8 @@ class FileFavoriteController extends Controller
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
                     'image_url' => $file->image_url,
-                    'is_favorited' => $file->favorite->where('user_id', $user->id)->first() ? true : false,
-                    'favorited_at' => $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null,
+                    'is_favorited' => $isFavorite,
+                    'favorited_at' => $favoritedAt,
                     'user' => $file->user, // User sudah diambil dengan select
                     'tags' => $file->tags, // Tags sudah diambil dengan select
                     'instances' => $file->instances, // Instances sudah diambil dengan select
@@ -265,7 +272,7 @@ class FileFavoriteController extends Controller
 
             $file = File::where('id', $fileId)->first();
 
-            if(!$file){
+            if (!$file) {
                 Log::warning('Attempt to delete non-existence file favorite.');
                 return response()->json([
                     'errors' => 'File not found.'
@@ -275,7 +282,7 @@ class FileFavoriteController extends Controller
             // Periksa apakah user memiliki file favorit dengan ID yang diberikan
             $favoriteFile = $user->favoriteFiles()->where('file_id', $file->id)->first();
 
-            if (!$favoriteFile) {
+            if (is_null($favoriteFile)) {
                 return response()->json([
                     'errors' => 'File is not in favorites'
                 ], 404);
@@ -290,6 +297,10 @@ class FileFavoriteController extends Controller
 
             $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
+            $favorite = $file->favorite()->where('user_id', $user->id)->first();
+            $isFavorite = !is_null($favorite);
+            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
             return response()->json([
                 'message' => 'Successfully removed file from favorite.',
                 'file' => [
@@ -302,8 +313,8 @@ class FileFavoriteController extends Controller
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
                     'image_url' => $file->image_url,
-                    'is_favorited' => $file->favorite->isNotEmpty() ? true : false,
-                    'favorited_at' => null,
+                    'is_favorited' => $isFavorite,
+                    'favorited_at' => $favoritedAt,
                     'user' => $file->user, // User sudah diambil dengan select
                     'tags' => $file->tags, // Tags sudah diambil dengan select
                     'instances' => $file->instances, // Instances sudah diambil dengan select
@@ -314,7 +325,7 @@ class FileFavoriteController extends Controller
 
             Log::error('Error occurred while removing file from favorites: ' . $e->getMessage(), [
                 'fileId' => $fileId,
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([

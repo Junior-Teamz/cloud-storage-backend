@@ -232,6 +232,10 @@ class FolderController extends Controller
 
             // Optimasi data file
             $responseFile = $parentFolder->files->map(function ($file) use ($user) {
+                $favorite = $file->favorite()->where('user_id', $user->id)->first();
+                $isFavorite = !is_null($favorite);
+                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
                 $fileResponse = [
                     'id' => $file->id,
                     'name' => $file->name,
@@ -242,8 +246,8 @@ class FolderController extends Controller
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
                     'image_url' => $file->image_url,
-                    'is_favorite' => $file->favorite()->where('user_id', $user->id)->first() ? true : false,
-                    'favorited_at' => $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null,
+                    'is_favorite' => $isFavorite,
+                    'favorited_at' => $favoritedAt,
                     'user' => $file->user, // User sudah diambil dengan select
                     'tags' => $file->tags, // Tags sudah diambil dengan select
                     'instances' => $file->instances, // Instances sudah diambil dengan select
@@ -319,7 +323,7 @@ class FolderController extends Controller
                 'files.userPermissions.user:id,name,email'
             ])->where('id', $id)->first();
 
-            if(!$folder){
+            if (!$folder) {
                 Log::warning('Attempt to get folder on non-existence folder id: ' . $id);
                 return response()->json([
                     'errors' => 'Folder not found.'
@@ -385,6 +389,10 @@ class FolderController extends Controller
 
             // Ambil files dan buat hidden beberapa atribut yang tidak diperlukan
             $files = $folder->files->map(function ($file) use ($user) {
+                $favorite = $file->favorite()->where('user_id', $user->id)->first();
+                $isFavorite = !is_null($favorite);
+                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
                 $fileData = [
                     'id' => $file->id,
                     'name' => $file->name,
@@ -395,8 +403,8 @@ class FolderController extends Controller
                     'folder_id' => $file->folder->id,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
-                    'is_favorite' => $file->favorite()->where('user_id', $user->id)->first() ? true : false,
-                    'favorited_at' => $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null,
+                    'is_favorite' => $isFavorite,
+                    'favorited_at' => $favoritedAt,
                     'user' => $file->user,
                     'tags' => $file->tags,
                     'instances' => $file->instances,
