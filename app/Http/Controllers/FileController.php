@@ -67,8 +67,8 @@ class FileController extends Controller
                 ], 404);
             }
 
-            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
             $file['shared_with'] = $file->userPermissions;
 
@@ -119,8 +119,8 @@ class FileController extends Controller
             $files = $filesQuery->paginate(10);
 
             $files->getCollection()->transform(function ($file) use ($user) {
-                $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
-                $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+                $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
+                $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
                 $file['shared_with'] = $file->userPermissions;
                 return $file;
@@ -447,8 +447,8 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -528,8 +528,8 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -635,8 +635,8 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
 
 
@@ -741,8 +741,8 @@ class FileController extends Controller
 
             $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
 
-            $file['is_favorite'] = $file->favorite->where('user_id', $user->id)->first() ? true : false;
-            $file['favorited_at'] = $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null;
+            $file['is_favorite'] = $file->favorite()->where('user_id', $user->id)->first() ? true : false;
+            $file['favorited_at'] = $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null;
 
 
 

@@ -203,7 +203,7 @@ class FolderController extends Controller
             // Optimasi data subfolder
             $userFolders = $parentFolder->subfolders->map(function ($folder) use ($user) {
                 // Cek apakah folder ini difavoritkan oleh user yang sedang login
-                $favorite = $folder->favorite->where('user_id', $user->id)->first();
+                $favorite = $folder->favorite()->where('user_id', $user->id)->first();
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
@@ -242,8 +242,8 @@ class FolderController extends Controller
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
                     'image_url' => $file->image_url,
-                    'is_favorite' => $file->favorite->where('user_id', $user->id)->first() ? true : false,
-                    'favorited_at' => $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null,
+                    'is_favorite' => $file->favorite()->where('user_id', $user->id)->first() ? true : false,
+                    'favorited_at' => $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null,
                     'user' => $file->user, // User sudah diambil dengan select
                     'tags' => $file->tags, // Tags sudah diambil dengan select
                     'instances' => $file->instances, // Instances sudah diambil dengan select
@@ -326,7 +326,7 @@ class FolderController extends Controller
                 ], 404);
             }
 
-            $favorite = $folder->favorite->where('user_id', $user->id)->first();
+            $favorite = $folder->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
@@ -356,7 +356,7 @@ class FolderController extends Controller
             // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
             $subfolders = $folder->subfolders->map(function ($subfolder) use ($user) {
 
-                $favorite = $subfolder->favorite->where('user_id', $user->id)->first();
+                $favorite = $subfolder->favorite()->where('user_id', $user->id)->first();
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
                 // Hitung total subfolder dan file di dalam folder
@@ -395,8 +395,8 @@ class FolderController extends Controller
                     'folder_id' => $file->folder->id,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
-                    'is_favorite' => $file->favorite->where('user_id', $user->id)->first() ? true : false,
-                    'favorited_at' => $file->favorite->where('user_id', $user->id)->first()->pivot->created_at ?? null,
+                    'is_favorite' => $file->favorite()->where('user_id', $user->id)->first() ? true : false,
+                    'favorited_at' => $file->favorite()->where('user_id', $user->id)->first()->pivot->created_at ?? null,
                     'user' => $file->user,
                     'tags' => $file->tags,
                     'instances' => $file->instances,
