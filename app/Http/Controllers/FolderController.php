@@ -197,7 +197,7 @@ class FolderController extends Controller
             if (!$parentFolder) {
                 return response()->json([
                     'message' => 'An error occurred. Please contact our support.'
-                ], 404);
+                ], 500);
             }
 
             // Optimasi data subfolder
@@ -496,6 +496,16 @@ class FolderController extends Controller
                 ], 403);
             }
 
+            // Periksa apakah terdapat tag bernama "Root" pada array tag.
+            $getTagIds = Tags::whereIn('id', $request->tag_ids)->get();
+            $tagNames = $getTagIds->pluck('name')->toArray();
+
+            if (in_array('Root', $tagNames)) {
+                return response()->json([
+                    'errors' => 'You are not allowed to add the Root tag.'
+                ], 403);
+            }
+
             // Start database transaction
             DB::beginTransaction();
 
@@ -512,7 +522,6 @@ class FolderController extends Controller
             $newFolder->instances()->sync($userInstanceId);
 
             // Sync the tags using tag_ids
-            $getTagIds = Tags::whereIn('id', $request->tag_ids)->get();
             $tagIds = $getTagIds->pluck('id')->toArray();
             $newFolder->tags()->sync($tagIds);
 
@@ -604,6 +613,12 @@ class FolderController extends Controller
                 ], 409);
             }
 
+            if ($tag->name == "Root") {
+                return response()->json([
+                    'errors' => "You cannot add 'Root' tag."
+                ], 403);
+            }
+
             DB::beginTransaction();
 
             // Menambahkan tag ke folder (tabel pivot folder_has_tags)
@@ -691,6 +706,14 @@ class FolderController extends Controller
                 ], 404);
             }
 
+            if($folder->parent_id === null){
+                if($tag->name == "Root"){
+                    return response()->json([
+                        'errors' => "You cannot remove 'Root' tag on root folder."
+                    ]);
+                }
+            }
+
             DB::beginTransaction();
 
             // Menghapus tag dari folder (tabel pivot folder_has_tags)
@@ -773,6 +796,12 @@ class FolderController extends Controller
                 return response()->json([
                     'errors' => 'Folder not found.'
                 ], 404);
+            }
+
+            if($folder->parent_id === null){
+                return response()->json([
+                    'errors' => "You cannot change name of root folder."
+                ], 403);
             }
 
             $oldNanoid = $folder->nanoid;
@@ -865,6 +894,13 @@ class FolderController extends Controller
         try {
             // Ambil semua folder yang sesuai
             $folders = Folder::whereIn('id', $folderIds)->get();
+
+            $getFolderParentId = $folders->pluck('parent_id')->toArray();
+            if(in_array(null, $getFolderParentId)){
+                return response()->json([
+                    'errors' => "You cannot delete root folder."
+                ], 403);
+            }
 
             // Bandingkan ID yang ditemukan dengan yang diminta
             $foundFolderIds = $folders->pluck('id')->toArray();
@@ -971,6 +1007,12 @@ class FolderController extends Controller
         try {
             // Periksa apakah folder yang ingin dipindahkan ada
             $folder = Folder::where('id', $request->folder_id);
+
+            if($folder->parent_id === null){
+                return response()->json([
+                    'errors' => "You cannot move root folder."
+                ], 403);
+            }
 
             // Ambil parent folder id yang lama dari folder yang ingin dipindahkan
             $oldParentId = $folder->parent_id;

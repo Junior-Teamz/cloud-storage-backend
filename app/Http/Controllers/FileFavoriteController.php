@@ -93,12 +93,6 @@ class FileFavoriteController extends Controller
             // Ambil user yang sedang login
             $user = User::find($userLogin->id);
 
-            if (!$user) {
-                return response()->json([
-                    'errors' => 'User not found'
-                ], 404);
-            }
-
             // Ambil parameter pencarian dan pagination dari request
             $search = $request->input('search');
             $instanceName = $request->input('instance');

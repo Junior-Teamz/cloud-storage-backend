@@ -533,8 +533,8 @@ class AdminController extends Controller
                     $file->delete();
                 } catch (\Exception $e) {
                     Log::error('Error occurred while deleting file with ID ' . $file->id . ': ' . $e->getMessage(), [
-     'trace' => $e->getTrace()
-]);
+                        'trace' => $e->getTrace()
+                    ]);
                     // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
                     throw $e;
                 }
@@ -608,7 +608,8 @@ class AdminController extends Controller
      * Dibawah ini, function endpoint untuk mendapatkan statistik semua
      * folder dan file yang ada. HANYA DIGUNAKAN UNTUK SUPERADMIN.
      */
-     public function storageUsage()
+
+    public function storageUsage()
     {
         $userInfo = Auth::user();
 
@@ -623,7 +624,7 @@ class AdminController extends Controller
                 'errors' => 'You cannot perform this action.'
             ], 403);
         }
-        
+
         try {
             // Dapatkan semua folder
             $allFolders = Folder::whereNull('parent_id')->get();
@@ -649,11 +650,59 @@ class AdminController extends Controller
             ]);
         } catch (Exception $e) {
             Log::error('Error occured while retrieving storage usage total: ' . $e->getMessage(), [
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
 
             return response()->json([
                 'errors' => 'An error occured while retrieving storage usage total.'
+            ], 500);
+        }
+    }
+
+    public function storageUsagePerInstance()
+    {
+        $userInfo = Auth::user();
+
+        // Pastikan hanya super admin yang dapat mengakses fitur ini
+        $checkSuperAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkSuperAdmin) {
+            Log::warning('Attempt to access features that can only be accessed by super admins', [
+                'user_id' => $userInfo->id,
+                'user_role' => $userInfo->roles->pluck('name'),
+            ]);
+            return response()->json([
+                'errors' => 'You cannot perform this action.'
+            ], 403);
+        }
+
+        try {
+            // Ambil semua instance
+            $instances = Instance::with(['files'])->get();
+
+            $storageUsagePerInstance = [];
+
+            foreach ($instances as $instance) {
+                // Hitung total penggunaan penyimpanan dari semua file yang terkait dengan instance ini
+                $totalStorageUsage = $instance->files->sum('size');
+
+                $storageUsagePerInstance[] = [
+                    'instance_id' => $instance->id,
+                    'instance_name' => $instance->name,
+                    'storage_usage_raw' => $totalStorageUsage, // dalam bytes
+                    'storage_usage_formatted' => $this->formatSizeUnits($totalStorageUsage), // format sesuai ukuran (KB, MB, GB, dll.)
+                ];
+            }
+
+            return response()->json($storageUsagePerInstance, 200);
+        } catch (Exception $e) {
+            Log::error('Error occurred while calculating storage usage per instance: ' . $e->getMessage(), [
+                'user_id' => $userInfo->id,
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while calculating storage usage.'
             ], 500);
         }
     }
@@ -692,7 +741,7 @@ class AdminController extends Controller
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occured while counting all folder: ' . $e->getMessage(), [
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
             return response()->json([
                 'errors' => 'An error occured while fetching count all folder,'
@@ -742,7 +791,7 @@ class AdminController extends Controller
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occured while counting all files: ' . $e->getMessage(), [
-                'trace' => $e->getTrace() 
+                'trace' => $e->getTrace()
             ]);
             return response()->json([
                 'errors' => 'An error occured while fetching count all files,'

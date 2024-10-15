@@ -197,7 +197,7 @@ class NewsController extends Controller
     //     }
     // }
 
-    public function getNewsBySlug($slug)
+    public function getNewsBySlug(Request $request, $slug)
     {
         if (!is_string($slug)) {
             return response()->json([
@@ -223,8 +223,11 @@ class NewsController extends Controller
                 ], 200);
             }
 
-            // Tambahkan jumlah viewer +1
-            $news->increment('viewer');
+            $origin = $request->header('Origin', '');
+            // jika permintaan mengambil informasi berita dari frontend, tambahkan count viewers
+            if (in_array($origin, config('frontend.url_for_cors'))) {
+                $news->increment('viewers');
+            }
 
             return response()->json([
                 'message' => 'News successfully retrieved.',

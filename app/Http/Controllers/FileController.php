@@ -448,6 +448,12 @@ class FileController extends Controller
                 ], 409);
             }
 
+            if ($tag->name == "Root"){
+                return response()->json([
+                    'errors' => "You cannot add 'Root' tag."
+                ], 403);
+            }
+
             DB::beginTransaction();
 
             // Menambahkan tag ke file (tabel pivot file_has_tags)
