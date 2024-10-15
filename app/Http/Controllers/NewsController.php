@@ -144,7 +144,7 @@ class NewsController extends Controller
             $origin = $request->header('Origin', '');
             // jika permintaan mengambil informasi berita dari frontend, tambahkan count viewers
             if (in_array($origin, config('frontend.url_for_cors'))) {
-                $news->increment('viewers');
+                $news->increment('viewer');
             }
 
             return response()->json([
@@ -226,7 +226,7 @@ class NewsController extends Controller
             $origin = $request->header('Origin', '');
             // jika permintaan mengambil informasi berita dari frontend, tambahkan count viewers
             if (in_array($origin, config('frontend.url_for_cors'))) {
-                $news->increment('viewers');
+                $news->increment('viewer');
             }
 
             return response()->json([
