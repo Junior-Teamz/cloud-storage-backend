@@ -77,6 +77,12 @@ class FileController extends Controller
 
             $file['shared_with'] = $file->userPermissions;
 
+            // Tambahkan URL video streaming jika tipe file adalah video
+            $file['video_url'] = null;
+            if (Str::startsWith($file->type, 'video')) {
+                $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+            }
+
             // Sembunyikan kolom 'path' dan 'nanoid'
             $file->makeHidden(['path', 'nanoid', 'user_id', 'favorite', 'folder', 'userPermissions']);
 
@@ -442,13 +448,13 @@ class FileController extends Controller
             $file = File::find($request->file_id);
             $tag = Tags::find($request->tag_id);
 
-            if(!$file){
+            if (!$file) {
                 return response()->json([
                     'errors' => 'File not found.'
                 ], 404);
             }
 
-            if(!$tag){
+            if (!$tag) {
                 return response()->json([
                     'errors' => 'Tag not found.'
                 ], 404);
@@ -461,7 +467,7 @@ class FileController extends Controller
                 ], 409);
             }
 
-            if ($tag->name == "Root"){
+            if ($tag->name == "Root") {
                 return response()->json([
                     'errors' => "You cannot add 'Root' tag."
                 ], 403);
@@ -535,10 +541,10 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::find($request->file_id);
-            $tag = Tags::find($request->tag_id);
+            $file = File::find($request->file_id)->first();
+            $tag = Tags::find($request->tag_id)->first();
 
-            if(!$file){
+            if (!$file) {
                 return response()->json([
                     'errors' => 'File not found.'
                 ], 404);
@@ -915,6 +921,47 @@ class FileController extends Controller
 
             // Kembalikan file sebagai respon (mengirim file gambar)
             return response()->file($file_path);
+        } else {
+            return response()->json([
+                'errors' => 'Unauthenticated.'
+            ], 401);
+        }
+    }
+
+    public function serveFileVideoByHashedId($fileId)
+    {
+        $user = Auth::user();
+
+        if ($user) {
+
+            // Cari file berdasarkan ID
+            $file = File::find($fileId);
+
+            if (!$file) {
+                return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
+            }
+
+            // Cek apakah file adalah video
+            if (!Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                return response()->json(['errors' => 'The file is not a video'], 415);  // 415 Unsupported Media Type
+            }
+
+            // Periksa perizinan
+            if (!$this->checkPermissionFileServices->checkPermissionFile($file->id, ['read'])) {
+                return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+            }
+
+            // Ambil path file dari storage dan stream
+            $file_path = Storage::path($file->path);
+
+            return response()->stream(function () use ($file_path) {
+                $stream = fopen($file_path, 'rb');
+                fpassthru($stream);
+                fclose($stream);
+            }, 200, [
+                'Content-Type' => Storage::mimeType($file->path),
+                'Content-Length' => Storage::size($file->path),
+            ]);
         } else {
             return response()->json([
                 'errors' => 'Unauthenticated.'

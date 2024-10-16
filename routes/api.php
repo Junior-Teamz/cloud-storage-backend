@@ -35,6 +35,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api'
 
 Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['auth:api']);
 
+Route::get('/file/videoStream/{hashedId}', [FileController::class, 'serveFileVideoByHashedId'])->name('video.stream');
+
 Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'remove_nanoid', 'hide_superadmin_flag']);
 
 Route::prefix('/legal_basis')->group(function () {

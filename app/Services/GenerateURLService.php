@@ -21,6 +21,19 @@ class GenerateURLService
         return route('image.url', ['hashedId' => $file->id]);
     }
 
+    public function generateUrlForVideo($file_id)
+    {
+        // Cari file berdasarkan ID
+        $file = File::where('id', $file_id)->first();
+
+        if (!$file) {
+            return null; // Jika file tidak ditemukan, kembalikan null
+        }
+
+        // Buat URL streaming video
+        return route('video.stream', ['hashedId' => $file->id]);
+    }
+
     public function generateUrlForLegalBasis($id)
     {
         // Cari file berdasarkan ID

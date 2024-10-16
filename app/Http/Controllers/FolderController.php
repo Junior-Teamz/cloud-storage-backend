@@ -6,6 +6,7 @@ use Exception;
 use App\Models\Tags;
 use App\Models\User;
 use App\Models\Folder;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -13,16 +14,19 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
+use App\Services\GenerateURLService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FolderController extends Controller
 {
     protected $checkPermissionFolderService;
+    protected $GenerateURLService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
+        $this->GenerateURLService = $GenerateURLService;
     }
 
     /**
@@ -254,6 +258,11 @@ class FolderController extends Controller
                     'shared_with' => $file->userPermissions
                 ];
 
+                // Tambahkan video_url hanya jika file adalah video
+                if (Str::startsWith($file->type, 'video')) {
+                    $fileResponse['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
+                }
+
                 return $fileResponse;
             });
 
@@ -412,6 +421,11 @@ class FolderController extends Controller
                     // Map shared users untuk file
                     'shared_with' => $file->userPermissions
                 ];
+
+                // Tambahkan video_url hanya jika file adalah video
+                if (Str::startsWith($file->type, 'video')) {
+                    $fileData['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
+                }
 
                 return $fileData;
             });
@@ -697,8 +711,8 @@ class FolderController extends Controller
         }
 
         try {
-            $folder = Folder::where('id', $request->folder_id);
-            $tag = Tags::where('id', $request->tag_id);
+            $folder = Folder::where('id', $request->folder_id)->first();
+            $tag = Tags::where('id', $request->tag_id)->first();
 
             // Memeriksa apakah tag terkait dengan folder
             if (!$folder->tags->contains($tag->id)) {
@@ -707,8 +721,8 @@ class FolderController extends Controller
                 ], 404);
             }
 
-            if($folder->parent_id === null){
-                if($tag->name == "Root"){
+            if ($folder->parent_id === null) {
+                if ($tag->name == "Root") {
                     return response()->json([
                         'errors' => "You cannot remove 'Root' tag on root folder."
                     ]);
@@ -799,7 +813,7 @@ class FolderController extends Controller
                 ], 404);
             }
 
-            if($folder->parent_id === null){
+            if ($folder->parent_id === null) {
                 return response()->json([
                     'errors' => "You cannot change name of root folder."
                 ], 403);
@@ -897,7 +911,7 @@ class FolderController extends Controller
             $folders = Folder::whereIn('id', $folderIds)->get();
 
             $getFolderParentId = $folders->pluck('parent_id')->toArray();
-            if(in_array(null, $getFolderParentId)){
+            if (in_array(null, $getFolderParentId)) {
                 return response()->json([
                     'errors' => "You cannot delete root folder."
                 ], 403);
@@ -1009,7 +1023,7 @@ class FolderController extends Controller
             // Periksa apakah folder yang ingin dipindahkan ada
             $folder = Folder::where('id', $request->folder_id);
 
-            if($folder->parent_id === null){
+            if ($folder->parent_id === null) {
                 return response()->json([
                     'errors' => "You cannot move root folder."
                 ], 403);
