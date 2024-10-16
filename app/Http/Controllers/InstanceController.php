@@ -502,22 +502,15 @@ class InstanceController extends Controller
                 ], 404);
             }
 
+            // Periksa apakah instansi masih memiliki relasi, jika ya, instansi tidak boleh dihapus sampai data relasi sudah dihapus terlebih dahulu.
+            if ($instance->users()->exists() || $instance->folders()->exists() || $instance->files()->exists()){
+                Log::warning("Attempt to delete instance that still have related users, folders, or files!");
+                return response()->json([
+                    'errors' => "Instance cannot be deleted because it still has related users, folders, or files."
+                ], 400);
+            }
+
             DB::beginTransaction();
-
-            // Cek apakah ada data pivot untuk users
-            if ($instance->users()->exists()) {
-                $instance->users()->detach(); // Hapus relasi folder jika ada
-            }
-
-            // Cek apakah ada data pivot untuk folders
-            if ($instance->folders()->exists()) {
-                $instance->folders()->detach(); // Hapus relasi folder jika ada
-            }
-
-            // Cek apakah ada data pivot untuk files
-            if ($instance->files()->exists()) {
-                $instance->files()->detach(); // Hapus relasi file jika ada
-            }
 
             $instance->delete();
 

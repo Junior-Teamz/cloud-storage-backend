@@ -31,6 +31,11 @@ class TagImport implements ToModel, WithHeadingRow, WithChunkReading
         // Trim whitespace dari nama tag agar filter lebih ketat
         $tagName = trim($row['Nama Tag']);
 
+        // Jika nama tag adalah "Root", lewati proses impor
+        if (strtolower($tagName) === 'root') {
+            return null;
+        }
+
         // Validasi nama tag menggunakan regex
         if (!preg_match('/^[a-zA-Z\s]+$/', $tagName)) {
             // Jika tidak valid, increment invalid count dan lewati proses impor
