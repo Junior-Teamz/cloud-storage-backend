@@ -164,14 +164,14 @@ class AdminController extends Controller
                     'total_user_count' => $totalUserCount,
                     'user_role_count' => $userRoleCount,
                     'admin_role_count' => $adminRoleCount
-                ]);
+                ], 200);
             }
 
             return response()->json([
                 'total_user_count' => $totalUserCount,
                 'user_role_count' => $userRoleCount,
                 'admin_role_count' => $adminRoleCount
-            ]);
+            ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred on getting user count: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
@@ -199,6 +199,13 @@ class AdminController extends Controller
         try {
 
             $user = User::where('id', $id)->with('instances:id,name,address')->first();
+
+            if (!$user){
+                return response()->json([
+                    'message' => "User not found.",
+                    'data' => []
+                ], 200);
+            }
 
             $user['role'] = $user->roles->pluck('name');
 

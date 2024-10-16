@@ -51,8 +51,8 @@ class InstanceController extends Controller
 
                 if (!$allInstance) {
                     return response()->json([
-                        'errors' => 'Instance data not found.'
-                    ], 404);
+                        'message' => 'Instance data is empty.'
+                    ], 200);
                 }
 
                 return response()->json($allInstance, 200);  // Kembalikan isi pagination tanpa membungkus lagi
@@ -100,8 +100,9 @@ class InstanceController extends Controller
 
             if (!$instanceId) {
                 return response()->json([
-                    'errors' => 'Instance data not found.'
-                ], 404);
+                    'message' => 'Instance data not found.',
+                    'data' => []
+                ], 200);
             }
 
             // Kembalikan daftar ID
@@ -135,7 +136,7 @@ class InstanceController extends Controller
                 return response()->json([
                     'message' => 'Instance is empty.',
                     'instance_count' => $countInstance
-                ], 404);
+                ], 200);
             }
 
             return response()->json([

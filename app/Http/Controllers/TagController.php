@@ -62,8 +62,9 @@ class TagController extends Controller
             // Jika data kosong, kembalikan error
             if (!$allTag) {
                 return response()->json([
-                    'errors' => 'Tag data not found.'
-                ], 404);
+                    'message' => 'Tag data not found.',
+                    'data' => []
+                ], 200);
             }
 
             // Tambahkan usage_count untuk setiap tag
@@ -92,8 +93,9 @@ class TagController extends Controller
 
             if (!$tagData) {
                 return response()->json([
-                    'errors' => 'Tag not found.'
-                ]);
+                    'message' => 'Tag not found.',
+                    'data' => []
+                ], 200);
             }
 
             if ($tagData->id === 1) {
@@ -288,6 +290,7 @@ class TagController extends Controller
 
             // Cek apakah file ada
             if (!Storage::exists($filePath)) {
+                Log::critical('Example file for importing tag not found!');
                 return response()->json([
                     'errors' => 'Example file not found.'
                 ], 500);

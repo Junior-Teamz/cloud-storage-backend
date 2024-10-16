@@ -61,7 +61,7 @@ class PermissionFolderController extends Controller
             if (!$userFolderPermissions) {
                 return response()->json([
                     'message' => 'No user has permission on this folder.'
-                ], 404);
+                ], 200);
             }
 
             // Siapkan data untuk response
@@ -116,8 +116,8 @@ class PermissionFolderController extends Controller
         // Asumsi folder memiliki kolom 'owner_id' yang menyimpan ID pemilik folder
         if ($folder->user_id == $userId) {
             return response()->json([
-                'message' => 'Anda adalah pemilik folder.'
-            ]);
+                'message' => 'You are owner of this folder.'
+            ], 200);
         }
 
         // Cek permission user pada folder
@@ -136,8 +136,9 @@ class PermissionFolderController extends Controller
 
             if (!$userFolderPermission) {
                 return response()->json([
-                    'errors' => 'User has no permissions for the specified folder.'
-                ], 404);
+                    'message' => 'User has no permissions for the specified folder.',
+                    'data' => []
+                ], 200);
             }
 
             return response()->json([

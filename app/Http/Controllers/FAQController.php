@@ -47,8 +47,9 @@ class FAQController extends Controller
             // Jika tidak ada FAQ yang ditemukan
             if (!$faqs) {
                 return response()->json([
-                    'message' => 'No FAQs found.'
-                ], 404);
+                    'message' => 'No FAQs found.',
+                    'data' => []
+                ], 200);
             }
 
             // Kembalikan response JSON dengan data FAQ yang ditemukan
@@ -82,8 +83,9 @@ class FAQController extends Controller
             $faq = FAQ::where('id', $id)->first();
             if (!$faq) {
                 return response()->json([
-                    'errors' => 'FAQ not found'
-                ], 404);
+                    'message' => 'FAQ not found.',
+                    'data' => []
+                ], 200);
             }
 
             return response()->json([

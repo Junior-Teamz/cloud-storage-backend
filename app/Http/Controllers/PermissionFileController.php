@@ -59,7 +59,7 @@ class PermissionFileController extends Controller
             if (!$userFilePermissions) {
                 return response()->json([
                     'message' => 'No user has permission on this file.'
-                ], 404);
+                ], 200);
             }
 
             // Siapkan data untuk response
@@ -122,8 +122,9 @@ class PermissionFileController extends Controller
 
             if ($userFilePermission == null) {
                 return response()->json([
-                    'errors' => 'Permission not found.'
-                ], 404);
+                    'message' => 'User has no permissions for the specified file.',
+                    'data' => []
+                ], 200);
             }
 
             return response()->json([

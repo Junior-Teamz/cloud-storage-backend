@@ -326,7 +326,8 @@ class FolderController extends Controller
             if (!$folder) {
                 Log::warning('Attempt to get folder on non-existence folder id: ' . $id);
                 return response()->json([
-                    'message' => 'Folder not found.'
+                    'message' => 'Folder not found.',
+                    'data' => []
                 ], 200);
             }
 

@@ -41,8 +41,9 @@ class NewsTagController extends Controller
 
                 if ($allTag->isEmpty()) {
                     return response()->json([
-                        'errors' => 'News Tag is empty.'
-                    ], 404);
+                        'message' => 'News Tag is empty.',
+                        'data' => []
+                    ], 200);
                 }
 
                 return response()->json($allTag, 200);  // Kembalikan isi pagination tanpa membungkus lagi

@@ -64,6 +64,7 @@ class FileController extends Controller
                 Log::warning('Attempt to get file on non-existence folder id: ' . $id);
                 return response()->json([
                     'message' => 'File not found',
+                    'data' => []
                 ], 200);
             }
 
@@ -441,6 +442,18 @@ class FileController extends Controller
             $file = File::find($request->file_id);
             $tag = Tags::find($request->tag_id);
 
+            if(!$file){
+                return response()->json([
+                    'errors' => 'File not found.'
+                ], 404);
+            }
+
+            if(!$tag){
+                return response()->json([
+                    'errors' => 'Tag not found.'
+                ], 404);
+            }
+
             // Memeriksa apakah tag sudah terkait dengan file
             if ($file->tags->contains($tag->id)) {
                 return response()->json([
@@ -478,13 +491,6 @@ class FileController extends Controller
                     'file' => $file
                 ]
             ], 200);
-        } catch (ModelNotFoundException $e) {
-
-            DB::rollBack();
-
-            return response()->json([
-                'errors' => 'File or tag not found.'
-            ], 404);
         } catch (Exception $e) {
 
             DB::rollBack();
@@ -532,6 +538,12 @@ class FileController extends Controller
             $file = File::find($request->file_id);
             $tag = Tags::find($request->tag_id);
 
+            if(!$file){
+                return response()->json([
+                    'errors' => 'File not found.'
+                ], 404);
+            }
+
             // Memeriksa apakah tag terkait dengan file
             if (!$file->tags->contains($tag->id)) {
                 return response()->json([
@@ -563,13 +575,6 @@ class FileController extends Controller
                     'file' => $file
                 ]
             ], 200);
-        } catch (ModelNotFoundException $e) {
-
-            DB::rollBack();
-
-            return response()->json([
-                'errors' => 'File or tag not found.'
-            ], 404);
         } catch (Exception $e) {
 
             DB::rollBack();
@@ -674,10 +679,6 @@ class FileController extends Controller
                 'message' => 'File name updated successfully.',
                 'data' => $file,
             ], 200);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'errors' => 'File not found.',
-            ], 404);
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -774,8 +775,6 @@ class FileController extends Controller
             $file['is_favorite'] = $isFavorite;
             $file['favorited_at'] = $favoritedAt;
 
-
-
             $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
             DB::commit();
@@ -784,10 +783,6 @@ class FileController extends Controller
                 'message' => 'File moved successfully.',
                 'data' => $file,
             ], 200);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'errors' => 'File not found.',
-            ], 404);
         } catch (Exception $e) {
             DB::rollBack();
 
