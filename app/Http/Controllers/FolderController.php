@@ -326,8 +326,8 @@ class FolderController extends Controller
             if (!$folder) {
                 Log::warning('Attempt to get folder on non-existence folder id: ' . $id);
                 return response()->json([
-                    'errors' => 'Folder not found.'
-                ], 404);
+                    'message' => 'Folder not found.'
+                ], 200);
             }
 
             $favorite = $folder->favorite()->where('user_id', $user->id)->first();

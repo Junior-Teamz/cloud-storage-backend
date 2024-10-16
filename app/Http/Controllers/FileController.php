@@ -63,8 +63,8 @@ class FileController extends Controller
             if (!$file) {
                 Log::warning('Attempt to get file on non-existence folder id: ' . $id);
                 return response()->json([
-                    'errors' => 'File not found',
-                ], 404);
+                    'message' => 'File not found',
+                ], 200);
             }
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
