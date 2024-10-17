@@ -46,7 +46,7 @@ class TagController extends Controller
             $keywordName = $request->query('name');
 
             // Query dasar untuk mengambil tags (Kecualikan tag 'Root')
-            $query = Tags::where('id', '!=', 1);
+            $query = Tags::where('name', '!=', 'Root');
 
             // Jika ada pencarian berdasarkan nama
             if ($keywordName) {
@@ -98,7 +98,7 @@ class TagController extends Controller
                 ], 200);
             }
 
-            if ($tagData->id === 1) {
+            if ($tagData->name === 'Root') {
                 return response()->json([
                     'errors' => 'Access to the Root tag information is restricted.'
                 ], 403);
@@ -429,7 +429,7 @@ class TagController extends Controller
                 ], 404);
             }
 
-            if ($tag->id === 1) {
+            if ($tag->name === 'Root') {
                 return response()->json([
                     'errors' => 'You cannot change Root tag!'
                 ], 403);

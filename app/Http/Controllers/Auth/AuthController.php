@@ -158,6 +158,7 @@ class AuthController extends Controller
         }
     }
 
+    // Ini kode lama saat pertama kali implementasi refresh token. tidak dapat digunakan lagi.
     // public function refresh(Request $request)
     // {
     //     try {
