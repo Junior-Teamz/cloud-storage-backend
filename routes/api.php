@@ -114,7 +114,7 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFileLink']);
 
-        Route::get('/{id}', [FileController::class, 'info']); // Mendapatkan informasi file
+        Route::get('/info/{id}', [FileController::class, 'info']); // Mendapatkan informasi file
 
         Route::post('/upload', [FileController::class, 'upload']); // Mengunggah file
 
@@ -237,7 +237,7 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua file dan total ukurannya.
 
-        Route::get('/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
+        Route::get('/info/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
 
         Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFile']); // Mendapatkan semua file yang di favoritkan
 
