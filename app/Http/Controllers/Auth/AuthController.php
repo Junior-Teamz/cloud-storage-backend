@@ -268,8 +268,19 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
-            // Invalidate both access and refresh tokens
-            JWTAuth::invalidate(JWTAuth::getToken());
+            // Get accessToken from Authorization Bearer header
+            $accessToken = $request->bearerToken('Authorization');
+
+            // Get refreshToken from body request
+            $refreshToken = $request->input('refreshToken');
+
+            // Invalidate accessToken
+            JWTAuth::setToken($accessToken);
+            JWTAuth::invalidate();
+
+            // Invalidate refreshToken
+            JWTAuth::setToken($refreshToken);
+            JWTAuth::invalidate();
 
             return response()->json(['message' => 'Successfully logout.']);
         } catch (JWTException $e) {
