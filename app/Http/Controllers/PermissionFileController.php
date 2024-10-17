@@ -197,6 +197,8 @@ class PermissionFileController extends Controller
 
             DB::commit();
 
+            $userFilePermission->makeHidden('user:email_verified_at,is_superadmin,created_at,updated_at');
+
             return response()->json([
                 'message' => 'User ' . $userFilePermission->user->name . ' has been granted permission ' . $userFilePermission->permissions . ' to file: ' . $userFilePermission->file->name,
                 'data' => $userFilePermission
