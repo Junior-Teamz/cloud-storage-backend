@@ -124,15 +124,15 @@ class AuthController extends Controller
     public function checkRefreshTokenValid(Request $request)
     {
         try {
-            $getAccessToken = $request->input('refreshToken');
+            $getRefreshToken = $request->input('refreshToken');
 
-            if (!$getAccessToken) {
+            if (!$getRefreshToken) {
                 return response()->json([
                     'errors' => "Refresh token not found. Please add 'refreshToken' in body request!"
                 ]);
             }
 
-            $check = JWTAuth::parseToken($getAccessToken)->check();
+            $check = JWTAuth::parseToken($getRefreshToken)->check();
 
             if ($check) {
                 return response()->json([
@@ -216,6 +216,26 @@ class AuthController extends Controller
             $refreshToken = $request->input('refreshToken');
             if (!$refreshToken) {
                 return response()->json(['errors' => 'Refresh token not found.'], 400);
+            }
+
+            JWTAuth::setToken($refreshToken);
+
+            // Ambil klaim dari refresh token
+            $claims = JWTAuth::getPayload()->toArray();
+
+            // Cek apakah refresh token memiliki access_token_id
+            if (!isset($claims['access_token_id'])) {
+                return response()->json(['errors' => 'Refresh token is invalid.'], 401);
+            }
+
+            // Ambil access token ID dari klaim refresh token
+            $refreshTokenAccessTokenId = $claims['access_token_id'];
+
+            // Periksa apakah access token yang di-refresh cocok
+            $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil access token ID
+
+            if ($refreshTokenAccessTokenId !== $accessTokenId) {
+                return response()->json(['errors' => 'Access token does not match in refresh token.'], 401);
             }
 
             // Set refresh token dan refresh JWT
