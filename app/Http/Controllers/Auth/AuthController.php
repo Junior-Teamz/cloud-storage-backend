@@ -69,7 +69,7 @@ class AuthController extends Controller
             // Inisialisasi array respons
             $responseData = [
                 'accessToken' => $accessToken,
-                'refresh_token' => $refreshToken,
+                'refreshToken' => $refreshToken,
                 'success' => true,
                 'user' => $userData,
                 'roles' => $roles,
@@ -123,7 +123,7 @@ class AuthController extends Controller
     public function checkRefreshTokenValid(Request $request)
     {
         try {
-            $getAccessToken = $request->input('refresh_token');
+            $getAccessToken = $request->input('refreshToken');
 
             if(!$getAccessToken){
                 return response()->json([
@@ -157,7 +157,7 @@ class AuthController extends Controller
     {
         try {
             // Ambil refresh token dari request (misalnya dari header Authorization)
-            $refreshToken = $request->input('refresh_token');
+            $refreshToken = $request->input('refreshToken');
             if (!$refreshToken) {
                 return response()->json(['errors' => 'Refresh token not found.'], 400);
             }
