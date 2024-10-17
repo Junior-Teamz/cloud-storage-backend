@@ -132,7 +132,8 @@ class AuthController extends Controller
                 ]);
             }
 
-            $check = JWTAuth::parseToken($getRefreshToken)->check();
+            JWTAuth::setToken($getRefreshToken);
+            $check = JWTAuth::parseToken()->check();
 
             if ($check) {
                 return response()->json([
