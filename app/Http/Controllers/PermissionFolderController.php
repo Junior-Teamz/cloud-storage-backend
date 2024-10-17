@@ -215,6 +215,8 @@ class PermissionFolderController extends Controller
 
             DB::commit();
 
+            $userFolderPermission->makeHidden('user:email_verified_at,is_superadmin,created_at,updated_at');
+
             return response()->json([
                 'message' => 'User ' . $userFolderPermission->user->name . ' has been granted permission ' . $userFolderPermission->permissions . ' to folder: ' . $userFolderPermission->folder->name,
                 'data' => $userFolderPermission
