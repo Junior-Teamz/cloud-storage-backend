@@ -191,8 +191,8 @@ class AuthController extends Controller
                 'jti' => $accessTokenId // Gunakan kembali access token ID
             ])->refresh();
 
-            // Invalidate access token yang lama jika proses refresh berhasil
-            JWTAuth::invalidate($accessToken);
+            // // Invalidate access token yang lama jika proses refresh berhasil
+            // JWTAuth::invalidate($accessToken);
 
             return response()->json(['accessToken' => $newAccessToken]);
         } catch (Exception $e) {

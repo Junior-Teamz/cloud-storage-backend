@@ -92,6 +92,8 @@ class PermissionFolderController extends Controller
 
     public function getPermission(Request $request)
     {
+        $userLogin = Auth::user();
+
         // Validasi input request
         $validator = Validator::make(
             request()->all(),
@@ -113,19 +115,24 @@ class PermissionFolderController extends Controller
         $folderId = $folder->id;
         $userId = $userInfo->id;
 
-        // Asumsi folder memiliki kolom 'owner_id' yang menyimpan ID pemilik folder
-        if ($folder->user_id == $userId) {
-            return response()->json([
-                'message' => 'You are owner of this folder.'
-            ], 200);
-        }
-
         // Cek permission user pada folder
         $permission = $this->checkPermission($folderId);
         if (!$permission) {
             return response()->json([
                 'errors' => 'You do not have the authority to view permissions on this Folder.'
             ], 403);
+        }
+
+        if($folderId === $userLogin->id){
+            return response()->json([
+                'message' => 'You are the owner of folder.'
+            ], 200);
+        }
+
+        if ($folder->user_id == $userId) {
+            return response()->json([
+                'message' => 'User ' . $userInfo->name . ' is the owner of folder.'
+            ], 200);
         }
 
         try {
@@ -140,6 +147,12 @@ class PermissionFolderController extends Controller
                     'data' => []
                 ], 200);
             }
+
+            $userFolderPermission->makeHidden(['user_id']);
+
+            $userFolderPermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
+
+            $userFolderPermission->file->makeHidden(['nanoid']);
 
             return response()->json([
                 'message' => 'User ' . $userFolderPermission->user->name . ' has permission for folder: ' . $userFolderPermission->folder->name,

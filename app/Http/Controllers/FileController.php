@@ -79,7 +79,7 @@ class FileController extends Controller
 
             // Tambahkan URL video streaming jika tipe file adalah video
             $file['video_url'] = null;
-            if (Str::startsWith($file->type, 'video')) {
+            if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
                 $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
             }
 
