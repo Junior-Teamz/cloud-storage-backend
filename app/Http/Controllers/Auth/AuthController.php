@@ -251,7 +251,12 @@ class AuthController extends Controller
         } catch (JWTException $e) {
             return response()->json(['errors' => 'Invalid refresh token.'], 401);
         } catch (Exception $e) {
-            return response()->json(['errors' => 'An error occurred while refreshing token.'], 500);
+            Log::error('Error occured while refreshing token: ' . $e->getMessage(), [
+                'accessToken' => $accessToken,
+                'refreshToken' => $refreshToken,
+                'trace' => $e->getTrace()
+            ]);
+            return response()->json(['errors' => 'An error occured while refreshing token.'], 500);
         }
     }
 

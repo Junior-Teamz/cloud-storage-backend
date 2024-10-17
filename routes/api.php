@@ -31,7 +31,7 @@ Route::post('/refreshToken', [AuthController::class, 'refresh']); // refresh tok
 
 Route::post('/checkAccessTokenValid', [AuthController::class, 'checkAccessTokenValid']); //periksa apakah token jwt access token masih valid atau tidak
 
-Route::post('/checkRefreshTokenValid', [AuthController::class, 'checkRefreshTokenValid'])->middleware('auth:api'); //periksa apakah token jwt refresh token masih valid atau tidak
+Route::post('/checkRefreshTokenValid', [AuthController::class, 'checkRefreshTokenValid']); //periksa apakah token jwt refresh token masih valid atau tidak
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
 
