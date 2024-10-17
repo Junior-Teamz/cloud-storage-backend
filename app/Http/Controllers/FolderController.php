@@ -259,7 +259,7 @@ class FolderController extends Controller
                 ];
 
                 // Tambahkan video_url hanya jika file adalah video
-                if (Str::startsWith($file->type, 'video')) {
+                if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
                     $fileResponse['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
                 }
 
@@ -423,7 +423,7 @@ class FolderController extends Controller
                 ];
 
                 // Tambahkan video_url hanya jika file adalah video
-                if (Str::startsWith($file->type, 'video')) {
+                if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
                     $fileData['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
                 }
 
