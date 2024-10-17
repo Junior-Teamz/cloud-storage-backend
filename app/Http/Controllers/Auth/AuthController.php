@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AuthController extends Controller
 {
@@ -57,14 +58,13 @@ class AuthController extends Controller
             $userData = $user->only(['name', 'email']);
             $roles = $user->roles->pluck('name');
 
-            // Buat Refresh Token dengan informasi tambahan access token ID
+            // Buat access token ID
             $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil ID dari access token
-            $refreshTokenExpirationTime = Carbon::now()->addDays(7); // Refresh token berlaku selama 7 hari
-            $refreshToken = auth()->guard('api')->claims([
-                'exp' => $refreshTokenExpirationTime->timestamp,
+
+            $refreshToken = JWTAuth::claims([
                 'access_token_id' => $accessTokenId, // Simpan access token ID di refresh token
                 'additional_time' => 3600 // Waktu tambahan (1 jam)
-            ])->attempt($credentials);
+            ])->setTTL(7 * 24 * 60)->tokenById($user->id); // Buat refresh token tanpa autentikasi ulang
 
             // Inisialisasi array respons
             $responseData = [
@@ -125,7 +125,7 @@ class AuthController extends Controller
         try {
             $getAccessToken = $request->input('refreshToken');
 
-            if(!$getAccessToken){
+            if (!$getAccessToken) {
                 return response()->json([
                     'errors' => "Refresh token not found. Please add 'refresh_token' in body request!"
                 ]);
@@ -153,60 +153,79 @@ class AuthController extends Controller
         }
     }
 
+    // public function refresh(Request $request)
+    // {
+    //     try {
+    //         // Ambil refresh token dari request (misalnya dari header Authorization)
+    //         $refreshToken = $request->input('refreshToken');
+    //         if (!$refreshToken) {
+    //             return response()->json(['errors' => 'Refresh token not found.'], 400);
+    //         }
+
+    //         // Set refresh token
+    //         JWTAuth::setToken($refreshToken);
+
+    //         // Ambil klaim dari refresh token
+    //         $claims = JWTAuth::getPayload()->toArray();
+
+    //         // Cek apakah refresh token memiliki access_token_id
+    //         if (!isset($claims['access_token_id'])) {
+    //             return response()->json(['errors' => 'Refresh token is invalid.'], 401);
+    //         }
+
+    //         // Ambil access token ID dari klaim refresh token
+    //         $refreshTokenAccessTokenId = $claims['access_token_id'];
+
+    //         // Periksa apakah access token yang di-refresh cocok
+    //         $accessToken = $request->bearerToken('Authorization'); // Ambil access token dari input
+    //         $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil access token ID
+
+    //         if ($refreshTokenAccessTokenId !== $accessTokenId) {
+    //             return response()->json(['errors' => 'Access token does not match in refresh token.'], 401);
+    //         }
+
+    //         // Jika cocok, buat access token baru dengan waktu tambahan dari refresh token
+    //         $additionalTime = $claims['additional_time'] ?? 0;
+    //         $newAccessToken = auth()->guard('api')->claims([
+    //             'exp' => Carbon::now()->addSeconds($additionalTime)->timestamp,
+    //             'jti' => $accessTokenId // Gunakan kembali access token ID
+    //         ])->refresh();
+
+    //         return response()->json(['accessToken' => $newAccessToken]);
+    //     } catch (Exception $e) {
+    //         if ($e instanceof JWTException) {
+    //             return response()->json([
+    //                 'errors' => 'Either access token or refresh token is invalid or expired.'
+    //             ], 401);
+    //         } else {
+    //             Log::error('Error occured while refreshing token: ' . $e->getMessage(), [
+    //                 'refresh_token' => $refreshToken,
+    //                 'trace' => $e->getTrace()
+    //             ]);
+    //             return response()->json(['errors' => 'An error occured while refreshing token.'], 500);
+    //         }
+    //     }
+    // }
+
     public function refresh(Request $request)
     {
         try {
-            // Ambil refresh token dari request (misalnya dari header Authorization)
             $refreshToken = $request->input('refreshToken');
             if (!$refreshToken) {
                 return response()->json(['errors' => 'Refresh token not found.'], 400);
             }
 
-            // Set refresh token
+            // Set refresh token dan refresh JWT
             JWTAuth::setToken($refreshToken);
-
-            // Ambil klaim dari refresh token
-            $claims = JWTAuth::getPayload()->toArray();
-
-            // Cek apakah refresh token memiliki access_token_id
-            if (!isset($claims['access_token_id'])) {
-                return response()->json(['errors' => 'Refresh token is invalid.'], 401);
-            }
-
-            // Ambil access token ID dari klaim refresh token
-            $refreshTokenAccessTokenId = $claims['access_token_id'];
-
-            // Periksa apakah access token yang di-refresh cocok
-            $accessToken = $request->bearerToken('Authorization'); // Ambil access token dari input
-            $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil access token ID
-
-            if ($refreshTokenAccessTokenId !== $accessTokenId) {
-                return response()->json(['errors' => 'Access token does not match in refresh token.'], 401);
-            }
-
-            // Jika cocok, buat access token baru dengan waktu tambahan dari refresh token
-            $additionalTime = $claims['additional_time'] ?? 0;
-            $newAccessToken = auth()->guard('api')->claims([
-                'exp' => Carbon::now()->addSeconds($additionalTime)->timestamp,
-                'jti' => $accessTokenId // Gunakan kembali access token ID
-            ])->refresh();
-
-            // // Invalidate access token yang lama jika proses refresh berhasil
-            // JWTAuth::invalidate($accessToken);
+            $newAccessToken = JWTAuth::refresh();
 
             return response()->json(['accessToken' => $newAccessToken]);
+        } catch (TokenExpiredException $e) {
+            return response()->json(['errors' => 'Refresh token expired.'], 401);
+        } catch (JWTException $e) {
+            return response()->json(['errors' => 'Invalid refresh token.'], 401);
         } catch (Exception $e) {
-            if ($e instanceof JWTException) {
-                return response()->json([
-                    'errors' => 'Either access token or refresh token is invalid or expired.'
-                ], 401);
-            } else {
-                Log::error('Error occured while refreshing token: ' . $e->getMessage(), [
-                    'refresh_token' => $refreshToken,
-                    'trace' => $e->getTrace()
-                ]);
-                return response()->json(['errors' => 'An error occured while refreshing token.'], 500);
-            }
+            return response()->json(['errors' => 'An error occurred while refreshing token.'], 500);
         }
     }
 
