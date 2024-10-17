@@ -204,7 +204,7 @@ class PermissionFolderController extends Controller
             DB::beginTransaction();
 
             // Berikan izin pada folder induk
-            $userFolderPermission = UserFolderPermission::create([
+            $createNewUserFolderPermission = UserFolderPermission::create([
                 'user_id' => $userId,
                 'folder_id' => $folderId,
                 'permissions' => $request->permissions
@@ -215,11 +215,15 @@ class PermissionFolderController extends Controller
 
             DB::commit();
 
-            $userFolderPermission->makeHidden('user:email_verified_at,is_superadmin,created_at,updated_at');
+            $createNewUserFolderPermission->makeHidden(['user_id']);
+
+            $createNewUserFolderPermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
+
+            $createNewUserFolderPermission->file->makeHidden(['nanoid', 'path']);
 
             return response()->json([
-                'message' => 'User ' . $userFolderPermission->user->name . ' has been granted permission ' . $userFolderPermission->permissions . ' to folder: ' . $userFolderPermission->folder->name,
-                'data' => $userFolderPermission
+                'message' => 'User ' . $createNewUserFolderPermission->user->name . ' has been granted permission ' . $createNewUserFolderPermission->permissions . ' to folder: ' . $createNewUserFolderPermission->folder->name,
+                'data' => $createNewUserFolderPermission
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();

@@ -99,7 +99,7 @@ class FileFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query file favorit user dengan pivot data
-            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions',]);
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions:user',]);
 
             // Filter berdasarkan nama file jika ada parameter 'search'
             if ($search) {
