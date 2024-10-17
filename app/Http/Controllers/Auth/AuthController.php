@@ -30,8 +30,8 @@ class AuthController extends Controller
             ],
             'password' => 'required',
         ], [
-            'email.required' => 'Email wajib diisi.',
-            'password.required' => 'Password wajib diisi.',
+            'email.required' => 'Email is required.',
+            'password.required' => 'Password is required.',
         ]);
 
         // Respon error validasi
@@ -88,7 +88,7 @@ class AuthController extends Controller
             Log::error('Login error: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
-            return response()->json(['errors' => 'Terjadi kesalahan. Harap coba lagi nanti.'], 500);
+            return response()->json(['errors' => 'An error was occured, please try again later.'], 500);
         }
     }
 
@@ -109,11 +109,11 @@ class AuthController extends Controller
                 ], 200);
             }
         } catch (Exception $e) {
-            Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage(), [
+            Log::error('Error occured while checking access token: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
             return response()->json([
-                'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
+                'errors' => 'An error occured while checking access token.'
             ], 500); // HTTP 500 Internal Server Error
 
         }
@@ -143,11 +143,11 @@ class AuthController extends Controller
                 ], 200);
             }
         } catch (Exception $e) {
-            Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage(), [
+            Log::error('Error occured while checking refresh token: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
             return response()->json([
-                'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
+                'errors' => 'An error occured while checking refresh token'
             ], 500); // HTTP 500 Internal Server Error
 
         }
