@@ -128,7 +128,7 @@ class AuthController extends Controller
 
             if (!$getAccessToken) {
                 return response()->json([
-                    'errors' => "Refresh token not found. Please add 'refresh_token' in body request!"
+                    'errors' => "Refresh token not found. Please add 'refreshToken' in body request!"
                 ]);
             }
 
