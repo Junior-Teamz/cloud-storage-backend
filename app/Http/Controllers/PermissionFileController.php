@@ -132,7 +132,7 @@ class PermissionFileController extends Controller
                 'data' => $userFilePermission
             ]);
         } catch (Exception $e) {
-            Log::error('Error occured while retrieving user permission: '. $e->getMessage(), [
+            Log::error('Error occured while retrieving user permission: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
             return response()->json([
@@ -197,7 +197,11 @@ class PermissionFileController extends Controller
 
             DB::commit();
 
-            $createNewUserFilePermission->makeHidden(['user_id', 'file_id','user:email_verified_at,is_superadmin,created_at,updated_at']);
+            $createNewUserFilePermission->makeHidden(['user_id', 'file_id']);
+
+            $createNewUserFilePermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
+
+            $createNewUserFilePermission->file->makeHidden(['nanoid', 'path']);
 
             return response()->json([
                 'message' => 'User ' . $createNewUserFilePermission->user->name . ' has been granted permission ' . $createNewUserFilePermission->permissions . ' to file: ' . $createNewUserFilePermission->file->name,
