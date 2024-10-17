@@ -99,7 +99,7 @@ class FileFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query file favorit user dengan pivot data
-            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions:user',]);
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email' ,]);
 
             // Filter berdasarkan nama file jika ada parameter 'search'
             if ($search) {
@@ -125,7 +125,20 @@ class FileFavoriteController extends Controller
                 $file['favorited_at'] = $favoritedAt;
                 $checkPermission = $this->checkPermissionFile2($file->id, 'read');
                 if ($checkPermission) {
-                    $file['shared_with'] = $file->userPermissions;
+                    $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'file_id' => $permission->file_id,
+                            'permissions' => $permission->permissions,
+                            'created_at' => $permission->created_at,
+                            'updated_at' => $permission->updated_at,
+                            'user' => [
+                                'id' => $permission->user->id,
+                                'name' => $permission->user->name,
+                                'email' => $permission->user->email,
+                            ]
+                        ];
+                    });
                 }
                 return $file;
             });
