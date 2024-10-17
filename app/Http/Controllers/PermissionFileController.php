@@ -120,18 +120,17 @@ class PermissionFileController extends Controller
             ], 403);
         }
 
-        if($fileId == $userLogin->id){
+        if($file->user_id == $userLogin->id){
             return response()->json([
                 'message' => 'You are the owner of file.'
             ], 200);
         }
 
-        if($fileId == $userId){
+        if($file->user_id == $userId){
             return response()->json([
                 'message' => 'User ' . $userInfo->name . ' is the owner of file.'
             ], 200);
         }
-
 
         try {
             $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->with(['user', 'file'])->first();
