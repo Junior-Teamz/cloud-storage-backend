@@ -211,6 +211,8 @@ class AuthController extends Controller
     public function refresh(Request $request)
     {
         try {
+            $accessToken = $request->bearerToken('Authorization');
+
             $refreshToken = $request->input('refreshToken');
             if (!$refreshToken) {
                 return response()->json(['errors' => 'Refresh token not found.'], 400);
@@ -219,6 +221,9 @@ class AuthController extends Controller
             // Set refresh token dan refresh JWT
             JWTAuth::setToken($refreshToken);
             $newAccessToken = JWTAuth::refresh();
+
+            JWTAuth::setToken($accessToken);
+            JWTAuth::invalidate($accessToken);
 
             return response()->json(['accessToken' => $newAccessToken]);
         } catch (TokenExpiredException $e) {
