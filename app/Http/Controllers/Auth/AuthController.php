@@ -132,8 +132,11 @@ class AuthController extends Controller
                 ]);
             }
 
+            // Set token secara manual dari refresh token yang diambil dari body
             JWTAuth::setToken($getRefreshToken);
-            $check = JWTAuth::parseToken()->check();
+
+            // Cek apakah refresh token valid
+            $check = JWTAuth::check();
 
             if ($check) {
                 return response()->json([
