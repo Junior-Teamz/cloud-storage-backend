@@ -27,15 +27,17 @@ Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
 Route::post('/login', [AuthController::class, 'login']); // login user
 
-Route::post('/checkTokenValid', [AuthController::class, 'checkTokenValid']); // TODO: periksa apakah token jwt masih valid atau tidak
+Route::post('/refreshToken', [AuthController::class, 'refresh']); // refresh token
 
-// Route::post('/refreshToken', [AuthController::class, 'refreshToken'])->middleware('auth:api'); // TODO: refresh token jwt
+Route::post('/checkAccessTokenValid', [AuthController::class, 'checkAccessTokenValid']); //periksa apakah token jwt access token masih valid atau tidak
+
+Route::post('/checkRefreshTokenValid', [AuthController::class, 'checkRefreshTokenValid'])->middleware('auth:api'); //periksa apakah token jwt refresh token masih valid atau tidak
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
 
-Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileImageByHashedId'])->name('image.url')->middleware(['auth:api']);
+Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileByHashedId'])->name('file.url')->middleware(['auth:api']);
 
-Route::get('/file/videoStream/{hashedId}', [FileController::class, 'serveFileVideoByHashedId'])->name('video.stream');
+Route::get('/file/videoStream/{hashedId}', [FileController::class, 'serveFileVideoByHashedId'])->name('video.stream')->middleware(['auth:api']);
 
 Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'remove_nanoid', 'hide_superadmin_flag']);
 
@@ -77,7 +79,7 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
 
-        Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
+        Route::delete('/deleteFavorite/{id}', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
 
         Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
 
@@ -108,7 +110,7 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
 
-        Route::delete('/deleteFavorite', [FileFavoriteController::class, 'deleteFavoriteFile']);
+        Route::delete('/deleteFavorite/{id}', [FileFavoriteController::class, 'deleteFavoriteFile']);
 
         Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFileLink']);
 
@@ -214,7 +216,7 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
 
-        Route::delete('/deleteFavorite', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
+        Route::delete('/deleteFavorite/{id}', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
 
         Route::post('/addTag', [FolderController::class, 'addTagToFolder']); // Tambahkan tag ke folder
 
@@ -241,7 +243,7 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
 
-        Route::delete('/deleteFavorite', [FileFavoriteController::class, 'deleteFavoriteFile']);
+        Route::delete('/deleteFavorite/{id}', [FileFavoriteController::class, 'deleteFavoriteFile']);
 
         // Route::post('/create', [FileController::class, 'create']); // Membuat file baru
 
@@ -271,6 +273,8 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::post('/create', [TagController::class, 'store']); // Buat tag baru
 
+        Route::get('/importExampleDownload', [TagController::class, 'exampleImportDownload']); // untuk mendownload contoh file import tag.
+
         Route::post('/import', [TagController::class, 'import']); // Mengimpor tag
 
         Route::put('/update/{tagId}', [TagController::class, 'update']); // Update tag yang ada sebelumnya
@@ -288,6 +292,8 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
         Route::get('/countAll', [InstanceController::class, 'countAllInstance']); // Mendapatkan total instansi
 
         Route::post('/create', [InstanceController::class, 'store']); // Membuat instansi baru
+
+        Route::get('/importExampleDownload', [InstanceController::class, 'exampleImportDownload']); // untuk mendownload contoh file import instansi.
 
         Route::post('/import', [InstanceController::class, 'import']); // Mengimpor instansi
 

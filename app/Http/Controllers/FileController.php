@@ -265,14 +265,10 @@ class FileController extends Controller
                     'nanoid' => $nanoid,
                 ]);
 
-                $mimeType = Storage::mimeType($path);
+                $fileUrl = $this->GenerateURLService->generateUrlForFile($file->id);
 
-                if (Str::startsWith($mimeType, 'image')) {
-                    $imageUrl = $this->GenerateURLService->generateUrlForImage($file->id);
-
-                    $file->image_url = $imageUrl;
-                    $file->save();
-                }
+                $file->file_url = $fileUrl;
+                $file->save();
 
                 $getTagIds = Tags::whereIn('id', $request->tag_ids)->get();
 
@@ -893,7 +889,7 @@ class FileController extends Controller
         }
     }
 
-    public function serveFileImageByHashedId($fileId)
+    public function serveFileByHashedId($fileId)
     {
         $user = Auth::user();
 
@@ -904,11 +900,6 @@ class FileController extends Controller
 
             if (!$file) {
                 return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
-            }
-
-            // Cek apakah file adalah gambar
-            if (!Str::startsWith(Storage::mimeType($file->path), 'image')) {
-                return response()->json(['errors' => 'The file is not an image'], 415);  // 415 Unsupported Media Type
             }
 
             // Periksa perizinan menggunakan fungsi checkPermissionFile

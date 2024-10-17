@@ -192,7 +192,7 @@ class SharingController extends Controller
                 // Jika file adalah gambar, tambahkan URL gambar
                 $mimeType = Storage::mimeType($file->path);
                 if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['image_url'] = $this->GenerateURLService->generateUrlForImage($file->id);
+                    $fileData['file_url'] = $this->GenerateURLService->generateUrlForFile($file->id);
                 }
 
                 return $fileData;

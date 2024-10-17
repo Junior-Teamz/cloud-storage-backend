@@ -10,6 +10,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -319,6 +320,43 @@ class InstanceController extends Controller
 
             return response()->json([
                 'errors' => 'An error occurred while creating instance.'
+            ], 500);
+        }
+    }
+
+    public function exampleImportDownload()
+    {
+        // Mengecek apakah pengguna adalah admin
+        $checkAdmin = $this->checkAdminService->checkAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ]);
+        }
+
+        try {
+            // Path file di folder storage/app/import_example
+            $filePath = 'import_example/InstanceImport.xlsx';
+
+            // Cek apakah file ada
+            if (!Storage::exists($filePath)) {
+                Log::critical('Example file for importing instance not found!, please add example import instance excel file in storage/app/import_example/InstanceImport.xlsx');
+                return response()->json([
+                    'errors' => 'Internal server occured. Please contact the administrator of app.'
+                ], 500);
+            }
+
+            // Mengembalikan respons untuk mendownload file
+            return Storage::download($filePath, 'InstanceImport_Example.xlsx');
+        } catch (Exception $e) {
+            // Log error jika terjadi exception
+            Log::error('Error occurred while downloading example file: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while downloading the example file.'
             ], 500);
         }
     }

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('nanoid');
             $table->string('path');
             $table->string('public_path');
-            $table->string('image_url')->nullable();
+            $table->string('file_url')->nullable();
             $table->unsignedBigInteger('size');
             $table->string('type');
             $table->foreignUuid('user_id')->index()->references('id')->on('users')->cascadeOnDelete();

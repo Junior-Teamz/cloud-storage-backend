@@ -290,9 +290,9 @@ class TagController extends Controller
 
             // Cek apakah file ada
             if (!Storage::exists($filePath)) {
-                Log::critical('Example file for importing tag not found!');
+                Log::critical('Example file for importing tag not found!, please add example import tag excel file in storage/app/import_example/TagImport.xlsx');
                 return response()->json([
-                    'errors' => 'Example file not found.'
+                    'errors' => 'Internal server occured. Please contact the administrator of app.'
                 ], 500);
             }
 

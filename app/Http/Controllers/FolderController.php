@@ -249,7 +249,7 @@ class FolderController extends Controller
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
-                    'image_url' => $file->image_url,
+                    'file_url' => $file->file_url,
                     'is_favorite' => $isFavorite,
                     'favorited_at' => $favoritedAt,
                     'user' => $file->user, // User sudah diambil dengan select
@@ -409,7 +409,7 @@ class FolderController extends Controller
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
-                    'image_url' => $file->image_url,
+                    'file_url' => $file->file_url,
                     'folder_id' => $file->folder->id,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,

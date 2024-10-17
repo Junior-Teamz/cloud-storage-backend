@@ -3,16 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Cookie; // maybe next time
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
-use Tymon\JWTAuth\Exceptions\TokenInvalidException;
-use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 
 class AuthController extends Controller
 {
@@ -45,9 +43,9 @@ class AuthController extends Controller
             $credentials = $request->only('email', 'password');
 
             // Coba melakukan autentikasi
-            $token = auth()->guard('api')->attempt($credentials);
+            $accessToken = auth()->guard('api')->attempt($credentials);
 
-            if (!$token) {
+            if (!$accessToken) {
                 // Respon jika login gagal karena email atau password salah
                 return response()->json([
                     'errors' => 'Email or Password is incorrect.',
@@ -58,11 +56,20 @@ class AuthController extends Controller
             $user = auth()->guard('api')->user();
             $userData = $user->only(['name', 'email']);
             $roles = $user->roles->pluck('name');
-            $accessToken = $token;
+
+            // Buat Refresh Token dengan informasi tambahan access token ID
+            $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil ID dari access token
+            $refreshTokenExpirationTime = Carbon::now()->addDays(7); // Refresh token berlaku selama 7 hari
+            $refreshToken = auth()->guard('api')->claims([
+                'exp' => $refreshTokenExpirationTime->timestamp,
+                'access_token_id' => $accessTokenId, // Simpan access token ID di refresh token
+                'additional_time' => 3600 // Waktu tambahan (1 jam)
+            ])->attempt($credentials);
 
             // Inisialisasi array respons
             $responseData = [
                 'accessToken' => $accessToken,
+                'refresh_token' => $refreshToken,
                 'success' => true,
                 'user' => $userData,
                 'roles' => $roles,
@@ -85,101 +92,137 @@ class AuthController extends Controller
         }
     }
 
-    public function checkTokenValid()
+    public function checkAccessTokenValid(Request $request)
     {
         try {
-            $check = JWTAuth::parseToken()->authenticate();
+            $getAccessToken = $request->bearerToken('Authorization');
+
+            $check = JWTAuth::parseToken($getAccessToken)->check();
 
             if ($check) {
                 return response()->json([
                     'token_valid' => true
-                ], 200); // HTTP 200 OK
+                ], 200);
+            } else {
+                return response()->json([
+                    'token_valid' => false
+                ], 200);
             }
         } catch (Exception $e) {
-            if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException) {
+            Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+            return response()->json([
+                'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
+            ], 500); // HTTP 500 Internal Server Error
+
+        }
+    }
+
+    // im little bit confused why creating this function... XD
+    public function checkRefreshTokenValid(Request $request)
+    {
+        try {
+            $getAccessToken = $request->input('refresh_token');
+
+            if(!$getAccessToken){
                 return response()->json([
-                    'token_valid' => false,
-                    'errors' => 'Token is Invalid'
-                ], 401); // HTTP 401 Unauthorized
-            } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenExpiredException) {
+                    'errors' => "Refresh token not found. Please add 'refresh_token' in body request!"
+                ]);
+            }
+
+            $check = JWTAuth::parseToken($getAccessToken)->check();
+
+            if ($check) {
                 return response()->json([
-                    'token_valid' => false,
-                    'errors' => 'Token has Expired'
-                ], 401); // HTTP 401 Unauthorized
-            } else if ($e instanceof \Tymon\JWTAuth\Exceptions\TokenBlacklistedException) {
-                return response()->json([
-                    'token_valid' => false,
-                    'errors' => 'Token is Blacklisted'
-                ], 403); // HTTP 403 Forbidden
+                    'token_valid' => true
+                ], 200);
             } else {
-                Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage(), [
+                return response()->json([
+                    'token_valid' => false
+                ], 200);
+            }
+        } catch (Exception $e) {
+            Log::error('Terjadi kesalahan ketika memeriksa token: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+            return response()->json([
+                'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
+            ], 500); // HTTP 500 Internal Server Error
+
+        }
+    }
+
+    public function refresh(Request $request)
+    {
+        try {
+            // Ambil refresh token dari request (misalnya dari header Authorization)
+            $refreshToken = $request->input('refresh_token');
+            if (!$refreshToken) {
+                return response()->json(['errors' => 'Refresh token not found.'], 400);
+            }
+
+            // Set refresh token
+            JWTAuth::setToken($refreshToken);
+
+            // Ambil klaim dari refresh token
+            $claims = JWTAuth::getPayload()->toArray();
+
+            // Cek apakah refresh token memiliki access_token_id
+            if (!isset($claims['access_token_id'])) {
+                return response()->json(['errors' => 'Refresh token is invalid.'], 401);
+            }
+
+            // Ambil access token ID dari klaim refresh token
+            $refreshTokenAccessTokenId = $claims['access_token_id'];
+
+            // Periksa apakah access token yang di-refresh cocok
+            $accessToken = $request->bearerToken('Authorization'); // Ambil access token dari input
+            $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil access token ID
+
+            if ($refreshTokenAccessTokenId !== $accessTokenId) {
+                return response()->json(['errors' => 'Access token does not match in refresh token.'], 401);
+            }
+
+            // Jika cocok, buat access token baru dengan waktu tambahan dari refresh token
+            $additionalTime = $claims['additional_time'] ?? 0;
+            $newAccessToken = auth()->guard('api')->claims([
+                'exp' => Carbon::now()->addSeconds($additionalTime)->timestamp,
+                'jti' => $accessTokenId // Gunakan kembali access token ID
+            ])->refresh();
+
+            // Invalidate access token yang lama jika proses refresh berhasil
+            JWTAuth::invalidate($accessToken);
+
+            return response()->json(['accessToken' => $newAccessToken]);
+        } catch (Exception $e) {
+            if ($e instanceof JWTException) {
+                return response()->json([
+                    'errors' => 'Either access token or refresh token is invalid or expired.'
+                ], 401);
+            } else {
+                Log::error('Error occured while refreshing token: ' . $e->getMessage(), [
+                    'refresh_token' => $refreshToken,
                     'trace' => $e->getTrace()
                 ]);
-                return response()->json([
-                    'errors' => 'Terjadi kesalahan, harap coba lagi nanti'
-                ], 500); // HTTP 500 Internal Server Error
+                return response()->json(['errors' => 'An error occured while refreshing token.'], 500);
             }
         }
     }
 
-    // TODO: Fungsi untuk me-refresh token
-    // public function refreshToken(Request $request)
-    // {
-    //     try {
-    //         // Ambil access token dari header Authorization: Bearer {token}
-    //         $accessToken = $request->header('Authorization');
-    //         if (!$accessToken) {
-    //             return response()->json(['errors' => 'Access Token tidak ditemukan di header.'], 401); // 401 Unauthorized
-    //         }
-            
-    //         // Ambil refresh token dari cookie HTTP-Only
-    //         $refreshToken = $request->cookie('refresh_token');
-    //         if (!$refreshToken) {
-    //             return response()->json(['errors' => 'Refresh Token tidak ditemukan.'], 401); // 401 Unauthorized
-    //         }
-
-    //         // Invalidate the old refresh token to prevent reuse
-    //         JWTAuth::setToken($refreshToken)->invalidate();
-
-    //         // Refresh the access token and get a new one
-    //         $newAccessToken = JWTAuth::refresh($accessToken);
-
-    //         // Create a new refresh token
-    //         $newRefreshToken = JWTAuth::fromUser(auth()->guard('api')->user());
-
-    //         // Set the new refresh token in a secure HTTP-Only cookie
-    //         $cookie = Cookie::make('refresh_token', $newRefreshToken, 10080, null, null, false, true); // 7 hari
-
-    //         return response()->json([
-    //             'accessToken' => $newAccessToken
-    //         ])->withCookie($cookie);
-    //     } catch (TokenExpiredException $e) {
-    //         return response()->json(['errors' => 'Access Token telah kadaluarsa.'], 401); // 401 Unauthorized
-    //     } catch (TokenInvalidException $e) {
-    //         return response()->json(['errors' => 'Access Token tidak valid.'], 401); // 401 Unauthorized
-    //     } catch (TokenBlacklistedException $e) {
-    //         return response()->json(['errors' => 'Refresh Token telah diblacklist.'], 403); // 403 Forbidden
-    //     } catch (JWTException $e) {
-    //         Log::error('Terjadi kesalahan saat mencoba me-refresh token: ' . $e->getMessage(), [
-    //         'trace' => $e->getTrace()
-    // ]);
-    //         return response()->json(['errors' => 'Terjadi kesalahan, harap coba lagi nanti.'], 500); // 500 Internal Server Error
-    //     }
-    // }
-
-    // Fungsi untuk logout dan invalidate refresh token
-    public function logout()
+    // Fungsi untuk logout
+    public function logout(Request $request)
     {
         try {
             // Invalidate both access and refresh tokens
             JWTAuth::invalidate(JWTAuth::getToken());
 
-            return response()->json(['message' => 'Logout berhasil']);
+            return response()->json(['message' => 'Successfully logout.']);
         } catch (JWTException $e) {
             Log::error('Logout error: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
-            return response()->json(['errors' => 'Terjadi kesalahan ketika logout'], 500); // 500 Internal Server Error
+            return response()->json(['errors' => 'An error occured while logout.'], 500); // 500 Internal Server Error
         }
     }
 }

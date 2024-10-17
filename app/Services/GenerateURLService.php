@@ -8,7 +8,7 @@ use Sqids\Sqids;
 
 class GenerateURLService
 {
-    public function generateUrlForImage($file_id)
+    public function generateUrlForFile($file_id)
     {
         // Cari file berdasarkan ID
         $file = File::where('id', $file_id)->first();
@@ -18,7 +18,7 @@ class GenerateURLService
         }
 
         // Buat URL yang diobfuscate menggunakan hashed ID
-        return route('image.url', ['hashedId' => $file->id]);
+        return route('file.url', ['hashedId' => $file->id]);
     }
 
     public function generateUrlForVideo($file_id)

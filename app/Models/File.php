@@ -16,25 +16,25 @@ class File extends Model
         'nanoid',
         'path',
         'public_path',
-        'image_url',
+        'file_url',
         'size',
         'type',
         'user_id',
         'folder_id'
     ];
 
-    // Override method toArray to hide image_url if null
-    public function toArray()
-    {
-        $array = parent::toArray();
+    // // Override method toArray to hide file_url if null
+    // public function toArray()
+    // {
+    //     $array = parent::toArray();
 
-        // Only include 'image_url' if it's not null
-        if (is_null($this->image_url)) {
-            unset($array['image_url']);
-        }
+    //     // Only include 'file_url' if it's not null
+    //     if (is_null($this->file_url)) {
+    //         unset($array['file_url']);
+    //     }
 
-        return $array;
-    }
+    //     return $array;
+    // }
 
     public function user()
     {

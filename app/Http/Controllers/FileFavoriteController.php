@@ -197,7 +197,7 @@ class FileFavoriteController extends Controller
                         'created_at' => $file->created_at,
                         'updated_at' => $file->updated_at,
                         'folder_id' => $file->folder->id,
-                        'image_url' => $file->image_url,
+                        'file_url' => $file->file_url,
                         'is_favorited' => is_null($existingFavorite),
                         'favorited_at' => $existingFavorite->pivot->created_at ?? null,
                         'user' => $file->user, // User sudah diambil dengan select
@@ -233,7 +233,7 @@ class FileFavoriteController extends Controller
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
-                    'image_url' => $file->image_url,
+                    'file_url' => $file->file_url,
                     'is_favorited' => $isFavorite,
                     'favorited_at' => $favoritedAt,
                     'user' => $file->user, // User sudah diambil dengan select
@@ -306,7 +306,7 @@ class FileFavoriteController extends Controller
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
-                    'image_url' => $file->image_url,
+                    'file_url' => $file->file_url,
                     'is_favorited' => $isFavorite,
                     'favorited_at' => $favoritedAt,
                     'user' => $file->user, // User sudah diambil dengan select
