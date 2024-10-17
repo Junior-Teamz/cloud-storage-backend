@@ -219,7 +219,7 @@ class PermissionFolderController extends Controller
 
             $createNewUserFolderPermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
 
-            $createNewUserFolderPermission->file->makeHidden(['nanoid', 'path']);
+            $createNewUserFolderPermission->file->makeHidden(['nanoid']);
 
             return response()->json([
                 'message' => 'User ' . $createNewUserFolderPermission->user->name . ' has been granted permission ' . $createNewUserFolderPermission->permissions . ' to folder: ' . $createNewUserFolderPermission->folder->name,

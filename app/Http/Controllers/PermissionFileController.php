@@ -68,6 +68,7 @@ class PermissionFileController extends Controller
                 $responseData[] = [
                     'user_id' => $permission->user->id,
                     'user_name' => $permission->user->name,
+                    'user_email' => $permission->user->email,
                     'permissions' => $permission->permissions
                 ];
             }
@@ -90,6 +91,8 @@ class PermissionFileController extends Controller
 
     public function getPermission(Request $request)
     {
+        $userLogin = Auth::user();
+
         $validator = Validator::make(
             request()->all(),
             [
@@ -117,8 +120,21 @@ class PermissionFileController extends Controller
             ], 403);
         }
 
+        if($fileId === $userLogin->id){
+            return response()->json([
+                'message' => 'You are the owner of file.'
+            ], 200);
+        }
+
+        if($fileId === $userId){
+            return response()->json([
+                'message' => 'User ' . $userInfo->name . ' is the owner of file.'
+            ], 200);
+        }
+
+
         try {
-            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->first();
+            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->with(['user', 'file'])->first();
 
             if ($userFilePermission == null) {
                 return response()->json([
@@ -126,6 +142,12 @@ class PermissionFileController extends Controller
                     'data' => []
                 ], 200);
             }
+
+            $userFilePermission->makeHidden(['user_id', 'file_id']);
+
+            $userFilePermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
+
+            $userFilePermission->file->makeHidden(['nanoid', 'path']);
 
             return response()->json([
                 'message' => 'User ' . $userFilePermission->user->name . ' has get some permission to file: ' . $userFilePermission->file->name,

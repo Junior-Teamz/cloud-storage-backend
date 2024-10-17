@@ -88,7 +88,7 @@ class FolderFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query folder favorit user dengan pivot data
-            $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'files', 'tags:id,name', 'instances:id,name,address', 'userPermissions',]);
+            $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'files', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions.user:id,name,email:',]);
 
             // Filter berdasarkan nama folder jika ada parameter 'search'
             if ($search) {
@@ -115,7 +115,20 @@ class FolderFavoriteController extends Controller
                 $folder['favorited_at'] = $favoritedAt;
                 $checkPermission = $this->checkPermissionFolderService->checkPermissionFolder($folder->id, 'read');
                 if ($checkPermission) {
-                    $folder['shared_with'] = $folder->userPermissions;
+                    $folder['shared_with'] = $folder->userFolderPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'folder_id' => $permission->folder_id,
+                            'permissions' => $permission->permissions,
+                            'created_at' => $permission->created_at,
+                            'updated_at' => $permission->updated_at,
+                            'user' => [
+                                'id' => $permission->user->id,
+                                'name' => $permission->user->name,
+                                'email' => $permission->user->email,
+                            ]
+                        ];
+                    });
                 }
                 return $folder;
             });
