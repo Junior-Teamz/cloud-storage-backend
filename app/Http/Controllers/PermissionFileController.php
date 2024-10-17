@@ -189,7 +189,7 @@ class PermissionFileController extends Controller
 
             DB::beginTransaction();
 
-            $userFilePermission = UserFilePermission::create([
+            $createNewUserFilePermission = UserFilePermission::create([
                 'user_id' => $userId,
                 'file_id' => $fileId,
                 'permissions' => $request->permissions
@@ -197,11 +197,11 @@ class PermissionFileController extends Controller
 
             DB::commit();
 
-            $userFilePermission->makeHidden('user:email_verified_at,is_superadmin,created_at,updated_at');
+            $createNewUserFilePermission->makeHidden(['user_id', 'file_id','user:email_verified_at,is_superadmin,created_at,updated_at']);
 
             return response()->json([
-                'message' => 'User ' . $userFilePermission->user->name . ' has been granted permission ' . $userFilePermission->permissions . ' to file: ' . $userFilePermission->file->name,
-                'data' => $userFilePermission
+                'message' => 'User ' . $createNewUserFilePermission->user->name . ' has been granted permission ' . $createNewUserFilePermission->permissions . ' to file: ' . $createNewUserFilePermission->file->name,
+                'data' => $createNewUserFilePermission
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
