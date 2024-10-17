@@ -88,7 +88,7 @@ class FolderFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query folder favorit user dengan pivot data
-            $favoriteFoldersQuery = $user->favoriteFolders()->withPivot('created_at');
+            $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'files', 'tags:id,name', 'instances:id,name,address', 'userPermissions',]);
 
             // Filter berdasarkan nama folder jika ada parameter 'search'
             if ($search) {
@@ -106,18 +106,18 @@ class FolderFavoriteController extends Controller
             $favoriteFolders = $favoriteFoldersQuery->paginate($perPage);
 
             // Modifikasi respons untuk menambahkan waktu ditambahkan ke favorit
-            $favoriteFolders->getCollection()->transform(function ($folder) {
-                return [
-                    'id' => $folder->id,
-                    'name' => $folder->name,
-                    'type' => $folder->type,
-                    'public_path' => $folder->public_path,
-                    'user_id' => $folder->user_id,
-                    'parent_id' => $folder->parent_id,
-                    'created_at' => $folder->created_at,
-                    'updated_at' => $folder->updated_at,
-                    'favorited_at' => $folder->pivot->created_at, // Waktu ditambahkan ke favorit
-                ];
+            $favoriteFolders->getCollection()->transform(function ($folder) use ($user) {
+                $favorite = $folder->favorite()->where('user_id', $user->id)->first();
+                $isFavorite = !is_null($favorite);
+                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+                $folder['is_favorite'] = $isFavorite; // Otomatis menjadi true karena folder yang diambil adalah folder yang di favoritkan.
+                $folder['favorited_at'] = $favoritedAt;
+                $checkPermission = $this->checkPermissionFolderService->checkPermissionFolder($folder->id, 'read');
+                if ($checkPermission) {
+                    $folder['shared_with'] = $folder->userPermissions;
+                }
+                return $folder;
             });
 
             return response()->json([
