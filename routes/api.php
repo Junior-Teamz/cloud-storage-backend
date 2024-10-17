@@ -56,6 +56,10 @@ Route::prefix('news')->group(function () {
 
 Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_nanoid', 'check_admin', 'hide_superadmin_flag'])->group(function () {
 
+    Route::get('/searchUser', [SearchController::class, 'searchUser']); // Mencari user dengan name atau email
+
+    Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
+
     // Route::put('/update', [UserController::class, 'update']); // Update user
 
     // Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
