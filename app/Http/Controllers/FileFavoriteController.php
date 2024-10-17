@@ -125,7 +125,7 @@ class FileFavoriteController extends Controller
                 $file['favorited_at'] = $favoritedAt;
                 $checkPermission = $this->checkPermissionFile2($file->id, 'read');
                 if ($checkPermission) {
-                    $file['shared_with'] = $file->userPermissions->user;
+                    $file['shared_with'] = $file->userPermissions;
                 }
                 return $file;
             });
