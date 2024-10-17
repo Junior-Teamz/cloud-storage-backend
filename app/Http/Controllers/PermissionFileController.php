@@ -91,8 +91,6 @@ class PermissionFileController extends Controller
 
     public function getPermission(Request $request)
     {
-        $userLogin = Auth::user();
-
         $validator = Validator::make(
             request()->all(),
             [
@@ -120,15 +118,9 @@ class PermissionFileController extends Controller
             ], 403);
         }
 
-        if($file->user_id == $userLogin->id){
-            return response()->json([
-                'message' => 'You are the owner of file.'
-            ], 200);
-        }
-
         if($file->user_id == $userId){
             return response()->json([
-                'message' => 'User ' . $userInfo->name . ' is the owner of file.'
+                'message' => 'You are the owner of file.'
             ], 200);
         }
 

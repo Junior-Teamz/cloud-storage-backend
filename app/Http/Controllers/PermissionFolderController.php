@@ -54,7 +54,7 @@ class PermissionFolderController extends Controller
 
         try {
             // Ambil semua pengguna dengan izin yang terkait dengan folder yang diberikan
-            $userFolderPermissions = UserFolderPermission::with('users')
+            $userFolderPermissions = UserFolderPermission::with('user')
                 ->where('folder_id', $folderId)
                 ->get();
 
@@ -70,6 +70,7 @@ class PermissionFolderController extends Controller
                 $responseData[] = [
                     'user_id' => $permission->user->id,
                     'user_name' => $permission->user->name,
+                    'user_email' => $permission->user->email,
                     'permissions' => $permission->permissions
                 ];
             }
@@ -92,8 +93,6 @@ class PermissionFolderController extends Controller
 
     public function getPermission(Request $request)
     {
-        $userLogin = Auth::user();
-
         // Validasi input request
         $validator = Validator::make(
             request()->all(),
@@ -123,22 +122,16 @@ class PermissionFolderController extends Controller
             ], 403);
         }
 
-        if($folderId === $userLogin->id){
-            return response()->json([
-                'message' => 'You are the owner of folder.'
-            ], 200);
-        }
-
         if ($folder->user_id == $userId) {
             return response()->json([
-                'message' => 'User ' . $userInfo->name . ' is the owner of folder.'
+                'message' => 'You are the owner of folder.'
             ], 200);
         }
 
         try {
             // Cek apakah userFolderPermission ada
             $userFolderPermission = UserFolderPermission::where('user_id', $request->user_id)
-                ->where('folder_id', $request->folder_id)
+                ->where('folder_id', $request->folder_id)->with(['user', 'folder'])
                 ->first();
 
             if (!$userFolderPermission) {
@@ -148,7 +141,7 @@ class PermissionFolderController extends Controller
                 ], 200);
             }
 
-            $userFolderPermission->makeHidden(['user_id']);
+            $userFolderPermission->makeHidden(['user_id', 'folder_id']);
 
             $userFolderPermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
 
