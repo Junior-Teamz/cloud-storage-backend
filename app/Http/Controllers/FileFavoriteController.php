@@ -131,7 +131,7 @@ class FileFavoriteController extends Controller
             });
 
             // Sembunyikan kolom 'path' dan 'nanoid'
-            $favoriteFiles->makeHidden(['path', 'nanoid', 'user_id', 'userPermissions']);
+            $favoriteFiles->makeHidden(['path', 'nanoid', 'user_id', 'pivot', 'userPermissions']);
 
             return response()->json([
                 'favorite_files' => $favoriteFiles

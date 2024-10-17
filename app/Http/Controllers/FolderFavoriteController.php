@@ -120,6 +120,8 @@ class FolderFavoriteController extends Controller
                 return $folder;
             });
 
+            $favoriteFolders->makeHidden(['nanoid', 'user_id', 'pivot', 'userPermissions']);
+
             return response()->json([
                 'favorite_folders' => $favoriteFolders
             ], 200);
