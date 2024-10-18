@@ -908,30 +908,6 @@ class FileController extends Controller
 
     public function serveFileVideoByHashedId($fileId)
     {
-        // // Cari file berdasarkan ID
-        // $file = File::find($fileId);
-
-        // if (!$file) {
-        //     return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
-        // }
-
-        // // Cek apakah file adalah video
-        // if (!Str::startsWith(Storage::mimeType($file->path), 'video')) {
-        //     return response()->json(['errors' => 'The file is not a video'], 415);  // 415 Unsupported Media Type
-        // }
-
-        // // Ambil path file dari storage dan stream
-        // $file_path = Storage::path($file->path);
-
-        // return response()->stream(function () use ($file_path) {
-        //     $stream = fopen($file_path, 'rb');
-        //     fpassthru($stream);
-        //     fclose($stream);
-        // }, 200, [
-        //     'Content-Type' => Storage::mimeType($file->path),
-        //     'Content-Length' => Storage::size($file->path),
-        // ]);
-
         // Cari file berdasarkan ID
         $file = File::find($fileId);
 
@@ -939,11 +915,22 @@ class FileController extends Controller
             return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
         }
 
+        // Cek apakah file adalah video
+        if (!Str::startsWith(Storage::mimeType($file->path), 'video')) {
+            return response()->json(['errors' => 'The file is not a video'], 415);  // 415 Unsupported Media Type
+        }
+
         // Ambil path file dari storage dan stream
         $file_path = Storage::path($file->path);
 
-        $stream = new \App\Services\StreamVideoService($file_path);
-        $stream->start(); 
+        return response()->stream(function () use ($file_path) {
+            $stream = fopen($file_path, 'rb');
+            fpassthru($stream);
+            fclose($stream);
+        }, 200, [
+            'Content-Type' => Storage::mimeType($file->path),
+            'Content-Length' => Storage::size($file->path),
+        ]);
     }
 
     public function generateFilePublicPath($folderId, $fileName)
