@@ -934,10 +934,10 @@ class FileController extends Controller
             return response()->json(['errors' => 'The file is not a video'], 415);  // 415 Unsupported Media Type
         }
 
-        // Periksa perizinan
-        if (!$this->checkPermissionFileServices->checkPermissionFile($file->id, ['read'])) {
-            return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
-        }
+        // // Periksa perizinan
+        // if (!$this->checkPermissionFileServices->checkPermissionFile($file->id, ['read'])) {
+        //     return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+        // }
 
         // Ambil path file dari storage dan stream
         $file_path = Storage::path($file->path);
