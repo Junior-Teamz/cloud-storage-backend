@@ -61,7 +61,6 @@ class AuthController extends Controller
             // Buat access token ID
             $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil ID dari access token
 
-            JWTAuth::factory()->setTTL(7 * 24 * 60); // Mengatur TTL untuk refresh token
             $refreshToken = JWTAuth::claims([
                 'access_token_id' => $accessTokenId, // Simpan access token ID di refresh token
                 'additional_time' => 3600 // Waktu tambahan (1 jam)
