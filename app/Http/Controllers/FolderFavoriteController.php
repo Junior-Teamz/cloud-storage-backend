@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Folder;
 use App\Models\User;
+use App\Services\CheckFilePermissionService;
 use App\Services\CheckFolderPermissionService;
 use Exception;
 use Illuminate\Http\Request;
@@ -16,11 +17,13 @@ use Illuminate\Support\Facades\Validator;
 class FolderFavoriteController extends Controller
 {
     protected $checkPermissionFolderService;
+    protected $checkPermissionFileService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, CheckFilePermissionService $checkPermissionFileService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
+        $this->checkPermissionFileService = $checkPermissionFileService;
     }
 
     private function calculateFolderSize(Folder $folder)
@@ -75,7 +78,7 @@ class FolderFavoriteController extends Controller
         }
     }
 
-    public function getAllFavoriteItems(Request $request)
+    public function getAllFavoriteFolders(Request $request)
     {
         $userLogin = Auth::user();
 
@@ -142,14 +145,30 @@ class FolderFavoriteController extends Controller
             });
 
             // Modifikasi respons untuk files
-            $favoriteFiles->transform(function ($file) use ($user) {
+            $favoriteFiles->getCollection()->transform(function ($file) use ($user) {
                 $favorite = $file->favorite()->where('user_id', $user->id)->first();
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
-                $file['is_favorite'] = $isFavorite;
+                $file['is_favorite'] = $isFavorite; // Otomatis menjadi true karena file yang diambil adalah file yang di favoritkan.
                 $file['favorited_at'] = $favoritedAt;
-
+                $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, 'read');
+                if ($checkPermission) {
+                    $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'file_id' => $permission->file_id,
+                            'permissions' => $permission->permissions,
+                            'created_at' => $permission->created_at,
+                            'updated_at' => $permission->updated_at,
+                            'user' => [
+                                'id' => $permission->user->id,
+                                'name' => $permission->user->name,
+                                'email' => $permission->user->email,
+                            ]
+                        ];
+                    });
+                }
                 return $file;
             });
 
@@ -166,6 +185,9 @@ class FolderFavoriteController extends Controller
                 $currentPage, // Halaman saat ini
                 ['path' => $request->url(), 'query' => $request->query()] // Untuk menambah query string di URL
             );
+
+            // Sembunyikan kolom 'path' dan 'nanoid'
+            $favoriteFiles->makeHidden(['path', 'nanoid', 'user_id', 'folder_id', 'pivot', 'userPermissions']);
 
             // Kembalikan respons paginasi
             return response()->json([
