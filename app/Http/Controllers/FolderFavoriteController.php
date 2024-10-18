@@ -89,7 +89,6 @@ class FolderFavoriteController extends Controller
 
             // Query folder favorit user dengan pivot data
             $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'files', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions.user:id,name,email:',]);
-            $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'files', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions.user:id,name,email:',]);
 
             // Filter berdasarkan nama folder jika ada parameter 'search'
             if ($search) {
@@ -134,7 +133,7 @@ class FolderFavoriteController extends Controller
                 return $folder;
             });
 
-            $favoriteFolders->makeHidden(['nanoid', 'user_id', 'pivot', 'userPermissions']);
+            $favoriteFolders->makeHidden(['nanoid', 'user_id', 'pivot', 'userFolderPermissions']);
 
             return response()->json([
                 'favorite_folders' => $favoriteFolders
