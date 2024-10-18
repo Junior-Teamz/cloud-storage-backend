@@ -199,7 +199,7 @@ class PermissionFolderController extends Controller
                 ], 403);
             }
 
-            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->with(['user', 'file'])->first();
+            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->with(['user', 'folder'])->first();
 
             if ($checkUserFolderPermission) {
                 return response()->json([
@@ -225,7 +225,7 @@ class PermissionFolderController extends Controller
 
             $createNewUserFolderPermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
 
-            $createNewUserFolderPermission->file->makeHidden(['nanoid']);
+            $createNewUserFolderPermission->folder->makeHidden(['nanoid']);
 
             return response()->json([
                 'message' => 'User ' . $createNewUserFolderPermission->user->name . ' has been granted permission ' . $createNewUserFolderPermission->permissions . ' to folder: ' . $createNewUserFolderPermission->folder->name,
