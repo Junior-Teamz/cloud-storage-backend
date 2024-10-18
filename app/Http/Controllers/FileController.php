@@ -922,43 +922,34 @@ class FileController extends Controller
 
     public function serveFileVideoByHashedId($fileId)
     {
-        $user = Auth::user();
+        // Cari file berdasarkan ID
+        $file = File::find($fileId);
 
-        if ($user) {
-
-            // Cari file berdasarkan ID
-            $file = File::find($fileId);
-
-            if (!$file) {
-                return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
-            }
-
-            // Cek apakah file adalah video
-            if (!Str::startsWith(Storage::mimeType($file->path), 'video')) {
-                return response()->json(['errors' => 'The file is not a video'], 415);  // 415 Unsupported Media Type
-            }
-
-            // Periksa perizinan
-            if (!$this->checkPermissionFileServices->checkPermissionFile($file->id, ['read'])) {
-                return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
-            }
-
-            // Ambil path file dari storage dan stream
-            $file_path = Storage::path($file->path);
-
-            return response()->stream(function () use ($file_path) {
-                $stream = fopen($file_path, 'rb');
-                fpassthru($stream);
-                fclose($stream);
-            }, 200, [
-                'Content-Type' => Storage::mimeType($file->path),
-                'Content-Length' => Storage::size($file->path),
-            ]);
-        } else {
-            return response()->json([
-                'errors' => 'Unauthenticated.'
-            ], 401);
+        if (!$file) {
+            return response()->json(['errors' => 'File not found'], 404);  // File tidak ditemukan
         }
+
+        // Cek apakah file adalah video
+        if (!Str::startsWith(Storage::mimeType($file->path), 'video')) {
+            return response()->json(['errors' => 'The file is not a video'], 415);  // 415 Unsupported Media Type
+        }
+
+        // Periksa perizinan
+        if (!$this->checkPermissionFileServices->checkPermissionFile($file->id, ['read'])) {
+            return response()->json(['errors' => 'You do not have permission to access this URL.'], 403);
+        }
+
+        // Ambil path file dari storage dan stream
+        $file_path = Storage::path($file->path);
+
+        return response()->stream(function () use ($file_path) {
+            $stream = fopen($file_path, 'rb');
+            fpassthru($stream);
+            fclose($stream);
+        }, 200, [
+            'Content-Type' => Storage::mimeType($file->path),
+            'Content-Length' => Storage::size($file->path),
+        ]);
     }
 
     public function generateFilePublicPath($folderId, $fileName)
