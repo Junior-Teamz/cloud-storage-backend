@@ -145,7 +145,7 @@ class FolderFavoriteController extends Controller
             });
 
             // Modifikasi respons untuk files
-            $favoriteFiles->getCollection()->transform(function ($file) use ($user) {
+            $favoriteFiles->transform(function ($file) use ($user) {
                 $favorite = $file->favorite()->where('user_id', $user->id)->first();
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
