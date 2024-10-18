@@ -199,7 +199,7 @@ class PermissionFolderController extends Controller
                 ], 403);
             }
 
-            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
+            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->with(['user', 'file'])->first();
 
             if ($checkUserFolderPermission) {
                 return response()->json([

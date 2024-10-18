@@ -192,7 +192,7 @@ class PermissionFileController extends Controller
                 ], 403);
             }
 
-            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->first();
+            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->with(['user', 'file'])->first();
 
             if ($userFilePermission) {
                 return response()->json([
