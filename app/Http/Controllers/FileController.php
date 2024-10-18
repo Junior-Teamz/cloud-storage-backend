@@ -81,7 +81,7 @@ class FileController extends Controller
             $file['video_url'] = null;
             if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
                 $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
-                $file['test_url'] = Storage::url(Storage::path($file->path));
+                $file['test_url'] = url(Storage::path($file->path));
             }
 
             // Sembunyikan kolom 'path' dan 'nanoid'
