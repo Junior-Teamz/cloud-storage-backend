@@ -89,6 +89,7 @@ class FolderFavoriteController extends Controller
 
             // Query folder favorit user dengan pivot data
             $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'files', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions.user:id,name,email:',]);
+            $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'files', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions.user:id,name,email:',]);
 
             // Filter berdasarkan nama folder jika ada parameter 'search'
             if ($search) {
