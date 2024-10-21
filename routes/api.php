@@ -332,16 +332,6 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
         Route::delete('/delete/{newsId}', [NewsController::class, 'deleteNews']); // Hapus berita
     });
 
-    Route::prefix('news_tag')->group(function () {
-        Route::get('/index', [NewsTagController::class, 'index']); // Mendapatkan semua tag news (dapat query juga)
-
-        Route::post('/create', [NewsTagController::class, 'store']); // Buat news tag baru
-
-        Route::put('/update/{newsTagId}', [NewsTagController::class, 'update']); // Update news tag yang sudah ada sebelumnya.
-
-        Route::post('/delete', [NewsTagController::class, 'destroy']); // Hapus tag (menggunakan array)
-    });
-
     Route::prefix('legal_basis')->group(function () {
 
         // Catatan: untuk mendapatkan semua dasar hukum, gunakan route publik /api/legal_basis/all .
