@@ -239,7 +239,9 @@ class SharingController extends Controller
     public function generateShareableFolderLink($folderId)
     {
         // Ambil URL frontend dari konfigurasi
-        $frontendUrl = config('frontend.url');
+        $getFrontendUrl = config('frontend.url');
+
+        $frontendUrl = $getFrontendUrl[0];
 
         // Format URL: {frontend_url}/share/{folderId}
         return "{$frontendUrl}/share/{$folderId}";
@@ -253,7 +255,9 @@ class SharingController extends Controller
     public function generateShareableFileLink($fileId)
     {
         // Ambil URL frontend dari konfigurasi
-        $frontendUrl = config('frontend.url');
+        $getFrontendUrl = config('frontend.url');
+
+        $frontendUrl = $getFrontendUrl[0];
 
         // Format URL: {frontend_url}/share/{folderId}
         return "{$frontendUrl}/share/{$fileId}";
