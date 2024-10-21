@@ -4,5 +4,5 @@ return [
     /**
      * Frontend URL.
      */
-    'url' => env('FRONTEND_URL', 'http://localhost:3032'),
+    'url' => array_map('trim', explode(',', env('FRONTEND_URL', 'http://localhost:3032'))),
 ];
