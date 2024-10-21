@@ -178,11 +178,11 @@ class TagController extends Controller
                 ->selectRaw('
             (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id) as folder_usage_count,
             (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) as file_usage_count,
-            (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tag_id = tags.id) as news_usage_count,
+            (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tags_id = tags.id) as news_usage_count,
             (
                 (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) +
                 (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id) +
-                (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tag_id = tags.id)
+                (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tags_id = tags.id)
             ) as total_usage_count
         ')
                 ->orderByDesc('total_usage_count'); // Urutkan berdasarkan total penggunaan
