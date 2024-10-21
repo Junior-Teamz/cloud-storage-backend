@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('news_has_tags', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('(UUID())'));
             $table->foreignUuid('news_id')->references('id')->on('news')->cascadeOnDelete();
-            $table->foreignUuid('news_tag_id')->references('id')->on('news_tags')->cascadeOnDelete();
+            $table->foreignUuid('tags_id')->references('id')->on('tags')->cascadeOnDelete();
             $table->timestamps();
         });
     }

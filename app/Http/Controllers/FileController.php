@@ -75,13 +75,22 @@ class FileController extends Controller
             $file['is_favorite'] = $isFavorite;
             $file['favorited_at'] = $favoritedAt;
 
-            $file['shared_with'] = $file->userPermissions;
+            $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'file_id' => $permission->file_id,
+                    'permissions' => $permission->permissions,
+                    'created_at' => $permission->created_at,
+                    'user' => [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
+                    ]
+                ];
+            });
 
-            // Tambahkan URL video streaming jika tipe file adalah video
-            $file['video_url'] = null;
             if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
                 $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
-                $file['test_url'] = url(Storage::path($file->path));
             }
 
             // Sembunyikan kolom 'path' dan 'nanoid'
@@ -138,7 +147,24 @@ class FileController extends Controller
                 $file['is_favorite'] = $isFavorite;
                 $file['favorited_at'] = $favoritedAt;
 
-                $file['shared_with'] = $file->userPermissions;
+                if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                    $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+                }
+
+                $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'file_id' => $permission->file_id,
+                        'permissions' => $permission->permissions,
+                        'created_at' => $permission->created_at,
+                        'user' => [
+                            'id' => $permission->user->id,
+                            'name' => $permission->user->name,
+                            'email' => $permission->user->email,
+                        ]
+                    ];
+                });
+
                 return $file;
             });
 
@@ -280,6 +306,10 @@ class FileController extends Controller
                 $file->instances()->sync($userInstances);
 
                 $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+
+                if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                    $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+                }
 
                 $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
 
@@ -475,7 +505,7 @@ class FileController extends Controller
             // Menambahkan tag ke file (tabel pivot file_has_tags)
             $file->tags()->attach($tag->id);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -484,7 +514,25 @@ class FileController extends Controller
             $file['is_favorite'] = $isFavorite;
             $file['favorited_at'] = $favoritedAt;
 
-            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+            $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'file_id' => $permission->file_id,
+                    'permissions' => $permission->permissions,
+                    'created_at' => $permission->created_at,
+                    'user' => [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
+                    ]
+                ];
+            });
+
+            if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+            }
+
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'userPermissions']);
 
             DB::commit();
 
@@ -559,7 +607,7 @@ class FileController extends Controller
             // Menghapus tag dari file (tabel pivot file_has_tags)
             $file->tags()->detach($tag->id);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -568,7 +616,25 @@ class FileController extends Controller
             $file['is_favorite'] = $isFavorite;
             $file['favorited_at'] = $favoritedAt;
 
-            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+            $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'file_id' => $permission->file_id,
+                    'permissions' => $permission->permissions,
+                    'created_at' => $permission->created_at,
+                    'user' => [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
+                    ]
+                ];
+            });
+
+            if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+            }
+
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'userPermissions']);
 
             DB::commit();
 
@@ -663,7 +729,7 @@ class FileController extends Controller
                 'public_path' => $publicPath,
             ]);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -672,9 +738,25 @@ class FileController extends Controller
             $file['is_favorite'] = $isFavorite;
             $file['favorited_at'] = $favoritedAt;
 
+            $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'file_id' => $permission->file_id,
+                    'permissions' => $permission->permissions,
+                    'created_at' => $permission->created_at,
+                    'user' => [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
+                    ]
+                ];
+            });
 
+            if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+            }
 
-            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'userPermissions']);
 
             DB::commit();
 
@@ -769,7 +851,7 @@ class FileController extends Controller
                 'public_path' => $newPublicPath,
             ]);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -778,7 +860,25 @@ class FileController extends Controller
             $file['is_favorite'] = $isFavorite;
             $file['favorited_at'] = $favoritedAt;
 
-            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder']);
+            $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'file_id' => $permission->file_id,
+                    'permissions' => $permission->permissions,
+                    'created_at' => $permission->created_at,
+                    'user' => [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
+                    ]
+                ];
+            });
+
+            if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+            }
+
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'userPermissions']);
 
             DB::commit();
 

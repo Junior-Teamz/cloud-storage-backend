@@ -27,11 +27,16 @@ class Tags extends Model
         return $this->belongsToMany(File::class, 'file_has_tags');
     }
 
+    public function news()
+    {
+        return $this->belongsToMany(News::class, 'news_has_tags');
+    }
+
     // Menghitung total penggunaan tag
     public function calculateUsageCount()
     {
         // Menghitung total penggunaan tag dari folder dan file
-        return $this->folders()->count() + $this->files()->count();
+        return $this->folders()->count() + $this->files()->count() + $this->news->count();
     }
 
     public function calculateFolderUsageCount()
@@ -42,6 +47,11 @@ class Tags extends Model
     public function calculateFileUsageCount()
     {
         return $this->files()->count();
+    }
+
+    public function calculateNewsUsageCount()
+    {
+        return $this->news()->count();
     }
 
 }

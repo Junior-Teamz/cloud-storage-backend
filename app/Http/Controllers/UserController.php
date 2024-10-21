@@ -184,7 +184,6 @@ class UserController extends Controller
                 },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'instance_id' => ['required', 'exists:instances,id'],
         ]);
 
         if ($validator->fails()) {
@@ -203,8 +202,6 @@ class UserController extends Controller
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
             ]);
-
-            $updatedUser->instances()->sync($instance->id);
 
             DB::commit();
 

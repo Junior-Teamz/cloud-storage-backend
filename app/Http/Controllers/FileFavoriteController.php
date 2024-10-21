@@ -5,49 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\File;
 use App\Models\User;
 use App\Services\CheckFilePermissionService;
+use App\Services\GenerateURLService;
 use Exception;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
 
 class FileFavoriteController extends Controller
 {
     protected $checkPermissionFileService;
+    protected $GenerateURLService;
 
-    public function __construct(CheckFilePermissionService $checkPermissionFileService)
+    public function __construct(CheckFilePermissionService $checkPermissionFileService, GenerateURLService $GenerateURLService)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFileService = $checkPermissionFileService;
-    }
-
-    private function checkPermissionFile2($fileId)
-    {
-        $user = Auth::user();
-        $file = File::where('id', $fileId)->first();
-
-        // If file not found, return 404 error and stop the process
-        if (!$file) {
-            return response()->json([
-                'errors' => 'File with File ID you entered not found, Please check your File ID and try again.'
-            ], 404); // Setting status code to 404 Not Found
-        }
-
-        // Step 1: Check if the file belongs to the logged-in user
-        if ($file->user_id === $user->id) {
-            return true; // The owner has all permissions
-        }
-
-        // Step 2: Check if user is admin with SUPERADMIN privilege
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
-            return true;
-        } else if ($user->hasRole('admin')) {
-            return false; // Regular admin without SUPERADMIN privilege
-        }
-
-        return false;
+        $this->GenerateURLService = $GenerateURLService;
     }
 
     public function countAllFavoriteFiles()
@@ -99,7 +77,7 @@ class FileFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query file favorit user dengan pivot data
-            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email' ,]);
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email',]);
 
             // Filter berdasarkan nama file jika ada parameter 'search'
             if ($search) {
@@ -123,28 +101,30 @@ class FileFavoriteController extends Controller
 
                 $file['is_favorite'] = $isFavorite; // Otomatis menjadi true karena file yang diambil adalah file yang di favoritkan.
                 $file['favorited_at'] = $favoritedAt;
-                $checkPermission = $this->checkPermissionFile2($file->id, 'read');
-                if ($checkPermission) {
-                    $file['shared_with'] = $file->userPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->id,
-                            'file_id' => $permission->file_id,
-                            'permissions' => $permission->permissions,
-                            'created_at' => $permission->created_at,
-                            'updated_at' => $permission->updated_at,
-                            'user' => [
-                                'id' => $permission->user->id,
-                                'name' => $permission->user->name,
-                                'email' => $permission->user->email,
-                            ]
-                        ];
-                    });
+
+                if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                    $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
                 }
+
+                $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'file_id' => $permission->file_id,
+                        'permissions' => $permission->permissions,
+                        'created_at' => $permission->created_at,
+                        'user' => [
+                            'id' => $permission->user->id,
+                            'name' => $permission->user->name,
+                            'email' => $permission->user->email,
+                        ]
+                    ];
+                });
+
                 return $file;
             });
 
             // Sembunyikan kolom 'path' dan 'nanoid'
-            $favoriteFiles->makeHidden(['path', 'nanoid', 'user_id', 'pivot', 'userPermissions']);
+            $favoriteFiles->makeHidden(['path', 'nanoid', 'user_id', 'pivot', 'folder', 'userPermissions']);
 
             return response()->json([
                 'favorite_files' => $favoriteFiles
@@ -181,12 +161,12 @@ class FileFavoriteController extends Controller
             $user = User::find($userLogin->id);
 
             // Ambil file yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-            $file = File::with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite' => function ($query) use ($userLogin) {
+            $file = File::with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite' => function ($query) use ($userLogin) {
                 $query->where('user_id', $userLogin->id);
             }])->where('id', $request->file_id)->first();
 
             // Cek apakah user memiliki izin untuk memfavoritkan file
-            $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, ['write']);
+            $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, ['read', 'write']);
 
             if (!$checkPermission) {
                 return response()->json([
@@ -198,25 +178,49 @@ class FileFavoriteController extends Controller
             $existingFavorite = $file->favorite()->where('user_id', $user->id)->first();
 
             if ($existingFavorite) {
-                // Jika sudah ada, kembalikan respon bahwa sudah difavoritkan
+                // Cek apakah mime type file adalah video
+                $isVideo = Str::startsWith(Storage::mimeType($file->path), 'video');
+
+                // Buat array response file tanpa video_url
+                $fileResponse = [
+                    'id' => $file->id,
+                    'name' => $file->name,
+                    'public_path' => $file->public_path,
+                    'size' => $file->size,
+                    'type' => $file->type,
+                    'created_at' => $file->created_at,
+                    'updated_at' => $file->updated_at,
+                    'folder_id' => $file->folder->id,
+                    'file_url' => $file->file_url,
+                    'is_favorited' => is_null($existingFavorite),
+                    'favorited_at' => $existingFavorite->pivot->created_at ?? null,
+                    'user' => $file->user, // User sudah diambil dengan select
+                    'tags' => $file->tags, // Tags sudah diambil dengan select
+                    'instances' => $file->instances, // Instances sudah diambil dengan select
+                    'shared_with' => $file->userPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'file_id' => $permission->file_id,
+                            'permissions' => $permission->permissions,
+                            'created_at' => $permission->created_at,
+                            'user' => [
+                                'id' => $permission->user->id,
+                                'name' => $permission->user->name,
+                                'email' => $permission->user->email,
+                            ]
+                        ];
+                    })
+                ];
+
+                // Jika mime type adalah video, tambahkan video_url ke response
+                if ($isVideo) {
+                    $fileResponse['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+                }
+
+                // Kembalikan response
                 return response()->json([
                     'message' => 'File sudah ada di daftar favorit.',
-                    'file' => [
-                        'id' => $file->id,
-                        'name' => $file->name,
-                        'public_path' => $file->public_path,
-                        'size' => $file->size,
-                        'type' => $file->type,
-                        'created_at' => $file->created_at,
-                        'updated_at' => $file->updated_at,
-                        'folder_id' => $file->folder->id,
-                        'file_url' => $file->file_url,
-                        'is_favorited' => is_null($existingFavorite),
-                        'favorited_at' => $existingFavorite->pivot->created_at ?? null,
-                        'user' => $file->user, // User sudah diambil dengan select
-                        'tags' => $file->tags, // Tags sudah diambil dengan select
-                        'instances' => $file->instances, // Instances sudah diambil dengan select
-                    ]
+                    'file' => $fileResponse
                 ], 409);
             }
 
@@ -228,31 +232,40 @@ class FileFavoriteController extends Controller
             DB::commit();
 
             // Ambil ulang file setelah ditambahkan ke favorit
-            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address']);
+            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
+            $file['is_favorite'] = $isFavorite;
+            $file['favorited_at'] = $favoritedAt;
+
+            if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+            }
+
+            $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'file_id' => $permission->file_id,
+                    'permissions' => $permission->permissions,
+                    'created_at' => $permission->created_at,
+                    'user' => [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
+                    ]
+                ];
+            });
+
+            // Sembunyikan kolom 'path' dan 'nanoid'
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'favorite', 'userPermissions']);
+
             // Setelah berhasil ditambahkan ke favorit, kirimkan respon dengan data lengkap file
             return response()->json([
                 'message' => 'File berhasil ditambahkan ke favorit.',
-                'file' => [
-                    'id' => $file->id,
-                    'name' => $file->name,
-                    'public_path' => $file->public_path,
-                    'size' => $file->size,
-                    'type' => $file->type,
-                    'created_at' => $file->created_at,
-                    'updated_at' => $file->updated_at,
-                    'folder_id' => $file->folder->id,
-                    'file_url' => $file->file_url,
-                    'is_favorited' => $isFavorite,
-                    'favorited_at' => $favoritedAt,
-                    'user' => $file->user, // User sudah diambil dengan select
-                    'tags' => $file->tags, // Tags sudah diambil dengan select
-                    'instances' => $file->instances, // Instances sudah diambil dengan select
-                ]
+                'file' => $file
             ], 200);
         } catch (Exception $e) {
             // Jika terjadi error, rollback transaksi
@@ -302,30 +315,40 @@ class FileFavoriteController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite']);
+            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
+            $file['is_favorite'] = $isFavorite;
+            $file['favorited_at'] = $favoritedAt;
+
+            if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
+                $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
+            }
+
+            $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'file_id' => $permission->file_id,
+                    'permissions' => $permission->permissions,
+                    'created_at' => $permission->created_at,
+                    'updated_at' => $permission->updated_at,
+                    'user' => [
+                        'id' => $permission->user->id,
+                        'name' => $permission->user->name,
+                        'email' => $permission->user->email,
+                    ]
+                ];
+            });
+
+            // Sembunyikan kolom 'path' dan 'nanoid'
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'favorite', 'userPermissions']);
+
             return response()->json([
                 'message' => 'Successfully removed file from favorite.',
-                'file' => [
-                    'id' => $file->id,
-                    'name' => $file->name,
-                    'public_path' => $file->public_path,
-                    'size' => $file->size,
-                    'type' => $file->type,
-                    'created_at' => $file->created_at,
-                    'updated_at' => $file->updated_at,
-                    'folder_id' => $file->folder->id,
-                    'file_url' => $file->file_url,
-                    'is_favorited' => $isFavorite,
-                    'favorited_at' => $favoritedAt,
-                    'user' => $file->user, // User sudah diambil dengan select
-                    'tags' => $file->tags, // Tags sudah diambil dengan select
-                    'instances' => $file->instances, // Instances sudah diambil dengan select
-                ]
+                'file' => $file
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();

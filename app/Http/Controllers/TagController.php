@@ -108,6 +108,7 @@ class TagController extends Controller
                 $tagData['total_usage'] = $tagData->calculateUsageCount();
                 $tagData['folder_usage'] = $tagData->calculateFolderUsageCount();
                 $tagData['file_usage'] = $tagData->calculateFileUsageCount();
+                $tagData['news_usage'] = $tagData->calculateNewsUsageCount();
             }
 
             return response()->json([
@@ -172,16 +173,18 @@ class TagController extends Controller
             // Ambil jumlah item per halaman dari request, default ke 10 jika tidak ada
             $perPage = $request->query('per_page', 10);
 
-            // Query untuk mendapatkan tag beserta statistik penggunaan di folder dan file
+            // Query untuk mendapatkan tag beserta statistik penggunaan di folder, file, dan news
             $tagsQuery = Tags::select('tags.*')
                 ->selectRaw('
-                (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id) as folder_usage_count,
-                (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) as file_usage_count,
-                (
-                    (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) +
-                    (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id)
-                ) as total_usage_count
-            ')
+            (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id) as folder_usage_count,
+            (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) as file_usage_count,
+            (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tag_id = tags.id) as news_usage_count,
+            (
+                (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) +
+                (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id) +
+                (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tag_id = tags.id)
+            ) as total_usage_count
+        ')
                 ->orderByDesc('total_usage_count'); // Urutkan berdasarkan total penggunaan
 
             // Jika query name diberikan, tambahkan kondisi pencarian berdasarkan nama
@@ -507,6 +510,7 @@ class TagController extends Controller
             // Detach hubungan untuk semua tag dalam satu batch operation
             DB::table('folder_has_tags')->whereIn('tags_id', $foundTagIds)->delete(); // Detach all folder relations
             DB::table('file_has_tags')->whereIn('tags_id', $foundTagIds)->delete();   // Detach all file relations
+            DB::table('news_has_tags')->whereIn('tags_id', $foundTagIds)->delete();   // Detach all news relations
 
             // Hapus semua tag sekaligus
             Tags::whereIn('id', $foundTagIds)->delete();

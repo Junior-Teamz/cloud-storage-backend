@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\News;
 use App\Models\NewsTag;
+use App\Models\Tags;
 use Illuminate\Support\Str;
 use App\Services\CheckAdminService;
 use App\Services\GenerateURLService;
@@ -44,8 +45,8 @@ class NewsController extends Controller
             $titleNews = $request->query('title');
             $status = $request->query('status');
 
-            // Query dasar untuk mengambil berita dengan relasi creator dan newsTags
-            $query = News::with(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
+            // Query dasar untuk mengambil berita dengan relasi creator dan tags
+            $query = News::with(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
 
             // Tambahkan filter berdasarkan nama creator jika ada
             if (!empty($titleNews)) {
@@ -90,7 +91,7 @@ class NewsController extends Controller
             $titleNews = $request->query('title');
 
             // Ambil semua data berita beserta nama pembuat dan tag-nya, dengan pagination 10 item per halaman
-            $queryNews = News::with(['creator:id,name', 'creator.instances:name,address', 'newsTags:name']);
+            $queryNews = News::with(['creator:id,name', 'creator.instances:name,address', 'tags:id,name']);
 
             if (!empty($titleNews)) {
                 $queryNews->whereHas('title', function ($q) use ($titleNews) {
@@ -128,7 +129,7 @@ class NewsController extends Controller
             $news = News::with([
                 'creator:id,name',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
-                'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
+                'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])
                 ->where('status', 'published')
                 ->where('id', $id)->first();
@@ -210,7 +211,7 @@ class NewsController extends Controller
             $news = News::with([
                 'creator:id,name',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
-                'newsTags:name'  // Ambil id dan name dari relasi newsTags (NewsTag)
+                'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])
                 ->where('status', 'published')
                 ->where('slug', $slug)->first();
@@ -250,7 +251,7 @@ class NewsController extends Controller
             $news = News::with([
                 'creator:id,name,email',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:id,name,address',
-                'newsTags:id,name'  // Ambil id dan name dari relasi newsTags (NewsTag)
+                'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])->where('id', $newsId)->first();
 
             // Jika berita tidak ditemukan, kembalikan response 404
@@ -309,11 +310,11 @@ class NewsController extends Controller
         $newsTagIdRequest = $request->news_tag_ids;
 
         try {
-            $newsTags = NewsTag::whereIn('id', $newsTagIdRequest)->get();
+            $tags = Tags::whereIn('id', $newsTagIdRequest)->get();
 
             // Bandingkan ID yang ditemukan dengan yang diminta
-            $foundNewsTagIds = $newsTags->pluck('id')->toArray();
-            $foundNewsTagIdsToCheck = $newsTags->pluck('id')->toArray();
+            $foundNewsTagIds = $tags->pluck('id')->toArray();
+            $foundNewsTagIdsToCheck = $tags->pluck('id')->toArray();
             $notFoundTagIds = array_diff($newsTagIdRequest, $foundNewsTagIdsToCheck);
 
             if (!empty($notFoundTagIds)) {
@@ -400,11 +401,11 @@ class NewsController extends Controller
             ]);
 
             // Hubungkan berita dengan tag
-            $news->newsTags()->sync($foundNewsTagIds);
+            $news->tags()->sync($foundNewsTagIds);
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News successfully created.',
@@ -458,11 +459,11 @@ class NewsController extends Controller
 
         try {
             if (!is_null($newsTagIdRequest)) {
-                $newsTags = NewsTag::whereIn('id', $newsTagIdRequest)->get();
+                $tags = Tags::whereIn('id', $newsTagIdRequest)->get();
 
                 // Bandingkan ID yang ditemukan dengan yang diminta
-                $foundNewsTagIds = $newsTags->pluck('id')->toArray();
-                $foundNewsTagIdsToCheck = $newsTags->pluck('id')->toArray();
+                $foundNewsTagIds = $tags->pluck('id')->toArray();
+                $foundNewsTagIdsToCheck = $tags->pluck('id')->toArray();
                 $notFoundTagIds = array_diff($newsTagIdRequest, $foundNewsTagIdsToCheck);
 
                 if (!empty($notFoundTagIds)) {
@@ -558,7 +559,7 @@ class NewsController extends Controller
 
             // Jika ada tag yang di-update, sinkronkan tag
             if (!is_null($newsTagIdRequest)) {
-                $news->newsTags()->sync($foundNewsTagIds);
+                $news->tags()->sync($foundNewsTagIds);
             }
 
             // Simpan perubahan
@@ -566,7 +567,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News updated successfully.',
@@ -675,7 +676,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'newsTags:id,name']);
+            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News status changed successfully.',
