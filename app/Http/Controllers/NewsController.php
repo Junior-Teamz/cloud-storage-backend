@@ -692,4 +692,49 @@ class NewsController extends Controller
             ], 500);
         }
     }
+
+
+    // ENDPOINT UNTUK TESTING IMAGE
+    public function storeImage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'image' => 'required|file|max:5120|mimes:img,png,svg,jpg,webp'
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        try {
+            $file = $request->file('image');
+
+            $folderImageStore = 'image_testing';
+
+            if (!Storage::disk('public')->exists($folderImageStore)) {
+                Storage::disk('public')->makeDirectory($folderImageStore);
+            }
+
+            $filePath = $file->store($folderImageStore, 'public');
+
+            $url = Storage::disk('public')->url($filePath);
+
+            return response()->json([
+                'message' => 'Image stored successfully',
+                'data' => [
+                    'image_url' => $url
+                ]
+            ], 200);
+
+        } catch (Exception $e){
+            Log::error('Error occured while storing image testing: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'Internal server error!, please check log!'
+            ], 500);
+        }
+    }
 }
