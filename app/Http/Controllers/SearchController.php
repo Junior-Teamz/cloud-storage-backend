@@ -26,7 +26,7 @@ class SearchController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
@@ -89,7 +89,7 @@ class SearchController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'An error occurred while searching for folders and files.'
+                'errors' => 'An error occurred while searching for folders and files.'
             ], 500);
         }
     }

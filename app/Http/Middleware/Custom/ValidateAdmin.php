@@ -30,7 +30,7 @@ class ValidateAdmin
         }
 
         return response()->json([
-            'error' => 'Anda tidak diizinkan untuk mengakses halaman ini.',
+            'errors' => 'Anda tidak diizinkan untuk mengakses halaman ini.',
         ], 403); // 403 Forbidden
     }
 }

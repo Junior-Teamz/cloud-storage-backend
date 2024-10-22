@@ -69,7 +69,7 @@ class FolderFavoriteController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'An error occurred while counting favorite folders.'
+                'errors' => 'An error occurred while counting favorite folders.'
             ], 500);
         }
     }
@@ -270,7 +270,7 @@ class FolderFavoriteController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'Terjadi kesalahan saat menambahkan favorit.'
+                'errors' => 'Terjadi kesalahan saat menambahkan favorit.'
             ], 500);
         }
     }

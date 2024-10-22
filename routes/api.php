@@ -89,7 +89,7 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
 
-        Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFolderLink']);
+        Route::get('/generateShareLink/{folderId}', [SharingController::class, 'generateShareableFolderLink']);
 
         Route::post('/create', [FolderController::class, 'create']);  // Membuat folder baru
 
@@ -216,6 +216,8 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
 
+        Route::get('/generateShareLink/{folderId}', [SharingController::class, 'generateShareableFolderLink']);
+
         Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
 
         Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
@@ -244,6 +246,8 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
         Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua file dan total ukurannya.
 
         Route::get('/info/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
+
+        Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFileLink']);
 
         Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFile']); // Mendapatkan semua file yang di favoritkan
 

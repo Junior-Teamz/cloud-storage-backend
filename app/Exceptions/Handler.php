@@ -72,7 +72,7 @@ class Handler extends ExceptionHandler
     {
         // Mengembalikan selalu response JSON, tanpa redirect ke login route
         return response()->json([
-            'error' => 'You are not authenticated or your session has expired.',
+            'errors' => 'You are not authenticated or your session has expired.',
         ], 401);
     }
 }

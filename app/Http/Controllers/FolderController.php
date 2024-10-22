@@ -1174,7 +1174,7 @@ class FolderController extends Controller
             if (!$newParentFolder) {
                 if (!$folder) {
                     return response()->json([
-                        'error' => 'New parent folder was not found.'
+                        'errors' => 'New parent folder was not found.'
                     ], 404);
                 }
             }

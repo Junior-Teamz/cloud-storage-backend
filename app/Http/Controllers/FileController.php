@@ -185,7 +185,7 @@ class FileController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'An error occurred while fetching all files and total size.'
+                'errors' => 'An error occurred while fetching all files and total size.'
             ], 500);
         }
     }
@@ -361,7 +361,7 @@ class FileController extends Controller
         ]);
 
         if ($validate->fails()) {
-            return response()->json(['error' => $validate->errors()], 422);
+            return response()->json(['errors' => $validate->errors()], 422);
         }
 
         // Ambil file_ids dari request
@@ -401,7 +401,7 @@ class FileController extends Controller
                 $filePath = Storage::path($file->path); // Menggunakan Storage::path untuk mendapatkan full path
 
                 if (!Storage::exists($file->path)) {
-                    return response()->json(['error' => 'File not found'], 404);
+                    return response()->json(['errors' => 'File not found'], 404);
                 }
 
                 // Mengirimkan file tunggal untuk di-download
@@ -428,7 +428,7 @@ class FileController extends Controller
                     }
                     $zip->close();
                 } else {
-                    return response()->json(['error' => 'Unable to create zip file'], 500);
+                    return response()->json(['errors' => 'Unable to create zip file'], 500);
                 }
 
                 // Mengirimkan file .zip untuk di-download dan menghapus file setelah dikirim
@@ -440,7 +440,7 @@ class FileController extends Controller
                 'trace' => $e->getTrace()
             ]);
 
-            return response()->json(['error' => 'An error occurred while downloading files'], 500);
+            return response()->json(['errors' => 'An error occurred while downloading files'], 500);
         }
     }
 

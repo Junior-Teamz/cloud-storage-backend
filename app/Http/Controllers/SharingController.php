@@ -243,8 +243,13 @@ class SharingController extends Controller
 
         $frontendUrl = $getFrontendUrl[0];
 
+        // Prefix FOLDER diawal untuk menandakan URL adalah shared link untuk Folder.
+        $build = 'F' . $folderId;
+
+        $hashedBuild = base64_encode($build);
+
         // Format URL: {frontend_url}/share/{folderId}
-        return "{$frontendUrl}/share/{$folderId}";
+        return "{$frontendUrl}/share/{$hashedBuild}";
     }
 
     /**
@@ -259,7 +264,12 @@ class SharingController extends Controller
 
         $frontendUrl = $getFrontendUrl[0];
 
+        // Prefix FILE diawal untuk menandakan URL adalah shared link untuk File.
+        $build = 'L' . $fileId;
+
+        $hashedBuild = base64_encode($build);
+
         // Format URL: {frontend_url}/share/{folderId}
-        return "{$frontendUrl}/share/{$fileId}";
+        return "{$frontendUrl}/share/{$hashedBuild}";
     }
 }

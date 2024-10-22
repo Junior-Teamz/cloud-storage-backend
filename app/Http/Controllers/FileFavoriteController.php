@@ -58,7 +58,7 @@ class FileFavoriteController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'An error occurred while counting favorite files.'
+                'errors' => 'An error occurred while counting favorite files.'
             ], 500);
         }
     }
@@ -277,7 +277,7 @@ class FileFavoriteController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'An error occured while adding file to favorite.'
+                'errors' => 'An error occured while adding file to favorite.'
             ], 500);
         }
     }
