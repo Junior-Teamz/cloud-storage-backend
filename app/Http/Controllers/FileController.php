@@ -357,7 +357,7 @@ class FileController extends Controller
         // Validasi input request
         $validate = Validator::make($request->all(), [
             'file_ids' => 'required|array',
-            'file_ids.*' => 'required|uuid|exists:files,id',
+            'file_ids.*' => 'required|exists:files,id',
         ]);
 
         if ($validate->fails()) {
@@ -909,7 +909,7 @@ class FileController extends Controller
         // Validasi bahwa file_ids dikirim dalam request
         $validator = Validator::make($request->all(), [
             'file_ids' => 'required|array',
-            'file_ids.*' => 'required|uuid'
+            'file_ids.*' => 'required|exists:files,id'
         ], [
             'file_ids.required' => 'file_ids are required.',
             'file_ids.array' => 'file_ids must be an array of file ID.',
