@@ -105,11 +105,10 @@ class SharingController extends Controller
         $instanceNameFilter = $request->get('instance_name');
 
         try {
-            // Ambil semua folder yang dibagikan kepada user login
+            // Query untuk mengambil semua folder yang dibagikan ke user
             $sharedFoldersQuery = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders']);
+            })->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders']);
 
             // Jika ada filter berdasarkan nama instansi, tambahkan ke query
             if ($instanceNameFilter) {
@@ -121,18 +120,15 @@ class SharingController extends Controller
             // Ambil folder setelah filtering instansi
             $sharedFolders = $sharedFoldersQuery->get();
 
-            // Filter folder induk yang dibagikan jika subfolder-nya juga dibagikan
+            // Filter folder induk jika subfolder-nya juga dibagikan
             $filteredFolders = $sharedFolders->filter(function ($folder) use ($sharedFolders) {
-                // Cek apakah subfolder dari folder ini dibagikan
                 $hasSharedSubfolders = $folder->subfolders->contains(function ($subfolder) use ($sharedFolders) {
                     return $sharedFolders->contains('id', $subfolder->id);
                 });
-
-                // Jika ada subfolder yang dibagikan, jangan sertakan folder induk
                 return !$hasSharedSubfolders;
             });
 
-            // Lakukan pagination setelah filtering
+            // Pagination untuk folder setelah filtering
             $paginatedFolders = new LengthAwarePaginator(
                 $filteredFolders->forPage($folderPage, $perPage),
                 $filteredFolders->count(),
@@ -141,13 +137,11 @@ class SharingController extends Controller
                 ['path' => Paginator::resolveCurrentPath()]
             );
 
-            // Ambil semua file yang dibagikan kepada user login dengan pagination
+            // Query untuk mengambil file yang dibagikan ke user dengan pagination
             $sharedFilesQuery = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+            })->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
 
-            // Jika ada filter berdasarkan nama instansi, tambahkan ke query untuk file juga
             if ($instanceNameFilter) {
                 $sharedFilesQuery->whereHas('instances', function ($query) use ($instanceNameFilter) {
                     $query->where('name', 'like', '%' . $instanceNameFilter . '%');
@@ -159,7 +153,6 @@ class SharingController extends Controller
 
             // Format response untuk folder
             $formattedFolders = $paginatedFolders->map(function ($folder) use ($user) {
-
                 $favorite = $folder->favorite->where('user_id', $user->id)->first();
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
@@ -190,7 +183,7 @@ class SharingController extends Controller
                         ];
                     })
                 ];
-            });
+            })->values(); // Tambahkan ->values() di sini untuk menghilangkan indeks numerik
 
             // Format response untuk file
             $formattedFiles = $sharedFiles->map(function ($file) {
@@ -227,7 +220,7 @@ class SharingController extends Controller
                 }
 
                 return $fileData;
-            });
+            })->values(); // Tambahkan ->values() di sini untuk menghilangkan indeks numerik
 
             // Return response dengan folder dan file terpisah
             return response()->json([
