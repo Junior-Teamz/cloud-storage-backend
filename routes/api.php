@@ -79,7 +79,7 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
         Route::get('/countAllFolder', [FolderController::class, 'countTotalFolderUser']); // mendapatkan count semua folder user yang sedang login saat ini.
 
-        Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
+        Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteItems']); // Mendapatkan semua folder yang di favoritkan
 
         Route::get('/countFavorite', [FolderFavoriteController::class, 'countAllFavoriteFolders']); // Mendapatkan informasi total folder yang di favoritkan
 
@@ -220,7 +220,7 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
 
-        Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteFolders']); // Mendapatkan semua folder yang di favoritkan
+        Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteItems']); // Mendapatkan semua folder yang di favoritkan
 
         Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
 

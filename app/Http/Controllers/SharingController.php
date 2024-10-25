@@ -58,10 +58,15 @@ class SharingController extends Controller
                 ->get()
                 ->map(function ($permission) {
                     return [
-                        'id' => $permission->user->id,
-                        'name' => $permission->user->name,
-                        'email' => $permission->user->email,
-                        'instances' => $permission->user->instances
+                        'id' => $permission->id,
+                        'file_id' => $permission->file_id,
+                        'permissions' => $permission->permissions,
+                        'created_at' => $permission->created_at,
+                        'user' => [
+                            'id' => $permission->user->id,
+                            'name' => $permission->user->name,
+                            'email' => $permission->user->email,
+                        ]
                     ];
                 });
 
@@ -170,7 +175,20 @@ class SharingController extends Controller
                     'created_at' => $folder->created_at,
                     'updated_at' => $folder->updated_at,
                     'tags' => $folder->tags,
-                    'instances' => $folder->instances
+                    'instances' => $folder->instances,
+                    'shared_with' => $folder->userFolderPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'file_id' => $permission->file_id,
+                            'permissions' => $permission->permissions,
+                            'created_at' => $permission->created_at,
+                            'user' => [
+                                'id' => $permission->user->id,
+                                'name' => $permission->user->name,
+                                'email' => $permission->user->email,
+                            ]
+                        ];
+                    })
                 ];
             });
 
@@ -186,13 +204,26 @@ class SharingController extends Controller
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,
                     'tags' => $file->tags,
-                    'instances' => $file->instances
+                    'instances' => $file->instances,
+                    'shared_with' => $file->userPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'file_id' => $permission->file_id,
+                            'permissions' => $permission->permissions,
+                            'created_at' => $permission->created_at,
+                            'user' => [
+                                'id' => $permission->user->id,
+                                'name' => $permission->user->name,
+                                'email' => $permission->user->email,
+                            ]
+                        ];
+                    })
                 ];
 
                 // Jika file adalah gambar, tambahkan URL gambar
                 $mimeType = Storage::mimeType($file->path);
-                if (Str::startsWith($mimeType, 'image')) {
-                    $fileData['file_url'] = $this->GenerateURLService->generateUrlForFile($file->id);
+                if (Str::startsWith($mimeType, 'video')) {
+                    $fileData['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
                 }
 
                 return $fileData;

@@ -161,9 +161,7 @@ class FileFavoriteController extends Controller
             $user = User::find($userLogin->id);
 
             // Ambil file yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-            $file = File::with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite' => function ($query) use ($userLogin) {
-                $query->where('user_id', $userLogin->id);
-            }])->where('id', $request->file_id)->first();
+            $file = File::with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email'])->where('id', $request->file_id)->first();
 
             // Cek apakah user memiliki izin untuk memfavoritkan file
             $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, ['read', 'write']);
@@ -192,7 +190,7 @@ class FileFavoriteController extends Controller
                     'updated_at' => $file->updated_at,
                     'folder_id' => $file->folder->id,
                     'file_url' => $file->file_url,
-                    'is_favorited' => is_null($existingFavorite),
+                    'is_favorited' => !is_null($existingFavorite),
                     'favorited_at' => $existingFavorite->pivot->created_at ?? null,
                     'user' => $file->user, // User sudah diambil dengan select
                     'tags' => $file->tags, // Tags sudah diambil dengan select
@@ -260,7 +258,7 @@ class FileFavoriteController extends Controller
             });
 
             // Sembunyikan kolom 'path' dan 'nanoid'
-            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'favorite', 'userPermissions']);
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'userPermissions']);
 
             // Setelah berhasil ditambahkan ke favorit, kirimkan respon dengan data lengkap file
             return response()->json([
@@ -293,7 +291,7 @@ class FileFavoriteController extends Controller
             $file = File::where('id', $fileId)->first();
 
             if (!$file) {
-                Log::warning('Attempt to delete non-existence file favorite.');
+                Log::warning('Attempt to delete non-existence file delete favorite endpoint.');
                 return response()->json([
                     'errors' => 'File not found.'
                 ], 404);
@@ -315,7 +313,7 @@ class FileFavoriteController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email']);
+            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -344,7 +342,7 @@ class FileFavoriteController extends Controller
             });
 
             // Sembunyikan kolom 'path' dan 'nanoid'
-            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'favorite', 'userPermissions']);
+            $file->makeHidden(['path', 'nanoid', 'user_id', 'folder', 'userPermissions']);
 
             return response()->json([
                 'message' => 'Successfully removed file from favorite.',

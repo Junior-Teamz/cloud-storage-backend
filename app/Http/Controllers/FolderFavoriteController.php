@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Folder;
 use App\Models\User;
+use App\Services\CheckFilePermissionService;
 use App\Services\CheckFolderPermissionService;
 use Exception;
 use Illuminate\Http\Request;
@@ -15,11 +16,13 @@ use Illuminate\Support\Facades\Validator;
 class FolderFavoriteController extends Controller
 {
     protected $checkPermissionFolderService;
+    protected $checkPermissionFileService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, CheckFilePermissionService $checkFilePermissionServices)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
+        $this->checkPermissionFileService = $checkFilePermissionServices;
     }
 
     private function calculateFolderSize(Folder $folder)
@@ -74,7 +77,82 @@ class FolderFavoriteController extends Controller
         }
     }
 
-    public function getAllFavoriteFolders(Request $request)
+    // public function getAllFavoriteFolders(Request $request)
+    // {
+    //     $userLogin = Auth::user();
+
+    //     try {
+    //         // Ambil user yang sedang login
+    //         $user = User::find($userLogin->id);
+
+    //         // Ambil parameter pencarian dan pagination dari request
+    //         $search = $request->input('search');
+    //         $instanceId = $request->input('instance_id');
+    //         $perPage = $request->input('per_page', 10); // Default 10 items per page
+
+    //         // Query folder favorit user dengan pivot data
+    //         $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions',]);
+
+    //         // Filter berdasarkan nama folder jika ada parameter 'search'
+    //         if ($search) {
+    //             $favoriteFoldersQuery->where('name', 'LIKE', "%{$search}%");
+    //         }
+
+    //         // Filter berdasarkan instansi jika ada parameter 'instance_id'
+    //         if ($instanceId) {
+    //             $favoriteFoldersQuery->whereHas('instances', function ($query) use ($instanceId) {
+    //                 $query->where('instance_id', $instanceId);
+    //             });
+    //         }
+
+    //         // Lakukan pagination pada hasil query
+    //         $favoriteFolders = $favoriteFoldersQuery->paginate($perPage);
+
+    //         // Modifikasi respons untuk menambahkan waktu ditambahkan ke favorit
+    //         $favoriteFolders->getCollection()->transform(function ($folder) use ($user) {
+    //             $favorite = $folder->favorite()->where('user_id', $user->id)->first();
+    //             $isFavorite = !is_null($favorite);
+    //             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+    //             $folder['is_favorite'] = $isFavorite; // Otomatis menjadi true karena folder yang diambil adalah folder yang di favoritkan.
+    //             $folder['favorited_at'] = $favoritedAt;
+    //             $checkPermission = $this->checkPermissionFolderService->checkPermissionFolder($folder->id, 'read');
+    //             if ($checkPermission) {
+    //                 $folder['shared_with'] = $folder->userFolderPermissions->map(function ($permission) {
+    //                     return [
+    //                         'id' => $permission->id,
+    //                         'folder_id' => $permission->folder_id,
+    //                         'permissions' => $permission->permissions,
+    //                         'created_at' => $permission->created_at,
+    //                         'updated_at' => $permission->updated_at,
+    //                         'user' => [
+    //                             'id' => $permission->user->id,
+    //                             'name' => $permission->user->name,
+    //                             'email' => $permission->user->email,
+    //                         ]
+    //                     ];
+    //                 });
+    //             }
+    //             return $folder;
+    //         });
+
+    //         $favoriteFolders->makeHidden(['nanoid', 'user_id', 'pivot', 'userFolderPermissions']);
+
+    //         return response()->json([
+    //             'favorite_folders' => $favoriteFolders
+    //         ], 200);
+    //     } catch (Exception $e) {
+    //         Log::error('Error occurred while fetching favorite folders: ' . $e->getMessage(), [
+    //             'trace' => $e->getTrace()
+    //         ]);
+
+    //         return response()->json([
+    //             'errors' => 'An error occurred while fetching favorite folders'
+    //         ], 500);
+    //     }
+    // }
+
+    public function getAllFavoriteItems(Request $request)
     {
         $userLogin = Auth::user();
 
@@ -86,6 +164,10 @@ class FolderFavoriteController extends Controller
             $search = $request->input('search');
             $instanceId = $request->input('instance_id');
             $perPage = $request->input('per_page', 10); // Default 10 items per page
+
+            // Parameter pagination untuk folder dan file
+            $pageFolder = $request->input('page_folder', 1);
+            $pageFile = $request->input('page_file', 1);
 
             // Query folder favorit user dengan pivot data
             $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions',]);
@@ -102,8 +184,8 @@ class FolderFavoriteController extends Controller
                 });
             }
 
-            // Lakukan pagination pada hasil query
-            $favoriteFolders = $favoriteFoldersQuery->paginate($perPage);
+            // Lakukan pagination pada hasil query folder
+            $favoriteFolders = $favoriteFoldersQuery->paginate($perPage, ['*'], 'page_folder', $pageFolder);
 
             // Modifikasi respons untuk menambahkan waktu ditambahkan ke favorit
             $favoriteFolders->getCollection()->transform(function ($folder) use ($user) {
@@ -111,8 +193,9 @@ class FolderFavoriteController extends Controller
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
-                $folder['is_favorite'] = $isFavorite; // Otomatis menjadi true karena folder yang diambil adalah folder yang di favoritkan.
+                $folder['is_favorite'] = $isFavorite;
                 $folder['favorited_at'] = $favoritedAt;
+
                 $checkPermission = $this->checkPermissionFolderService->checkPermissionFolder($folder->id, 'read');
                 if ($checkPermission) {
                     $folder['shared_with'] = $folder->userFolderPermissions->map(function ($permission) {
@@ -135,16 +218,67 @@ class FolderFavoriteController extends Controller
 
             $favoriteFolders->makeHidden(['nanoid', 'user_id', 'pivot', 'userFolderPermissions']);
 
+            // Query file favorit user
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions']);
+
+            // Filter berdasarkan nama file jika ada parameter 'search'
+            if ($search) {
+                $favoriteFilesQuery->where('name', 'LIKE', "%{$search}%");
+            }
+
+            // Filter berdasarkan instansi jika ada parameter 'instance_id'
+            if ($instanceId) {
+                $favoriteFilesQuery->whereHas('instances', function ($query) use ($instanceId) {
+                    $query->where('instance_id', $instanceId);
+                });
+            }
+
+            // Lakukan pagination pada hasil query file
+            $favoriteFiles = $favoriteFilesQuery->paginate($perPage, ['*'], 'page_file', $pageFile);
+
+            // Modifikasi respons untuk menambahkan waktu ditambahkan ke favorit
+            $favoriteFiles->getCollection()->transform(function ($file) use ($user) {
+                $favorite = $file->favorite()->where('user_id', $user->id)->first();
+                $isFavorite = !is_null($favorite);
+                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
+
+                $file['is_favorite'] = $isFavorite;
+                $file['favorited_at'] = $favoritedAt;
+
+                $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, 'read');
+                if ($checkPermission) {
+                    $file['shared_with'] = $file->userPermissions->map(function ($permission) {
+                        return [
+                            'id' => $permission->id,
+                            'file_id' => $permission->file_id,
+                            'permissions' => $permission->permissions,
+                            'created_at' => $permission->created_at,
+                            'updated_at' => $permission->updated_at,
+                            'user' => [
+                                'id' => $permission->user->id,
+                                'name' => $permission->user->name,
+                                'email' => $permission->user->email,
+                            ]
+                        ];
+                    });
+                }
+
+                return $file;
+            });
+
+            $favoriteFiles->makeHidden(['nanoid', 'path', 'user_id', 'pivot', 'userPermissions']);
+
             return response()->json([
-                'favorite_folders' => $favoriteFolders
+                'favorite_folders' => $favoriteFolders,
+                'favorite_files' => $favoriteFiles
             ], 200);
         } catch (Exception $e) {
-            Log::error('Error occurred while fetching favorite folders: ' . $e->getMessage(), [
+            Log::error('Error occurred while fetching favorite items: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while fetching favorite folders'
+                'errors' => 'An error occurred while fetching favorite items'
             ], 500);
         }
     }
@@ -170,9 +304,7 @@ class FolderFavoriteController extends Controller
             $user = User::find($userLogin->id);
 
             // Ambil folder yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-            $folder = Folder::with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions', 'favorite' => function ($query) use ($userLogin) {
-                $query->where('user_id', $userLogin->id);
-            }])->findOrFail($request->folder_id);
+            $folder = Folder::with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions'])->findOrFail($request->folder_id);
 
             // Cek apakah user memiliki izin untuk memfavoritkan folder
             $checkPermission = $this->checkPermissionFolderService->checkPermissionFolder($folder->id, ['write']);
@@ -184,7 +316,7 @@ class FolderFavoriteController extends Controller
             }
 
             // Cek apakah folder sudah ada di daftar favorit pengguna
-            $existingFavorite = $folder->favorite->isNotEmpty();
+            $existingFavorite = $folder->favorite()->where('user_id', $user->id)->first();
 
             if ($existingFavorite) {
                 // Jika sudah ada, kembalikan respon bahwa sudah difavoritkan
@@ -197,8 +329,8 @@ class FolderFavoriteController extends Controller
                         'total_size' => $this->calculateFolderSize($folder),
                         'type' => $folder->type,
                         'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
-                        'is_favorited' => $existingFavorite ? true : false,
-                        'favorited_at' => $folder->favorite->first()->pivot->created_at,
+                        'is_favorited' => !is_null($existingFavorite),
+                        'favorited_at' => $existingFavorite->pivot->created_at ?? null,
                         'user' => $folder->user,
                         'tags' => $folder->tags,
                         'instances' => $folder->instances,
@@ -225,9 +357,9 @@ class FolderFavoriteController extends Controller
             $user->favoriteFolders()->attach($folder->id);
 
             // Ambil ulang folder setelah ditambahkan ke favorit
-            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions', 'favorite' => function ($query) use ($userLogin) {
-                $query->where('user_id', $userLogin->id);
-            }]);
+            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions']);
+
+            $isFavorite = $folder->favorite()->where('user_id', $user->id)->first();
 
             DB::commit();
 
@@ -241,8 +373,8 @@ class FolderFavoriteController extends Controller
                     'total_size' => $this->calculateFolderSize($folder),
                     'type' => $folder->type,
                     'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
-                    'is_favorited' => $existingFavorite ? true : false,
-                    'favorited_at' => $folder->favorite->first()->pivot->created_at,
+                    'is_favorited' => !is_null($isFavorite),
+                    'favorited_at' => $isFavorite->pivot->created_at ?? null,
                     'user' => $folder->user,
                     'tags' => $folder->tags,
                     'instances' => $folder->instances,
@@ -283,10 +415,19 @@ class FolderFavoriteController extends Controller
             // Ambil data user dengan folder favorit
             $user = User::with('favoriteFolders')->find($userLogin->id);
 
+            $folder = Folder::where('id', $folderId)->first();
+
+            if (!$folder) {
+                Log::warning('Attempt to delete non-existence folder in delete favorite endpoint.');
+                return response()->json([
+                    'errors' => 'Folder not found.'
+                ], 404);
+            }
+
             // Periksa apakah user memiliki folder favorit dengan ID yang diberikan
             $favoriteFolder = $user->favoriteFolders()->where('folder_id', $folderId)->first();
 
-            if (!$favoriteFolder) {
+            if (is_null($favoriteFolder)) {
                 return response()->json([
                     'errors' => 'Folder is not in favorites'
                 ], 404);
@@ -298,18 +439,14 @@ class FolderFavoriteController extends Controller
             $user->favoriteFolders()->detach($folderId);
 
             // Reload folder setelah dihapus dari favorit untuk memuat kembali datanya
-            $favoriteFolder->load([
+            $folder->load([
                 'user:id,name,email',
                 'tags:id,name',
                 'instances:id,name,address',
                 'userFolderPermissions',
-                'favorite' => function ($query) use ($userLogin) {
-                    $query->where('user_id', $userLogin->id);
-                }
             ]);
 
-            // Tentukan status existingFavorite
-            $existingFavorite = $favoriteFolder->favorite->isNotEmpty();
+            $loadFavorite = $folder->favorite()->where('user_id', $user->id)->first();
 
             DB::commit();
 
@@ -322,8 +459,8 @@ class FolderFavoriteController extends Controller
                     'total_size' => $this->calculateFolderSize($favoriteFolder),
                     'type' => $favoriteFolder->type,
                     'parent_id' => $favoriteFolder->parent_id ? $favoriteFolder->parentFolder->id : null,
-                    'is_favorited' => $existingFavorite,  // Tentukan apakah folder masih favorit
-                    'favorited_at' => $existingFavorite ? $favoriteFolder->favorite->first()->pivot->created_at : null,
+                    'is_favorited' => !is_null($loadFavorite),  // Tentukan apakah folder masih favorit
+                    'favorited_at' => $loadFavorite->pivot->created_at ?? null,
                     'user' => $favoriteFolder->user,
                     'tags' => $favoriteFolder->tags,
                     'instances' => $favoriteFolder->instances,

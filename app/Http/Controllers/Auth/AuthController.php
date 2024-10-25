@@ -272,8 +272,20 @@ class AuthController extends Controller
             // Get accessToken from Authorization Bearer header
             $accessToken = $request->bearerToken('Authorization');
 
+            if(!$accessToken) {
+                return response()->json([
+                    'errors' => 'Access token not found in Authorization Bearer Header!'
+                ], 400);
+            }
+
             // Get refreshToken from body request
             $refreshToken = $request->input('refreshToken');
+
+            if (!$refreshToken) {
+                return response()->json([
+                    'errors' => 'Refresh token is required.'
+                ], 400);
+            }
 
             // Invalidate accessToken
             JWTAuth::setToken($accessToken);
