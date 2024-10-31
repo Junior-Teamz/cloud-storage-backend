@@ -472,8 +472,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::find($request->file_id);
-            $tag = Tags::find($request->tag_id);
+            $file = File::where('id', $request->file_id);
+            $tag = Tags::where('id', $request->tag_id);
 
             if (!$file) {
                 return response()->json([
@@ -586,14 +586,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::find($request->file_id)->first();
-            $tag = Tags::find($request->tag_id)->first();
-
-            if (!$file) {
-                return response()->json([
-                    'errors' => 'File not found.'
-                ], 404);
-            }
+            $file = File::where('id', $request->file_id)->first();
+            $tag = Tags::where('id', $request->tag_id)->first();
 
             // Memeriksa apakah tag terkait dengan file
             if (!$file->tags->contains($tag->id)) {
