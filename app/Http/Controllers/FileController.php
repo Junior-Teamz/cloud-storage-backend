@@ -472,8 +472,8 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::where('id', $request->file_id);
-            $tag = Tags::where('id', $request->tag_id);
+            $file = File::where('id', $request->file_id)->first();
+            $tag = Tags::where('id', $request->tag_id)->first();
 
             if (!$file) {
                 return response()->json([
