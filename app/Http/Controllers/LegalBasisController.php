@@ -13,8 +13,20 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
+/**
+ * This is Legal Basis (IDN: Dasar Hukum) Controller.
+ */
 class LegalBasisController extends Controller
 {
+    /**
+     * Check if the authenticated user is a superadmin.
+     *
+     * This method verifies if the currently logged-in user has the 'admin' role and is a superadmin.
+     * It returns true if both conditions are met, indicating that the user is a superadmin. Otherwise,
+     * it returns false.
+     *
+     * @return bool True if the user is a superadmin, false otherwise.
+     */
     private function checkAdmin()
     {
         $user = Auth::user();
@@ -26,6 +38,15 @@ class LegalBasisController extends Controller
         return false;
     }
 
+    /**
+     * Get all legal basis documents.
+     *
+     * This method retrieves all legal basis documents from the database and returns them as a JSON response.
+     * 
+     * Requires superadmin authentication.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response containing all legal basis documents or an error message.
+     */
     public function getAll()
     {
         try {
@@ -49,6 +70,19 @@ class LegalBasisController extends Controller
         }
     }
 
+    /**
+     * Get a specific legal basis document.
+     *
+     * This method retrieves a single legal basis document from the database based on the provided ID.
+     * It checks if the authenticated user is a superadmin and returns a 403 Forbidden response if not.
+     * If the legal basis document is found, it is returned as a JSON response. If the document is not found, a 200 OK response is returned
+     * with an empty data array and a message indicating that the legal basis was not found.
+     * 
+     * Requires superadmin authentication.
+     *
+     * @param string $id The ID of the legal basis document to retrieve.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the legal basis document or an error message.
+     */
     public function getSpesificLegalBasis($id)
     {
         $checkAdmin = $this->checkAdmin();
@@ -89,6 +123,19 @@ class LegalBasisController extends Controller
         }
     }
 
+    /**
+     * Save a new legal basis document.
+     *
+     * This method handles the upload and storage of a new legal basis document. It validates the incoming request,
+     * ensuring that a name is provided and a file is uploaded with the correct format and size. The uploaded file
+     * is stored in the 'dasar_hukum' directory within the public storage disk. The method then creates a new
+     * LegalBasis record in the database, associating it with the uploaded file.
+     * 
+     * Requires superadmin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the legal basis document data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
+     */
     public function save(Request $request)
     {
         $checkAdmin = $this->checkAdmin();
@@ -172,6 +219,20 @@ class LegalBasisController extends Controller
         }
     }
 
+    /**
+     * Update an existing legal basis document.
+     *
+     * This method handles the update of an existing legal basis document. It validates the incoming request,
+     * ensuring that the provided name is a string with a maximum length of 255 characters and that the uploaded
+     * file, if any, has the correct format and size. If a new file is uploaded, the old file is deleted from
+     * storage. The method then updates the LegalBasis record in the database with the new data.
+     * 
+     * Requires superadmin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated legal basis document data.
+     * @param string $id The ID of the legal basis document to update.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
+     */
     public function update(Request $request, $id)
     {
         $checkAdmin = $this->checkAdmin();
@@ -257,6 +318,21 @@ class LegalBasisController extends Controller
         }
     }
 
+    /**
+     * Delete a legal basis document.
+     *
+     * This method deletes a legal basis document from the database and storage. It first checks if the authenticated
+     * user is a superadmin. If not, a 403 Forbidden response is returned. If the legal basis document exists,
+     * it is deleted from both the database and storage.
+     * 
+     * Requires superadmin authentication.
+     * 
+     * **Caution:** Deleting a legal basis document is a destructive action and cannot be undone. Ensure that the 
+     * document is no longer needed before proceeding with the deletion.
+     *
+     * @param int $id The ID of the legal basis document to delete.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
+     */
     public function delete($id)
     {
         $checkAdmin = $this->checkAdmin();

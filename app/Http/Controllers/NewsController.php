@@ -29,6 +29,18 @@ class NewsController extends Controller
         $this->generateImageURL = $generateURLService;
     }
 
+    /**
+     * Get all news for admin.
+     *
+     * This method retrieves all news articles, including their creator and associated tags,
+     * with optional filtering by title and status. It returns a paginated list of news articles
+     * with 10 items per page.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional query parameters for filtering.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of news articles or an error message.
+     */
     public function getAllNews(Request $request)
     {
         // Cek apakah user adalah admin
@@ -84,6 +96,15 @@ class NewsController extends Controller
         }
     }
 
+    /**
+     * Get all published news for public access.
+     *
+     * This method retrieves all published news articles, including their creator's name, instance, and associated tags.
+     * It allows filtering by title and returns a paginated list of news articles with 10 items per page.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional query parameters for filtering.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of news articles or an empty array if no news is found.
+     */
     public function getAllNewsForPublic(Request $request)
     {
         try {
@@ -122,6 +143,21 @@ class NewsController extends Controller
         }
     }
 
+    /**
+     * Get a published news article by ID.
+     *
+     * This method retrieves a published news article from the database based on the provided ID.
+     * It includes the creator's name, instance, and associated tags in the response. If the news
+     * article is not found, a 200 OK response is returned with an empty data array and a message
+     * indicating that the news was not found.
+     * 
+     * If the request originates from a frontend URL listed in the `frontend.url` configuration,
+     * the viewer count for the news article is incremented.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request.
+     * @param  int  $id The ID of the news article to retrieve.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the news article or an error message.
+     */
     public function getNewsById(Request $request, $id)
     {
         try {
@@ -198,6 +234,21 @@ class NewsController extends Controller
     //     }
     // }
 
+    /**
+     * Get a published news article by slug.
+     *
+     * This method retrieves a published news article from the database based on the provided slug.
+     * It includes the creator's name, instance, and associated tags in the response. If the news
+     * article is not found, a 200 OK response is returned with an empty data array and a message
+     * indicating that the news was not found.
+     * 
+     * If the request originates from a frontend URL listed in the `frontend.url` configuration,
+     * the viewer count for the news article is incremented.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request.
+     * @param  string  $slug The slug of the news article to retrieve.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the news article or an error message.
+     */
     public function getNewsBySlug(Request $request, $slug)
     {
         if (!is_string($slug)) {
@@ -244,6 +295,16 @@ class NewsController extends Controller
         }
     }
 
+    /**
+     * Get news details for admin.
+     *
+     * This method retrieves a news article by its ID, including details about its creator, instance, and associated tags.
+     * It returns a JSON response containing the news details or a 200 OK response with an empty data array and a message
+     * indicating that the news was not found if the news article does not exist.
+     *
+     * @param string $newsId The ID of the news article to retrieve.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the news details or an error message.
+     */
     public function getNewsDetailForAdmin($newsId)
     {
         try {
@@ -276,6 +337,19 @@ class NewsController extends Controller
         }
     }
 
+    /**
+     * Create a new news article.
+     *
+     * This method handles the creation of a new news article. It validates the incoming request, ensuring that
+     * the required fields are present and meet the specified criteria. It also handles the upload and storage
+     * of the news thumbnail, either as a file or a URL. The method then creates a new News record in the database,
+     * associates it with the provided tags, and returns a JSON response containing the newly created news article.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the news article data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
+     */
     public function createNews(Request $request)
     {
         // Cek apakah user yang login adalah admin
@@ -422,6 +496,21 @@ class NewsController extends Controller
         }
     }
 
+    /**
+     * Update an existing news article.
+     *
+     * This method handles the update of an existing news article. It validates the incoming request, ensuring that
+     * the provided fields meet the specified criteria. It also handles the update of the news thumbnail, which can
+     * be either a file upload or a URL. If a new thumbnail file is uploaded, the old thumbnail is deleted from storage.
+     * The method then updates the News record in the database with the new data and returns a JSON response containing
+     * the updated news article.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated news article data.
+     * @param string $id The ID of the news article to update.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
+     */
     public function updateNews(Request $request, $id)
     {
         // Cek apakah user adalah admin
@@ -584,6 +673,22 @@ class NewsController extends Controller
         }
     }
 
+    /**
+     * Delete a news article.
+     *
+     * This method handles the deletion of a news article. It first checks if the authenticated user
+     * is an admin. If not, a 403 Forbidden response is returned. If the news article exists, it is
+     * deleted from the database, along with its associated tags. The thumbnail, if it's a file
+     * stored in the storage, is also deleted.
+     * 
+     * Requires admin authentication.
+     * 
+     * **Caution:** Deleting a news article is a destructive action and cannot be undone. Ensure that the
+     * news article is no longer needed before proceeding with the deletion.
+     *
+     * @param string $id The ID of the news article to delete.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
+     */
     public function deleteNews($id)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -636,6 +741,20 @@ class NewsController extends Controller
         }
     }
 
+    /**
+     * Change the status of a news article.
+     *
+     * This method handles the change of status for a news article. It validates the incoming request,
+     * ensuring that the provided status is either 'published' or 'archived'. If the validation passes,
+     * it updates the news article's status in the database and returns a JSON response containing
+     * the updated news article.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the new status.
+     * @param string $newsId The ID of the news article to update.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
+     */
     public function changeStatus(Request $request, $newsId)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();

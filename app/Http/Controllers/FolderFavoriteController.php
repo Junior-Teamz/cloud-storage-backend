@@ -25,6 +25,15 @@ class FolderFavoriteController extends Controller
         $this->checkPermissionFileService = $checkFilePermissionServices;
     }
 
+    /**
+     * Calculate the total size of a folder and its subfolders.
+     *
+     * This method recursively calculates the total size of a folder, including the sizes of all files
+     * within the folder and its subfolders.
+     *
+     * @param Folder $folder The folder object to calculate the size of.
+     * @return int The total size of the folder in bytes.
+     */
     private function calculateFolderSize(Folder $folder)
     {
         $totalSize = 0;
@@ -42,6 +51,14 @@ class FolderFavoriteController extends Controller
         return $totalSize;
     }
 
+    /**
+     * Count all favorite folders.
+     *
+     * This function counts the total number of favorite folders,
+     * the number of owned favorite folders, and the number of shared favorite folders for the currently logged-in user.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function countAllFavoriteFolders()
     {
         $userLogin = Auth::user();
@@ -152,6 +169,16 @@ class FolderFavoriteController extends Controller
     //     }
     // }
 
+    /**
+     * Retrieve all favorite items (folders and files) for the authenticated user.
+     *
+     * This method retrieves a paginated list of both favorite folders and files for the currently authenticated user.
+     * It allows filtering by search query and instance ID. The response includes separate paginated lists for folders
+     * and files, along with additional data such as whether the item is favorited, favorited timestamp, and shared user details.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing search parameters and pagination options.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated lists of favorite folders and files.
+     */
     public function getAllFavoriteItems(Request $request)
     {
         $userLogin = Auth::user();
@@ -283,6 +310,18 @@ class FolderFavoriteController extends Controller
         }
     }
 
+    /**
+     * Add a folder to the authenticated user's favorites.
+     *
+     * This method adds a folder to the current user's favorite list. It first validates the request
+     * to ensure the `folder_id` is present and corresponds to an existing folder. Then, it checks
+     * if the user has write permission for the folder. If the folder is not already in the user's
+     * favorites, it adds it and returns a success response with the folder details. If the folder
+     * is already a favorite, it returns a 409 Conflict response.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the `folder_id`.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function addNewFavorite(Request $request)
     {
         $userLogin = Auth::user();
@@ -407,6 +446,16 @@ class FolderFavoriteController extends Controller
         }
     }
 
+    /**
+     * Remove a folder from the authenticated user's favorites.
+     *
+     * This method removes a specific folder from the authenticated user's list of favorite folders.
+     * It checks if the folder exists and if it's in the user's favorites before attempting removal.
+     * If successful, it returns a success message and the updated folder details.
+     *
+     * @param string $folderId The ID of the folder to remove from favorites.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function deleteFavoriteFolder($folderId)
     {
         $userLogin = Auth::user();

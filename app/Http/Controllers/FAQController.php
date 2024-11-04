@@ -19,6 +19,16 @@ class FAQController extends Controller
         $this->checkAdminService = $checkAdminService;
     }
 
+    /**
+     * Display a listing of the FAQs.
+     *
+     * This method retrieves a paginated list of FAQs, optionally filtered by a search query.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional search parameters.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the list of FAQs or an error message.
+     */
     public function index(Request $request)
     {
         // Mengecek apakah pengguna adalah admin
@@ -68,6 +78,16 @@ class FAQController extends Controller
         }
     }
 
+    /**
+     * Display a specific FAQ.
+     *
+     * This method retrieves a single FAQ by its ID.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  int  $id The ID of the FAQ to retrieve.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the FAQ or an error message.
+     */
     public function showSpesificFAQ($id)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -102,6 +122,16 @@ class FAQController extends Controller
         }
     }
 
+    /**
+     * Create a new FAQ.
+     *
+     * This method creates a new FAQ entry in the database.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the FAQ data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function store(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -153,6 +183,17 @@ class FAQController extends Controller
         }
     }
 
+    /**
+     * Update an existing FAQ.
+     *
+     * This method updates an existing FAQ entry in the database.
+     * 
+     * Requires admin authentication.
+     * 
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated FAQ data.
+     * @param  int  $id The ID of the FAQ to update.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function update(Request $request, $id)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -211,6 +252,16 @@ class FAQController extends Controller
         }
     }
 
+    /**
+     * Delete an existing FAQ.
+     *
+     * This method deletes an existing FAQ entry from the database.
+     * 
+     * Requires admin authentication.
+     * 
+     * @param  int  $id The ID of the FAQ to delete.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function destroy($id)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();

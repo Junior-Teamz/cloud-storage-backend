@@ -37,9 +37,9 @@ Route::post('/checkRefreshTokenValid', [AuthController::class, 'checkRefreshToke
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
 
-Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileByHashedId'])->name('file.url');
+Route::get('/file/preview/{hashedId}', [FileController::class, 'serveFileById'])->name('file.url');
 
-Route::get('/file/videoStream/{hashedId}', [FileController::class, 'serveFileVideoByHashedId'])->name('video.stream');
+Route::get('/file/videoStream/{hashedId}', [FileController::class, 'serveFileVideoById'])->name('video.stream');
 
 Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'remove_nanoid', 'hide_superadmin_flag']);
 

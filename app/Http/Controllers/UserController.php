@@ -116,7 +116,14 @@ class UserController extends Controller
     //     }
     // }
 
-    // Informasi tentang akun yang sedang login saat ini
+    /**
+     * Get the authenticated user's information.
+     *
+     * This method retrieves the details of the currently authenticated user, including their associated instances.
+     * It returns a JSON response containing the user's information or an error message if retrieval fails.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response with the user's data or an error message.
+     */
     public function index()
     {
         $user = Auth::user();
@@ -143,6 +150,16 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Update the authenticated user's information.
+     *
+     * This method allows the currently authenticated user to update their profile information,
+     * including their name, email, and password. It validates the input data, updates the user
+     * record in the database, and returns a JSON response indicating success or failure.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated user data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
+     */
     public function update(Request $request)
     {
         $user = Auth::user();
@@ -224,11 +241,14 @@ class UserController extends Controller
     }
 
     /**
-     * Delete the current user (DELETE).
+     * Delete the authenticated user's account.
+     *
+     * This method allows the currently authenticated user to delete their account.
+     * It will also delete all folders and files associated with the user.
      * 
-     * This function is DANGEROUS and should be used with caution.
-     * 
-     * @return \Illuminate\Http\JsonResponse
+     * **Caution:** This action is irreversible. Once the account is deleted, all data associated with it will be permanently removed.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
      */
     public function delete()
     {
@@ -274,9 +294,12 @@ class UserController extends Controller
     }
 
     /**
-     * Menghapus folder beserta file-file di dalamnya dari local storage
+     * Recursively delete a folder and its contents.
      *
-     * @throws \Exception
+     * This function recursively deletes a folder and all its files and subfolders from both the database and storage.
+     *
+     * @param Folder $folder The folder to delete.
+     * @throws \Exception If any error occurs during the deletion process.
      */
     private function deleteFolderAndFiles(Folder $folder)
     {
@@ -337,7 +360,12 @@ class UserController extends Controller
     }
 
     /**
-     * Get folder path based on parent folder id.
+     * Recursively get the storage path for a folder.
+     *
+     * This function builds the full storage path for a given folder ID by recursively traversing its parent folders.
+     *
+     * @param uuid|null $parentId The ID of the folder.
+     * @return string The storage path for the folder.
      */
     private function getFolderPath($parentId)
     {

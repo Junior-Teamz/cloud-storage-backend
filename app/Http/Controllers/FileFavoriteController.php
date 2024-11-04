@@ -28,6 +28,14 @@ class FileFavoriteController extends Controller
         $this->GenerateURLService = $GenerateURLService;
     }
 
+    /**
+     * Count all favorite files for the authenticated user.
+     *
+     * This method retrieves the count of all favorite files, 
+     * differentiating between files owned by the user and files shared with them.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the counts of favorite files.
+     */
     public function countAllFavoriteFiles()
     {
         $userLogin = Auth::user();
@@ -63,6 +71,17 @@ class FileFavoriteController extends Controller
         }
     }
 
+    /**
+     * Retrieve all favorite files for the authenticated user.
+     *
+     * This method retrieves a paginated list of all favorite files for the currently authenticated user.
+     * It allows filtering by file name and instance name, and supports pagination.  The response includes
+     * additional data such as whether the file is a video, a video URL (if applicable), and a list of users
+     * the file has been shared with.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing search parameters and pagination options.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of favorite files.
+     */
     public function getAllFavoriteFile(Request $request)
     {
         $userLogin = Auth::user();
@@ -140,6 +159,16 @@ class FileFavoriteController extends Controller
         }
     }
 
+    /**
+     * Add a file to the authenticated user's favorites.
+     *
+     * This method adds a file to the current user's favorite list.  It first validates the request,
+     * checks if the user has permission to favorite the file, and then checks if the file is already
+     * in the favorites list.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the file ID.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function addNewFavorite(Request $request)
     {
         $userLogin = Auth::user();
@@ -280,6 +309,16 @@ class FileFavoriteController extends Controller
         }
     }
 
+    /**
+     * Remove a file from the authenticated user's favorites.
+     *
+     * This method removes a file from the current user's favorite list. It first checks if the file exists
+     * and if the user has the file in their favorites.  If successful, it returns the updated file
+     * information.
+     * 
+     * @param string $fileId The ID of the file to remove from favorites.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function deleteFavoriteFile($fileId)
     {
         $userLogin = Auth::user();

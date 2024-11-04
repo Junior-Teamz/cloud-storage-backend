@@ -15,7 +15,17 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AuthController extends Controller
 {
-    // Fungsi untuk melakukan login dan mengeluarkan access token serta refresh token
+    /**
+     * Handle user login.
+     *
+     * This method attempts to authenticate a user based on the provided email and password.
+     * It performs validation on the input, generates access and refresh tokens upon successful
+     * authentication, and returns a JSON response containing user information, roles, permissions,
+     * and tokens.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing user credentials.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including user data, roles, permissions, and tokens.
+     */
     public function login(Request $request)
     {
         // Validasi input
@@ -93,6 +103,15 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Check if the access token is valid.
+     *
+     * This method checks the validity of an access token provided in the Authorization Bearer header.
+     * It returns a JSON response indicating whether the token is valid or not.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the access token.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating whether the token is valid (true/false).
+     */
     public function checkAccessTokenValid(Request $request)
     {
         try {
@@ -120,7 +139,15 @@ class AuthController extends Controller
         }
     }
 
-    // im little bit confused why creating this function... XD
+    /**
+     * Check if the refresh token is valid.
+     *
+     * This method checks the validity of a refresh token provided in the request body.
+     * It returns a JSON response indicating whether the token is valid or not.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the refresh token.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating whether the token is valid (true/false).
+     */
     public function checkRefreshTokenValid(Request $request)
     {
         try {
@@ -158,61 +185,17 @@ class AuthController extends Controller
         }
     }
 
-    // Ini kode lama saat pertama kali implementasi refresh token. tidak dapat digunakan lagi.
-    // public function refresh(Request $request)
-    // {
-    //     try {
-    //         // Ambil refresh token dari request (misalnya dari header Authorization)
-    //         $refreshToken = $request->input('refreshToken');
-    //         if (!$refreshToken) {
-    //             return response()->json(['errors' => 'Refresh token not found.'], 400);
-    //         }
-
-    //         // Set refresh token
-    //         JWTAuth::setToken($refreshToken);
-
-    //         // Ambil klaim dari refresh token
-    //         $claims = JWTAuth::getPayload()->toArray();
-
-    //         // Cek apakah refresh token memiliki access_token_id
-    //         if (!isset($claims['access_token_id'])) {
-    //             return response()->json(['errors' => 'Refresh token is invalid.'], 401);
-    //         }
-
-    //         // Ambil access token ID dari klaim refresh token
-    //         $refreshTokenAccessTokenId = $claims['access_token_id'];
-
-    //         // Periksa apakah access token yang di-refresh cocok
-    //         $accessToken = $request->bearerToken('Authorization'); // Ambil access token dari input
-    //         $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil access token ID
-
-    //         if ($refreshTokenAccessTokenId !== $accessTokenId) {
-    //             return response()->json(['errors' => 'Access token does not match in refresh token.'], 401);
-    //         }
-
-    //         // Jika cocok, buat access token baru dengan waktu tambahan dari refresh token
-    //         $additionalTime = $claims['additional_time'] ?? 0;
-    //         $newAccessToken = auth()->guard('api')->claims([
-    //             'exp' => Carbon::now()->addSeconds($additionalTime)->timestamp,
-    //             'jti' => $accessTokenId // Gunakan kembali access token ID
-    //         ])->refresh();
-
-    //         return response()->json(['accessToken' => $newAccessToken]);
-    //     } catch (Exception $e) {
-    //         if ($e instanceof JWTException) {
-    //             return response()->json([
-    //                 'errors' => 'Either access token or refresh token is invalid or expired.'
-    //             ], 401);
-    //         } else {
-    //             Log::error('Error occured while refreshing token: ' . $e->getMessage(), [
-    //                 'refresh_token' => $refreshToken,
-    //                 'trace' => $e->getTrace()
-    //             ]);
-    //             return response()->json(['errors' => 'An error occured while refreshing token.'], 500);
-    //         }
-    //     }
-    // }
-
+    /**
+     * Refresh the access token using the refresh token.
+     *
+     * This method refreshes the access token using a valid refresh token. It verifies the
+     * integrity of both tokens, invalidates the old access token, and returns a new access token.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the refresh token and access token.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the new access token or error messages.
+     * @throws \Tymon\JWTAuth\Exceptions\JWTException If there is an error during token processing.
+     * @throws \Exception If any other error occurs during the refresh process.
+     */
     public function refresh(Request $request)
     {
         try {
@@ -265,7 +248,15 @@ class AuthController extends Controller
         }
     }
 
-    // Fungsi untuk logout
+    /**
+     * Log out the user by invalidating the access and refresh tokens.
+     *
+     * This method retrieves the access token from the Authorization Bearer header and the refresh token
+     * from the request body. It then invalidates both tokens, effectively logging out the user.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the tokens.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function logout(Request $request)
     {
         try {

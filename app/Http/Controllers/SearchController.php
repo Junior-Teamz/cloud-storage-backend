@@ -12,6 +12,15 @@ use Illuminate\Support\Facades\Validator;
 
 class SearchController extends Controller
 {
+    /**
+     * Search for folders and files based on the provided name.
+     *
+     * This method allows users to search for both folders and files that they own or have been shared with.
+     * It supports pagination for both folders and files separately.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the search parameters.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated search results for both owned and shared folders and files.
+     */
     public function searchFoldersAndFiles(Request $request)
     {
         // Mendapatkan user yang sedang login
@@ -94,6 +103,15 @@ class SearchController extends Controller
         }
     }
 
+    /**
+     * Search for users based on name and/or email.
+     *
+     * This method allows searching for users using optional 'name' and 'email' query parameters.
+     * It returns a paginated list of users, including their associated instances, with a maximum of 10 users per page.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional 'name' and 'email' query parameters.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of users or an error message.
+     */
     public function searchUser(Request $request)
     {
         try {

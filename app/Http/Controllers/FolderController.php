@@ -58,14 +58,13 @@ class FolderController extends Controller
 
 
     /**
-     * Format size units from bytes to human readable format.
+     * Format bytes into a human-readable size unit (KB, MB, GB).
      *
-     * This function takes a size in bytes and returns a string in the format of
-     * the largest unit of measurement that is greater than or equal to 1.
+     * This helper function converts a given size in bytes into a more user-friendly representation,
+     * using KB, MB, or GB as appropriate.
      *
-     * @param int $bytes The size in bytes to format.
-     *
-     * @return string The formatted size string, e.g. 1.5 MB, 2.3 GB, etc.
+     * @param int $bytes The size in bytes.
+     * @return string The formatted size string.
      */
     private function formatSizeUnits($bytes)
     {
@@ -1013,19 +1012,21 @@ class FolderController extends Controller
         }
     }
 
-
     /**
-     * Delete multiple folder.
+     * Delete multiple folders.
+     *
+     * This method handles the deletion of multiple folders based on the provided folder IDs in the request.
+     * It validates the request to ensure that an array of folder IDs is provided. It then retrieves the folders
+     * from the database, checks if the user has permission to delete each folder, and performs the deletion.
+     * The method also handles the deletion of related data in other tables and the removal of the folders
+     * from storage.
      * 
-     * This function accepts a JSON array of folder IDs and checks if the user has permission to delete the folder.
-     * If the user does not have permission, it will return an error response. If the user has permission, it will delete the folder.
-     * 
-     * @param \Illuminate\Http\Request $request The incoming request containing the folder IDs to delete.
-     * 
-     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the deleted folder ID or an error message.
-     * 
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
-     * @throws \Exception For general exceptions that may occur during the process.
+     * **Caution:** Deleting folders is a destructive action that also deletes all subfolders and files within 
+     * those folders. This action cannot be undone. Ensure that the folders and their contents are no longer 
+     * needed before proceeding with the deletion.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing an array of folder IDs to delete.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function delete(Request $request)
     {
@@ -1266,7 +1267,7 @@ class FolderController extends Controller
      * Otherwise, it uses a recursive approach to build the path from the folder to the root.
      * It uses the folder's NanoID in the storage path.
      * 
-     * @param int|null $parentId The ID of the folder to get the path for.
+     * @param uuid|null $parentId The ID of the folder to get the path for.
      * 
      * @return string The path of the folder in storage.
      */
@@ -1388,9 +1389,14 @@ class FolderController extends Controller
     }
 
     /**
-     * Hitung kedalaman folder
-     * @param int|null $parentId
-     * @return int
+     * Get the depth of a folder in the folder hierarchy.
+     *
+     * This method recursively traverses the folder hierarchy starting from the given parent ID
+     * and calculates the depth of the folder. The root folder has a depth of 0.
+     *
+     * @param string $parentId The ID of the parent folder.
+     *
+     * @return int The depth of the folder.
      */
     private function getFolderDepth($parentId)
     {

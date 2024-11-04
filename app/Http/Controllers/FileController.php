@@ -36,7 +36,14 @@ class FileController extends Controller
     }
 
     /**
-     * Get information about a file (READ).
+     * Get file information by ID.
+     *
+     * This method retrieves detailed information about a file, including its metadata,
+     * associated tags, instances, and sharing permissions. It also checks for file existence
+     * and user permissions before returning the data.
+     * 
+     * @param int $id The ID of the file.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the file information or an error message.
      */
     public function info($id)
     {
@@ -112,7 +119,16 @@ class FileController extends Controller
         }
     }
 
-    // dapatkan semua file dan total filenya
+    /**
+     * Get all files and their total size for the authenticated user.
+     *
+     * This method retrieves a paginated list of all files owned by the authenticated user,
+     * along with the total size of all files. It allows sorting the files by size in
+     * ascending or descending order.
+     *
+     * @param  \Illuminate\Http\Request  $request The HTTP request object, which may contain a 'sort' query parameter for specifying the sort order (asc or desc).
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of files, total file count, and total size.
+     */
     public function getAllFilesAndTotalSize(Request $request)
     {
         $user = Auth::user();
@@ -191,7 +207,14 @@ class FileController extends Controller
     }
 
     /**
-     * Upload a file.
+     * Upload multiple files.
+     *
+     * This method handles the upload of multiple files. It performs validation,
+     * malware scanning, and database operations to store file information.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the files, folder ID, and tag IDs.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
+     * @throws \Exception If any error occurs during file upload or database operations.
      */
     public function upload(Request $request)
     {
@@ -352,6 +375,16 @@ class FileController extends Controller
         }
     }
 
+    /**
+     * Download one or multiple files.
+     *
+     * This method allows downloading a single file or multiple files as a zip archive.
+     * It validates the request, checks permissions, handles file existence, and
+     * returns the appropriate response.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the file IDs.
+     * @return \Illuminate\Http\Response A file download response or a JSON error response.
+     */
     public function downloadFile(Request $request)
     {
         // Validasi input request
@@ -447,8 +480,11 @@ class FileController extends Controller
     /**
      * Add a tag to a file.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * This method adds a tag to a specified file. It validates the request, checks permissions,
+     * handles potential errors, and returns a JSON response indicating success or failure.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the file ID and tag ID.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
      */
     public function addTagToFile(Request $request)
     {
@@ -559,10 +595,15 @@ class FileController extends Controller
     }
 
     /**
-     * Remove a tag from a file
+     * Remove a tag from a file.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * This method removes a tag from a specified file. It validates the request, checks permissions,
+     * handles potential errors, and returns a JSON response indicating success or failure.  The method
+     * also includes detailed logging for error handling and security.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the file ID and tag ID.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
+     * @throws \Exception If any error occurs during the tag removal process.
      */
     public function removeTagFromFile(Request $request)
     {
@@ -655,7 +696,18 @@ class FileController extends Controller
     }
 
     /**
-     * Update the name of a file.
+     * Update the file name.
+     *
+     * This method updates the name of a file. It validates the request, checks permissions,
+     * updates the file name in both the storage and the database, and returns a JSON response
+     * indicating success or failure.  The method maintains the original file extension and
+     * handles potential errors.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the new file name.
+     * @param  int  $id The ID of the file to be updated.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
+     * @throws \Exception If any error occurs during the file name update process.
+     *
      */
     public function updateFileName(Request $request, $id)
     {
@@ -773,7 +825,16 @@ class FileController extends Controller
     }
 
     /**
-     * Move a file to another folder.
+     * Move a file to a new folder.
+     *
+     * This method moves a file to a specified folder. It validates the request, checks permissions
+     * for both the source file and the destination folder, updates the file's path in both
+     * the storage and the database, and returns a JSON response indicating success or failure.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the new folder ID.
+     * @param  int  $id The ID of the file to be moved.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
+     * @throws \Exception If any error occurs during the file move process.
      */
     public function move(Request $request, $id)
     {
@@ -895,8 +956,19 @@ class FileController extends Controller
     }
 
     /**
-     * Delete a file (DELETE).
-     * DANGEROUS! 
+     * Delete multiple files.
+     *
+     * This method handles the deletion of multiple files based on the provided file IDs in the request.
+     * It validates the request to ensure that an array of file IDs is provided. It then retrieves the files
+     * from the database, checks if the user has permission to delete each file, and performs the deletion.
+     * The method also handles the deletion of related data in other tables and the removal of the files
+     * from storage.
+     * 
+     * **Caution:** Deleting files is a destructive action and cannot be undone. Ensure that the files are no 
+     * longer needed before proceeding with the deletion.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing an array of file IDs to delete.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function delete(Request $request)
     {
@@ -984,7 +1056,16 @@ class FileController extends Controller
         }
     }
 
-    public function serveFileByHashedId($fileId)
+    /**
+     * Serve a file by its ID.
+     *
+     * This method retrieves and serves a file from storage based on its ID.
+     * It handles cases where the file is not found, returning an appropriate response.
+     *
+     * @param  int  $fileId The ID of the file to be served.
+     * @return \Illuminate\Http\Response A file download response or a JSON error response.
+     */
+    public function serveFileById($fileId)
     {
         // Cari file berdasarkan ID
         $file = File::find($fileId);
@@ -1000,7 +1081,17 @@ class FileController extends Controller
         return response()->file($file_path);
     }
 
-    public function serveFileVideoByHashedId($fileId)
+    /**
+     * Serve a video file by its ID.
+     *
+     * This method retrieves and serves a video file from storage based on its ID.
+     * It checks if the file is a video and streams it to the client.  It handles cases
+     * where the file is not found or is not a video, returning appropriate responses.
+     * 
+     * @param  int  $fileId The ID of the video file to be served.
+     * @return \Illuminate\Http\Response A streamed video response or a JSON error response.
+     */
+    public function serveFileVideoById($fileId)
     {
         // Cari file berdasarkan ID
         $file = File::find($fileId);
@@ -1027,6 +1118,16 @@ class FileController extends Controller
         ]);
     }
 
+    /**
+     * Generate the public path for a file.
+     *
+     * This method constructs the public path for a file based on its folder ID and file name.
+     * It traverses the folder hierarchy to build the complete path.
+     *
+     * @param  int  $folderId The ID of the folder containing the file.
+     * @param  string  $fileName The name of the file.
+     * @return string The generated public path for the file.
+     */
     public function generateFilePublicPath($folderId, $fileName)
     {
         // Initialize an array to store the folder names
@@ -1055,7 +1156,14 @@ class FileController extends Controller
     }
 
     /**
-     * Generate the file path based on folder id and file name.
+     * Generate the file path for storage.
+     *
+     * This method constructs the file path for storage based on its folder ID and file NanoID.
+     * It uses NanoIDs for folders and files to create a unique path.
+     *
+     * @param  int  $folderId The ID of the folder containing the file.
+     * @param  string  $fileNanoid The NanoID of the file.
+     * @return string The generated file path for storage.
      */
     private function generateFilePath($folderId, $fileNanoid)
     {

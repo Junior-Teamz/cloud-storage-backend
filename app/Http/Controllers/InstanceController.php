@@ -26,12 +26,14 @@ class InstanceController extends Controller
     }
 
     /**
-     * Mendapatkan data instansi berdasarkan query parameter `name`.
-     * Jika query parameter `name` tidak diberikan, maka akan mengembalikan semua data instansi.
+     * Display a paginated list of instances.
+     *
+     * This method retrieves a paginated list of instances, optionally filtered by name.
      * 
-     * @param Request $request
-     * 
-     * @return \Illuminate\Http\JsonResponse
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional search parameters.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the list of instances or an error message.
      */
     public function index(Request $request)
     {
@@ -76,10 +78,14 @@ class InstanceController extends Controller
     }
 
     /**
-     * Mendapatkan daftar ID instansi berdasarkan nama.
+     * Get a list of instance IDs and names based on a name search query.
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * This method retrieves a list of instance IDs and names that match the provided search query.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the search query.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the list of instance IDs and names or an error message.
      */
     public function getInstanceWithName(Request $request)
     {
@@ -120,6 +126,15 @@ class InstanceController extends Controller
         }
     }
 
+    /**
+     * Count all instance.
+     *
+     * This method retrieves the total count of instances.
+     * 
+     * Requires admin authentication.
+     * 
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the total count of instances or an error message.
+     */
     public function countAllInstance()
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -154,6 +169,17 @@ class InstanceController extends Controller
         }
     }
 
+    /**
+     * Retrieve instance usage statistics.
+     *
+     * This method retrieves usage statistics for each instance, including user counts (total, user role, admin role),
+     * folder counts, and file counts.  The results are paginated.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request, containing optional pagination parameters.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the instance usage statistics or an error message.
+     */
     public function getInstanceUsageStatistics(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -251,10 +277,16 @@ class InstanceController extends Controller
     }
 
     /**
-     * Membuat instansi baru.
+     * Create a new instance.
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * This method creates a new instance record in the database.  It validates the incoming request data,
+     * ensuring that the instance name is unique (case-insensitive), follows a specific format, and does not exceed
+     * the maximum length 255 characters. Upon successful creation, a 201 (Created) response is returned with the newly created instance data.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the instance data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function store(Request $request)
     {
@@ -324,6 +356,17 @@ class InstanceController extends Controller
         }
     }
 
+    /**
+     * Download an example Excel file for instance imports.
+     *
+     * This method allows authenticated admin users to download an example Excel file that demonstrates
+     * the correct format for importing instance data.
+     * 
+     * Requires admin authentication.
+     *
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
+     * A file excel response for downloading the example file or a JSON response indicating an error.
+     */
     public function exampleImportDownload()
     {
         // Mengecek apakah pengguna adalah admin
@@ -361,6 +404,19 @@ class InstanceController extends Controller
         }
     }
 
+    /**
+     * Import instances from an Excel file.
+     *
+     * This method handles the import of instances from an uploaded Excel file. It validates the uploaded file,
+     * performs the import using a dedicated import class (`InstanceImport`), and returns a JSON response indicating
+     * the import status. If any invalid or duplicate instances are found during the import, a message is included
+     * in the response.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the uploaded Excel file.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating the success or failure of the import operation.
+     */
     public function import(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -428,11 +484,18 @@ class InstanceController extends Controller
     }
 
     /**
-     * Update data spesifik instansi.
+     * Update an existing instance.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * This method updates an existing instance record in the database. It validates the incoming request data,
+     * ensuring that the instance name is unique (case-insensitive), follows a specific format, and does not exceed
+     * the maximum length of 255 characters. If the validation passes, it updates the instance with the new data
+     * and returns a 200 (OK) response with the updated instance data.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated instance data.
+     * @param string $id The ID of the instance to update.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function update(Request $request, $id)
     {
@@ -512,13 +575,22 @@ class InstanceController extends Controller
     }
 
     /**
-     * Menghapus data instansi.
+     * Delete an instance.
+     *
+     * This method attempts to delete an instance from the database. It first checks if the authenticated user
+     * has admin privileges. If not, a 403 Forbidden response is returned. If the instance exists and has no
+     * associated users, folders, or files, it is deleted, and a 200 OK response is returned. If the instance
+     * still has related data, a 400 Bad Request response is returned, indicating that the related data must
+     * be deleted first.
      * 
-     * PERINGATAN: FUNCTION INI DAPAT MENGHAPUS DATA SECARA 
-     * PERMANEN. GUNAKAN DENGAN HATI-HATI
+     * Requires admin authentication.
      * 
-     * @param  $instanceId
-     * @return \Illuminate\Http\JsonResponse
+     * **Caution:** Deleting an instance is a destructive action and should be performed with caution.
+     * Ensure that the instance is no longer needed and that all related data has been properly handled 
+     * before proceeding with the deletion.
+     *
+     * @param int $instanceId The ID of the instance to delete.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function destroy($instanceId)
     {

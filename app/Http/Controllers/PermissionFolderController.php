@@ -16,8 +16,13 @@ use Illuminate\Support\Facades\Validator;
 class PermissionFolderController extends Controller
 {
 
+    
     /**
-     * Check the user permission
+     * Check if the authenticated user has permission to access the specified folder.
+     *
+     * @param int $folderId The ID of the folder to check.
+     * @return bool|Illuminate\Http\JsonResponse True if the user has permission, false otherwise.
+     *  Returns a 404 JSON response if the folder is not found.
      */
     private function checkPermission($folderId)
     {
@@ -39,6 +44,15 @@ class PermissionFolderController extends Controller
         return false;
     }
 
+    /**
+     * Get all permissions on a specific folder.
+     *
+     * Retrieves all users with their respective permissions on a given folder.
+     * Requires authentication and authorization: only the folder owner can access this information.
+     *
+     * @param string $folderIdParam The ID of the folder.
+     * @return Illuminate\Http\JsonResponse A JSON response containing the list of users with permissions or an error message.
+     */
     public function getAllPermissionOnFolder($folderIdParam)
     {
         $folder = Folder::where('id', $folderIdParam)->first();
@@ -91,6 +105,16 @@ class PermissionFolderController extends Controller
         }
     }
 
+    /**
+     * Get permission of a user on a specific folder.
+     *
+     * Retrieves the permission of a specific user on a given folder.
+     * Requires authentication and authorization: only the folder owner can access this information.
+     *
+     * @param Request $request The request containing the user ID and folder ID.
+     * @return Illuminate\Http\JsonResponse A JSON response containing the user's permission or an error message.
+     * @throws Exception If an error occurs during the process.
+     */
     public function getPermission(Request $request)
     {
         // Validasi input request
@@ -161,6 +185,17 @@ class PermissionFolderController extends Controller
         }
     }
 
+    /**
+     * Grant permission to a user on a specific folder.
+     *
+     * Grants the specified permission (read or write) to a user on a given folder.
+     * This also applies the permission recursively to subfolders and files within that folder.
+     * Requires authentication and authorization: only the folder owner can grant permissions.
+     *
+     * @param Request $request The request containing the user ID, folder ID, and permission type.
+     * @return Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     * @throws Exception If an error occurs during the process.
+     */
     public function grantFolderPermission(Request $request)
     {
         $validator = Validator::make(
@@ -243,6 +278,16 @@ class PermissionFolderController extends Controller
         }
     }
 
+    /**
+     * Apply permission to subfolders and files recursively.
+     *
+     * This function recursively applies the given permission to all subfolders and files within a specified folder.
+     * It checks for existing permissions before creating new ones to avoid duplicates.
+     * 
+     * @param Folder $folder The parent folder.
+     * @param string $userId The ID of the user.
+     * @param string $permissions The permission to apply ('read' or 'write').
+     */
     private function applyPermissionToSubfoldersAndFiles($folder, $userId, $permissions)
     {
         // Terapkan izin pada subfolder
@@ -274,6 +319,17 @@ class PermissionFolderController extends Controller
         }
     }
 
+    /**
+     * Change permission of a user on a specific folder.
+     *
+     * Changes the permission (read or write) of a user on a given folder.
+     * This also applies the permission recursively to subfolders and files within that folder.
+     * Requires authentication and authorization: only the folder owner can change permissions.
+     *
+     * @param Request $request The request containing the user ID, folder ID, and permission type.
+     * @return Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     * @throws Exception If an error occurs during the process.
+     */
     public function changeFolderPermission(Request $request)
     {
         $validator = Validator::make(
@@ -346,6 +402,16 @@ class PermissionFolderController extends Controller
         }
     }
 
+    /**
+     * Revoke permission of a user on a specific folder.
+     *
+     * Revokes all permissions of a user on a given folder and its subfolders and files.
+     * Requires authentication and authorization: only the folder owner can revoke permissions.
+     *
+     * @param Request $request The request containing the user ID and folder ID.
+     * @return Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     * @throws Exception If an error occurs during the process.
+     */
     public function revokeFolderPermission(Request $request)
     {
         $validator = Validator::make(
@@ -417,6 +483,12 @@ class PermissionFolderController extends Controller
     }
 
 
+    /**
+     * Recursively remove permissions from subfolders and files.
+     *
+     * @param Folder $folder The parent folder.
+     * @param int $userId The ID of the user whose permissions to remove.
+     */
     private function removePermissionFromSubfoldersAndFiles($folder, $userId)
     {
         // Hapus izin dari semua subfolder

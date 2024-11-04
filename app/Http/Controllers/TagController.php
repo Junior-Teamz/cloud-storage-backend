@@ -17,7 +17,6 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class TagController extends Controller
 {
-
     protected $checkAdminService;
 
     public function __construct(CheckAdminService $checkAdminService)
@@ -25,6 +24,15 @@ class TagController extends Controller
         $this->checkAdminService = $checkAdminService;
     }
 
+    /**
+     * Get a paginated list of tags.
+     * 
+     * This method retrieves a list of tags, excluding the "Root" tag.
+     * It supports sorting and filtering.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional query parameters.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of tags or an error message.
+     */
     public function index(Request $request)
     {
         try {
@@ -86,6 +94,16 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Get information about a specific tag.
+     *
+     * This method retrieves information about a tag based on its ID.
+     * It checks if the tag exists and if it's not the "Root" tag.
+     * If the user is an admin, it also calculates and includes usage statistics for the tag.
+     *
+     * @param int $id The ID of the tag to retrieve information for.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the tag information or an error message.
+     */
     public function getTagsInformation($id)
     {
         try {
@@ -124,6 +142,17 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Count the total number of tags.
+     *
+     * This method retrieves the total count of tags in the database, excluding the "Root" tag.
+     * It first checks if the authenticated user is an admin. If not, it returns an error message.
+     * If the user is an admin, it counts the tags and returns the count in a JSON response.
+     * 
+     * Requires admin authentication.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the tag count or an error message.
+     */
     public function countAllTags()
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -158,6 +187,15 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Get tag usage statistics.
+     * 
+     * This method retrieves tag usage statistics, including the number of times each tag is used in folders, files, and news.
+     * It supports pagination and filtering by tag name.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional query parameters.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of tags with usage statistics or an error message.
+     */
     public function getTagUsageStatistics(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -216,6 +254,19 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Create a new tag.
+     *
+     * This method handles the creation of a new tag. It first checks if the authenticated user
+     * has admin privileges. If not, a 403 Forbidden response is returned. It then validates
+     * the incoming request data to ensure the 'name' field is required, a string, unique (case-insensitive),
+     * contains only letters and spaces, and does not exceed 50 characters.
+     * 
+     * Requires admin authentication.
+     * 
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the tag data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
+     */
     public function store(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -276,6 +327,16 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Download an example Excel file for tag imports.
+     *
+     * This method allows authenticated admin users to download an example Excel file that demonstrates
+     * the correct format for importing tag data.
+     * 
+     * Requires admin authentication.
+     *
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse A file excel response for downloading the example file or a JSON response indicating an error.
+     */
     public function exampleImportDownload()
     {
         // Mengecek apakah pengguna adalah admin
@@ -313,6 +374,20 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Import tags from an Excel file.
+     *
+     * This method handles the import of tags from an uploaded Excel file.
+     * It then validates the uploaded file to ensure it's an Excel file with a maximum size of 5120 KB.
+     * If validation passes, the file is stored temporarily, and the import process begins within a database transaction.
+     * The `TagImport` class is used to handle the actual import logic. After the import, the method retrieves the count
+     * of invalid and duplicate tags. The temporary file is then deleted.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the uploaded Excel file.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating the success or failure of the import operation.
+     */
     public function import(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -392,6 +467,21 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Update an existing tag.
+     *
+     * This method handles the update of an existing tag. It first checks if the authenticated user
+     * has admin privileges. If not, a 403 Forbidden response is returned. It then validates
+     * the incoming request data to ensure the 'name' field is required, a string, unique (case-insensitive),
+     * contains only letters and spaces. The validation also excludes the current tag's ID to allow
+     * renaming a tag to its existing name.
+     * 
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated tag data.
+     * @param string $id The ID of the tag to update.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
+     */
     public function update(Request $request, $id)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -463,6 +553,24 @@ class TagController extends Controller
         }
     }
 
+    /**
+     * Delete multiple tags.
+     *
+     * This method handles the deletion of multiple tags based on an array of tag IDs provided in the request.
+     * The method attempts to retrieve the tags from the database, excluding the "Root" tag to prevent its deletion.
+     * If any of the provided tag IDs are not found, a 404 Not Found response is returned with a list of missing tag IDs.
+     * If all tags are found, the method proceeds to delete them within a database transaction. It first detaches all
+     * relationships the tags have with folders, files, and news. Then, it deletes the tags themselves.
+     * 
+     * Requires admin authentication.
+     * 
+     * **Caution:** Deleting tags is a destructive action. It will remove the tags from any folders, files, or news
+     * they are associated with. This action cannot be undone. Ensure that you want to delete the selected tags
+     * before proceeding.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing an array of tag IDs to delete.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
+     */
     public function destroy(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();

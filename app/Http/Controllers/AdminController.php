@@ -25,6 +25,17 @@ class AdminController extends Controller
         $this->checkAdminService = $checkAdminService;
     }
 
+    /**
+     * Display a listing of the resource.
+     *
+     * This function retrieves a list of users based on various search criteria.
+     * It allows searching by name, email, or instance name. 
+     * 
+     * Admin authentication is required.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function listUser(Request $request)
     {
         $user = Auth::user();
@@ -140,6 +151,15 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Count all users.
+     *
+     * This function counts the total number of users, users with the 'user' role, and users with the 'admin' role.
+     * 
+     * Requires admin authentication.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function countAllUser()
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -183,7 +203,16 @@ class AdminController extends Controller
         }
     }
 
-    // informasi akun user spesifik
+    /**
+     * Get user admin information by ID.
+     *
+     * This function retrieves detailed information about a specific user, including their roles and instances.
+     * 
+     * Requires admin authentication.
+     *
+     * @param int $id The ID of the user.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function user_info($id)
     {
         $user = Auth::user();
@@ -225,6 +254,16 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Create a new user by admin.
+     *
+     * This function allows an administrator to create a new user account.  It validates the input data,
+     * creates the user, assigns a role, associates the user with an instance, and handles potential errors.
+     * 
+     * Requires admin authentication.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function createUserFromAdmin(Request $request)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -330,6 +369,19 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Update existing user by admin.
+     *
+     * This function allows an administrator to update an existing user account. It validates the input data,
+     * updates the user information, updates the user's instance association, updates associated folder instances,
+     * and handles potential errors.  It prevents the update of superadmin users.
+     *
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $userIdToBeUpdated The ID of the user to be updated.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateUserFromAdmin(Request $request, $userIdToBeUpdated)
     {
         $checkAdmin = $this->checkAdminService->checkAdmin();
@@ -448,12 +500,15 @@ class AdminController extends Controller
     }
 
     /**
-     * Delete a user from admin (DELETE).
+     * Delete a user from the system.
+     *
+     * This function deletes a user from the database and removes associated files and folders from storage.
+     * It requires admin authentication and prevents the deletion of superadmin users.  This is a dangerous
+     * function and should be used with caution.
      * 
-     * This function is DANGEROUS and should be used with caution.
-     * 
+     * Requires admin authentication.
+     *
      * @param int $userIdToBeDeleted The ID of the user to be deleted.
-     * 
      * @return \Illuminate\Http\JsonResponse
      */
     public function deleteUserFromAdmin($userIdToBeDeleted)
@@ -493,7 +548,7 @@ class AdminController extends Controller
 
             DB::beginTransaction();
 
-            if (!!$folders) {
+            if ($folders) {
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder);
                 }
@@ -520,9 +575,12 @@ class AdminController extends Controller
     }
 
     /**
-     * Menghapus folder beserta file-file di dalamnya dari local storage
+     * Recursively delete a folder and its contents.
      *
-     * @throws \Exception
+     * This function recursively deletes a folder and all its files and subfolders from both the database and storage.
+     * 
+     * @param Folder $folder The folder to delete.
+     * @throws \Exception If any error occurs during the deletion process.
      */
     private function deleteFolderAndFiles(Folder $folder)
     {
@@ -592,7 +650,12 @@ class AdminController extends Controller
     }
 
     /**
-     * Get folder path based on parent folder id.
+     * Recursively get the storage path for a folder.
+     *
+     * This function builds the full storage path for a given folder ID by recursively traversing its parent folders.
+     *
+     * @param int|null $parentId The ID of the folder.
+     * @return string The storage path for the folder.
      */
     private function getFolderPath($parentId)
     {
@@ -610,12 +673,17 @@ class AdminController extends Controller
     }
 
 
+    // Dibawah ini, function endpoint untuk mendapatkan statistik semua folder dan file yang ada. HANYA DIGUNAKAN UNTUK SUPERADMIN.
 
     /**
-     * Dibawah ini, function endpoint untuk mendapatkan statistik semua
-     * folder dan file yang ada. HANYA DIGUNAKAN UNTUK SUPERADMIN.
+     * Get total storage usage.
+     *
+     * This function calculates the total storage used across all folders and files in the system.
+     * 
+     * Requires super admin authentication.
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-
     public function storageUsage()
     {
         $userInfo = Auth::user();
@@ -666,6 +734,16 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Get storage usage per instance.
+     *
+     * This function calculates the storage usage for each instance in the system.  It retrieves all instances,
+     * calculates the total storage used by their associated files, and returns the results in a formatted JSON response.
+     * 
+     * Requires super admin authentication.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function storageUsagePerInstance()
     {
         $userInfo = Auth::user();
@@ -714,6 +792,15 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Count all folders.
+     *
+     * This function counts the total number of folders in the system excluding root folders.
+     * 
+     * Requires super admin authentication.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function allFolderCount()
     {
         // variable ini hanya untuk mendapatkan user info yang mengakses endpoint ini.
@@ -756,6 +843,15 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Count all files.
+     *
+     * This function counts the total number of files and calculates their total size.
+     * 
+     * Requires super admin authentication.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function allFileCount()
     {
         // variable ini hanya untuk mendapatkan user info yang mengakses endpoint ini.
@@ -806,6 +902,15 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Format bytes into a human-readable size unit (KB, MB, GB).
+     *
+     * This helper function converts a given size in bytes into a more user-friendly representation,
+     * using KB, MB, or GB as appropriate.
+     *
+     * @param int $bytes The size in bytes.
+     * @return string The formatted size string.
+     */
     private function formatSizeUnits($bytes)
     {
         if ($bytes >= 1073741824) {
@@ -823,6 +928,15 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Recursively calculate the total size of a folder and its subfolders.
+     *
+     * This function calculates the total size of a given folder by summing the sizes of its files and
+     * recursively calling itself for any subfolders.
+     *
+     * @param Folder $folder The folder to calculate the size of.
+     * @return int The total size of the folder and its subfolders in bytes.
+     */
     private function calculateFolderSize(Folder $folder)
     {
         $totalSize = 0;

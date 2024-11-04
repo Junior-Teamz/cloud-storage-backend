@@ -15,7 +15,14 @@ use Illuminate\Support\Facades\Validator;
 class PermissionFileController extends Controller
 {
     /**
-     * Check the user permission
+     * Check if the authenticated user has permission to access a file.
+     *
+     * This method verifies if the logged-in user is the owner of the file identified by the given `$fileId`.
+     * If the file is not found, it returns a 404 Not Found JSON response. If the user is the owner, it returns `true`,
+     * indicating that the user has permission. Otherwise, it returns `false`.
+     *
+     * @param string $fileId The ID of the file to check permissions for.
+     * @return bool|\Illuminate\Http\JsonResponse Returns `true` if the user has permission, `false` otherwise, or a JSON response if the file is not found.
      */
     private function checkPermission($fileId)
     {
@@ -37,6 +44,18 @@ class PermissionFileController extends Controller
         return false;
     }
 
+    /**
+     * Get all permissions on a file.
+     *
+     * This method retrieves all user permissions associated with a specific file. It first checks if the
+     * authenticated user has permission to view the file's permissions. If not, a 403 Forbidden response
+     * is returned. If the user has permission, the method retrieves all UserFilePermission records related
+     * to the file, including the associated user information. The response includes a list of users with
+     * their respective permissions on the file.
+     *
+     * @param string $fileIdParam The ID of the file to retrieve permissions for.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the list of user permissions or an error message.
+     */
     public function getAllPermissionOnFile($fileIdParam)
     {
         $file = File::where('id', $fileIdParam)->first();
@@ -89,6 +108,19 @@ class PermissionFileController extends Controller
         }
     }
 
+    /**
+     * Get specific permission on a file for a specific user.
+     *
+     * This method retrieves the permission of a specific user on a specific file. 
+     * It checks if the authenticated user has permission to view the file's permissions. 
+     * If not, a 403 Forbidden response is returned. 
+     * If the user has permission, the method retrieves the UserFilePermission record 
+     * related to the user and file, including the associated user and file information. 
+     * The response includes the user's permission on the file.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the user ID and file ID.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the user's permission on the file or an error message.
+     */
     public function getPermission(Request $request)
     {
         $validator = Validator::make(
@@ -154,6 +186,16 @@ class PermissionFileController extends Controller
         }
     }
 
+    /**
+     * Grant permission to a user for a specific file.
+     *
+     * This method grants a specific permission ('read' or 'write') to a user for a specific file. 
+     * It validates the request, checks if the user is the owner of the file, and ensures the user doesn't already have permissions. 
+     * If all checks pass, it creates a new permission record.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the user ID, file ID, and permissions.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
     public function grantFilePermission(Request $request)
     {
         $validator = Validator::make(
@@ -232,6 +274,17 @@ class PermissionFileController extends Controller
         }
     }
 
+    /**
+     * Change the permission of a user for a specific file.
+     *
+     * This method allows the owner of a file to change the permission of a user who has access to the file.
+     * It validates the request to ensure the user ID, file ID, and new permissions are valid.
+     * It also checks if the authenticated user is the owner of the file and if the user whose permission is being changed
+     * is not the owner themselves. If all checks pass, the user's permission is updated in the database.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing user_id, file_id, permissions.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
+     */
     public function changefilePermission(Request $request)
     {
         $validator = Validator::make(
@@ -303,6 +356,17 @@ class PermissionFileController extends Controller
         }
     }
 
+    /**
+     * Revoke all permissions for a user on a specific file.
+     *
+     * This method revokes all permissions a user has on a specific file. It first validates the request,
+     * ensuring that the user ID and file ID are valid. It then checks if the authenticated user is the
+     * owner of the file and if the user whose permissions are being revoked is not the owner themselves.
+     * If all checks pass, the user's permission record is deleted from the database.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing user_id and file_id.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
+     */
     public function revokeFilePermission(Request $request)
     {
         $validator = Validator::make(

@@ -28,6 +28,17 @@ class SharingController extends Controller
         $this->GenerateURLService = $GenerateURLService;
     }
 
+    /**
+     * Get a list of users who have access to a shared folder.
+     *
+     * This method retrieves a list of users who have been granted access to a specific folder.
+     * It first checks if the authenticated user has read permission for the folder.
+     * If the user has permission, it retrieves the list of users who have access, including their ID, name, and email.
+     * If the folder is not shared with anyone, it returns a message indicating that.
+     *
+     * @param string $id The ID of the folder.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the list of shared users or an error message.
+     */
     public function getListUserSharedFolder($id)
     {
         $user = Auth::user();
@@ -90,6 +101,16 @@ class SharingController extends Controller
         }
     }
 
+    /**
+     * Get a paginated list of shared folders and files for the authenticated user.
+     *
+     * This method retrieves a list of folders and files that have been shared with the currently authenticated user.
+     * It supports pagination for both folders and files separately, allowing users to navigate through the results.
+     * The method also allows filtering the results by instance name.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming request containing pagination parameters and optional filter for instance name.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of shared folders and files, along with pagination information.
+     */
     public function getSharedFolderAndFile(Request $request)
     {
         $user = Auth::user();
@@ -256,9 +277,14 @@ class SharingController extends Controller
     }
 
     /**
-     * Generate shareable hashed URL for folder.
+     * Generate a shareable link for a folder.
      *
-     * @return string
+     * This method generates a shareable link for a given folder ID. It retrieves the frontend URL from the configuration,
+     * prefixes the folder ID with 'F' to indicate it's a folder link, base64 encodes the prefixed ID, and constructs the
+     * shareable link using the frontend URL and the encoded ID.
+     *
+     * @param int $folderId The ID of the folder to generate a shareable link for.
+     * @return string The generated shareable link for the folder.
      */
     public function generateShareableFolderLink($folderId)
     {
@@ -277,9 +303,14 @@ class SharingController extends Controller
     }
 
     /**
-     * Generate shareable hashed URL for file.
+     * Generate a shareable link for a file.
      *
-     * @return string
+     * This method generates a shareable link for a given file ID. It retrieves the frontend URL from the configuration,
+     * prefixes the file ID with 'L' to indicate it's a file link, base64 encodes the prefixed ID, and constructs the
+     * shareable link using the frontend URL and the encoded ID.
+     *
+     * @param int $fileId The ID of the file to generate a shareable link for.
+     * @return string The generated shareable link for the file.
      */
     public function generateShareableFileLink($fileId)
     {
