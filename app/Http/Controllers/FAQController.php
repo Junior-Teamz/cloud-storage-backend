@@ -81,11 +81,11 @@ class FAQController extends Controller
     /**
      * Display a specific FAQ.
      *
-     * This method retrieves a single FAQ by its ID.
+     * This method retrieves a single FAQ by its UUID.
      * 
      * Requires admin authentication.
      *
-     * @param  int  $id The ID of the FAQ to retrieve.
+     * @param  string  $id The UUID of the FAQ to retrieve.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the FAQ or an error message.
      */
     public function showSpesificFAQ($id)
@@ -191,7 +191,7 @@ class FAQController extends Controller
      * Requires admin authentication.
      * 
      * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated FAQ data.
-     * @param  int  $id The ID of the FAQ to update.
+     * @param  string  $id The UUID of the FAQ to update.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      */
     public function update(Request $request, $id)
@@ -259,7 +259,7 @@ class FAQController extends Controller
      * 
      * Requires admin authentication.
      * 
-     * @param  int  $id The ID of the FAQ to delete.
+     * @param  string  $id The UUID of the FAQ to delete.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      */
     public function destroy($id)

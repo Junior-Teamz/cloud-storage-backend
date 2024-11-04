@@ -204,13 +204,13 @@ class AdminController extends Controller
     }
 
     /**
-     * Get user admin information by ID.
+     * Get user admin information by UUID.
      *
      * This function retrieves detailed information about a specific user, including their roles and instances.
      * 
      * Requires admin authentication.
      *
-     * @param int $id The ID of the user.
+     * @param string $id The UUID of the user.
      * @return \Illuminate\Http\JsonResponse
      */
     public function user_info($id)
@@ -379,7 +379,7 @@ class AdminController extends Controller
      * Requires admin authentication.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $userIdToBeUpdated The ID of the user to be updated.
+     * @param  string  $userIdToBeUpdated The UUID of the user to be updated.
      * @return \Illuminate\Http\JsonResponse
      */
     public function updateUserFromAdmin(Request $request, $userIdToBeUpdated)
@@ -508,7 +508,7 @@ class AdminController extends Controller
      * 
      * Requires admin authentication.
      *
-     * @param int $userIdToBeDeleted The ID of the user to be deleted.
+     * @param string $userIdToBeDeleted The UUID of the user to be deleted.
      * @return \Illuminate\Http\JsonResponse
      */
     public function deleteUserFromAdmin($userIdToBeDeleted)
@@ -654,7 +654,7 @@ class AdminController extends Controller
      *
      * This function builds the full storage path for a given folder ID by recursively traversing its parent folders.
      *
-     * @param int|null $parentId The ID of the folder.
+     * @param string|null $parentId The UUID of the folder.
      * @return string The storage path for the folder.
      */
     private function getFolderPath($parentId)

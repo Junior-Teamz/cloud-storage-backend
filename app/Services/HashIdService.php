@@ -4,6 +4,9 @@ namespace App\Services;
 
 use Sqids\Sqids;
 
+/**
+ * This class is not used anymore and should be deleted soon.
+ */
 class HashIdService
 {
      // Encode ID menggunakan Sqids dengan prefix

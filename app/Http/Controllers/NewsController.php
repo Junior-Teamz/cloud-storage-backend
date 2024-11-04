@@ -144,9 +144,9 @@ class NewsController extends Controller
     }
 
     /**
-     * Get a published news article by ID.
+     * Get a published news article by UUID.
      *
-     * This method retrieves a published news article from the database based on the provided ID.
+     * This method retrieves a published news article from the database based on the provided UUID.
      * It includes the creator's name, instance, and associated tags in the response. If the news
      * article is not found, a 200 OK response is returned with an empty data array and a message
      * indicating that the news was not found.
@@ -155,7 +155,7 @@ class NewsController extends Controller
      * the viewer count for the news article is incremented.
      *
      * @param  \Illuminate\Http\Request  $request The incoming HTTP request.
-     * @param  int  $id The ID of the news article to retrieve.
+     * @param  string  $id The UUID of the news article to retrieve.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the news article or an error message.
      */
     public function getNewsById(Request $request, $id)
@@ -298,11 +298,11 @@ class NewsController extends Controller
     /**
      * Get news details for admin.
      *
-     * This method retrieves a news article by its ID, including details about its creator, instance, and associated tags.
+     * This method retrieves a news article by its UUID, including details about its creator, instance, and associated tags.
      * It returns a JSON response containing the news details or a 200 OK response with an empty data array and a message
      * indicating that the news was not found if the news article does not exist.
      *
-     * @param string $newsId The ID of the news article to retrieve.
+     * @param string $newsId The UUID of the news article to retrieve.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the news details or an error message.
      */
     public function getNewsDetailForAdmin($newsId)
@@ -508,7 +508,7 @@ class NewsController extends Controller
      * Requires admin authentication.
      *
      * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated news article data.
-     * @param string $id The ID of the news article to update.
+     * @param string $id The UUID of the news article to update.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function updateNews(Request $request, $id)
@@ -686,7 +686,7 @@ class NewsController extends Controller
      * **Caution:** Deleting a news article is a destructive action and cannot be undone. Ensure that the
      * news article is no longer needed before proceeding with the deletion.
      *
-     * @param string $id The ID of the news article to delete.
+     * @param string $id The UUID of the news article to delete.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function deleteNews($id)
@@ -752,7 +752,7 @@ class NewsController extends Controller
      * Requires admin authentication.
      *
      * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the new status.
-     * @param string $newsId The ID of the news article to update.
+     * @param string $newsId The UUID of the news article to update.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function changeStatus(Request $request, $newsId)

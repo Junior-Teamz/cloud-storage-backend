@@ -73,14 +73,14 @@ class LegalBasisController extends Controller
     /**
      * Get a specific legal basis document.
      *
-     * This method retrieves a single legal basis document from the database based on the provided ID.
+     * This method retrieves a single legal basis document from the database based on the provided UUID.
      * It checks if the authenticated user is a superadmin and returns a 403 Forbidden response if not.
      * If the legal basis document is found, it is returned as a JSON response. If the document is not found, a 200 OK response is returned
      * with an empty data array and a message indicating that the legal basis was not found.
      * 
      * Requires superadmin authentication.
      *
-     * @param string $id The ID of the legal basis document to retrieve.
+     * @param string $id The UUID of the legal basis document to retrieve.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the legal basis document or an error message.
      */
     public function getSpesificLegalBasis($id)
@@ -230,7 +230,7 @@ class LegalBasisController extends Controller
      * Requires superadmin authentication.
      *
      * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated legal basis document data.
-     * @param string $id The ID of the legal basis document to update.
+     * @param string $id The UUID of the legal basis document to update.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function update(Request $request, $id)
@@ -330,7 +330,7 @@ class LegalBasisController extends Controller
      * **Caution:** Deleting a legal basis document is a destructive action and cannot be undone. Ensure that the 
      * document is no longer needed before proceeding with the deletion.
      *
-     * @param int $id The ID of the legal basis document to delete.
+     * @param string $id The UUID of the legal basis document to delete.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function delete($id)

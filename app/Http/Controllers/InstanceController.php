@@ -494,7 +494,7 @@ class InstanceController extends Controller
      * Requires admin authentication.
      *
      * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated instance data.
-     * @param string $id The ID of the instance to update.
+     * @param string $id The UUID of the instance to update.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function update(Request $request, $id)
@@ -589,7 +589,7 @@ class InstanceController extends Controller
      * Ensure that the instance is no longer needed and that all related data has been properly handled 
      * before proceeding with the deletion.
      *
-     * @param int $instanceId The ID of the instance to delete.
+     * @param string $instanceId The UUID of the instance to delete.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function destroy($instanceId)

@@ -9,7 +9,15 @@ use Illuminate\Support\Facades\Auth;
 class CheckFolderPermissionService
 {
     /**
-     * Check the user permission
+     * Check if the authenticated user has permission to perform actions on a folder.
+     *
+     * This method checks if the authenticated user has the necessary permissions to perform
+     * the specified actions on a folder. It considers folder ownership, admin privileges,
+     * explicit folder permissions, and permissions inherited from parent folders.
+     *
+     * @param string $folderId The UUID of the folder.
+     * @param string|array $actions The action(s) to check permission for (e.g., 'read', 'write', ['read', 'write']).
+     * @return bool|JsonResponse True if the user has permission, false otherwise. Returns a JsonResponse with a 404 status code if the folder is not found.
      */
     public function checkPermissionFolder($folderId, $actions)
     {
@@ -50,7 +58,15 @@ class CheckFolderPermissionService
     }
 
     /**
-     * Helper function to check user folder permission
+     * Get the user's permission for a specific folder.
+     *
+     * This private method retrieves the user's permission record for the given folder.
+     * It then checks if the user has any of the specified actions allowed in their permissions.
+     *
+     * @param string $userId The UUID of the user.
+     * @param string $folderId The UUID of the folder.
+     * @param string|array $actions The action(s) to check permission for (e.g., 'read', 'write', ['read', 'write']).
+     * @return bool True if the user has permission for any of the specified actions, false otherwise.
      */
     private function getUserFolderPermission($userId, $folderId, $actions)
     {
@@ -76,7 +92,15 @@ class CheckFolderPermissionService
     }
 
     /**
-     * Helper function to recursively check parent folder permissions
+     * Recursively checks if the user has permission for any parent folder.
+     *
+     * This private method traverses up the folder hierarchy from a given folder,
+     * checking if the user has the specified permissions for any of the parent folders.
+     *
+     * @param Folder $folder The folder object to start checking from.
+     * @param string $userId The UUID of the user.
+     * @param string|array $actions The action(s) to check permission for.
+     * @return bool True if the user has permission for any parent folder, false otherwise.
      */
     private function hasParentFolderPermission($folder, $userId, $actions)
     {

@@ -166,7 +166,7 @@ class FileFavoriteController extends Controller
      * checks if the user has permission to favorite the file, and then checks if the file is already
      * in the favorites list.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming request containing the file ID.
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the file UUID.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      */
     public function addNewFavorite(Request $request)
@@ -316,7 +316,7 @@ class FileFavoriteController extends Controller
      * and if the user has the file in their favorites.  If successful, it returns the updated file
      * information.
      * 
-     * @param string $fileId The ID of the file to remove from favorites.
+     * @param string $fileId The UUID of the file to remove from favorites.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      */
     public function deleteFavoriteFile($fileId)

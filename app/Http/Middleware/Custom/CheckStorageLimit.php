@@ -8,6 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * This middleware checks if the authenticated user has exceeded their storage limit.
+ * 
+ * It calculates the total size of the user's root folder and compares it to the defined storage limit.
+ * If the limit is exceeded, a 403 Forbidden response is returned.
+ */
 class CheckStorageLimit
 {
     protected $storageLimit;
@@ -18,6 +24,15 @@ class CheckStorageLimit
         $this->storageLimit = config('storage-limit.storage_limit') * 1024 * 1024 * 1024;
     }
 
+    /**
+     * Calculate the total size of a folder, including all files and subfolders.
+     *
+     * This function recursively iterates through all files and subfolders within
+     * the given folder and calculates the total size in bytes.
+     *
+     * @param Folder $folder The folder object to calculate the size of.
+     * @return int The total size of the folder in bytes.
+     */
     private function calculateFolderSize(Folder $folder)
     {
         $totalSize = 0;

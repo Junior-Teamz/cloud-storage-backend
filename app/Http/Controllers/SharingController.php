@@ -33,10 +33,10 @@ class SharingController extends Controller
      *
      * This method retrieves a list of users who have been granted access to a specific folder.
      * It first checks if the authenticated user has read permission for the folder.
-     * If the user has permission, it retrieves the list of users who have access, including their ID, name, and email.
+     * If the user has permission, it retrieves the list of users who have access, including their UUID, name, and email.
      * If the folder is not shared with anyone, it returns a message indicating that.
      *
-     * @param string $id The ID of the folder.
+     * @param string $id The UUID of the folder.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the list of shared users or an error message.
      */
     public function getListUserSharedFolder($id)
@@ -279,11 +279,11 @@ class SharingController extends Controller
     /**
      * Generate a shareable link for a folder.
      *
-     * This method generates a shareable link for a given folder ID. It retrieves the frontend URL from the configuration,
-     * prefixes the folder ID with 'F' to indicate it's a folder link, base64 encodes the prefixed ID, and constructs the
-     * shareable link using the frontend URL and the encoded ID.
+     * This method generates a shareable link for a given folder UUID. It retrieves the frontend URL from the configuration,
+     * prefixes the folder UUID with 'F' to indicate it's a folder link, base64 encodes the prefixed UUID, and constructs the
+     * shareable link using the frontend URL and the encoded UUID.
      *
-     * @param int $folderId The ID of the folder to generate a shareable link for.
+     * @param string $folderId The UUID of the folder to generate a shareable link for.
      * @return string The generated shareable link for the folder.
      */
     public function generateShareableFolderLink($folderId)
@@ -305,11 +305,11 @@ class SharingController extends Controller
     /**
      * Generate a shareable link for a file.
      *
-     * This method generates a shareable link for a given file ID. It retrieves the frontend URL from the configuration,
-     * prefixes the file ID with 'L' to indicate it's a file link, base64 encodes the prefixed ID, and constructs the
-     * shareable link using the frontend URL and the encoded ID.
+     * This method generates a shareable link for a given file UUID. It retrieves the frontend URL from the configuration,
+     * prefixes the file UUID with 'L' to indicate it's a file link, base64 encodes the prefixed UUID, and constructs the
+     * shareable link using the frontend URL and the encoded UUID.
      *
-     * @param int $fileId The ID of the file to generate a shareable link for.
+     * @param string $fileId The UUID of the file to generate a shareable link for.
      * @return string The generated shareable link for the file.
      */
     public function generateShareableFileLink($fileId)

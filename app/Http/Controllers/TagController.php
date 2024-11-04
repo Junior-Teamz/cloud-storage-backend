@@ -97,11 +97,11 @@ class TagController extends Controller
     /**
      * Get information about a specific tag.
      *
-     * This method retrieves information about a tag based on its ID.
+     * This method retrieves information about a tag based on its UUID.
      * It checks if the tag exists and if it's not the "Root" tag.
      * If the user is an admin, it also calculates and includes usage statistics for the tag.
      *
-     * @param int $id The ID of the tag to retrieve information for.
+     * @param string $id The UUID of the tag to retrieve information for.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the tag information or an error message.
      */
     public function getTagsInformation($id)
@@ -473,13 +473,13 @@ class TagController extends Controller
      * This method handles the update of an existing tag. It first checks if the authenticated user
      * has admin privileges. If not, a 403 Forbidden response is returned. It then validates
      * the incoming request data to ensure the 'name' field is required, a string, unique (case-insensitive),
-     * contains only letters and spaces. The validation also excludes the current tag's ID to allow
+     * contains only letters and spaces. The validation also excludes the current tag's UUID to allow
      * renaming a tag to its existing name.
      * 
      * Requires admin authentication.
      *
      * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the updated tag data.
-     * @param string $id The ID of the tag to update.
+     * @param string $id The UUID of the tag to update.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
      */
     public function update(Request $request, $id)

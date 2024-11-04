@@ -131,6 +131,14 @@ class FolderController extends Controller
         }
     }
 
+    /**
+     * Count the total number of folders for the authenticated user.
+     *
+     * This method retrieves and counts all folders belonging to the authenticated user,
+     * excluding the root folder. It returns the total folder count in the response.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the total folder count or an error message.
+     */
     public function countTotalFolderUser()
     {
         $user = Auth::user();
@@ -313,7 +321,7 @@ class FolderController extends Controller
      * This method retrieves all the information about a folder, including its subfolders, files, tags, and instances.
      * It also checks if the user has permission to access the folder and logs any errors that occur during the process.
      * 
-     * @param int $id The ID of the folder to retrieve.
+     * @param string $id The UUID of the folder to retrieve.
      * 
      * @return \Illuminate\Http\JsonResponse Returns a JSON response with the folder information or an error message.
      * 
@@ -657,13 +665,13 @@ class FolderController extends Controller
     /**
      * Add a tag to a folder.
      * 
-     * This function add a tag to a folder. It accepts a JSON request containing the folder ID and tag ID, 
+     * This function add a tag to a folder. It accepts a JSON request containing the folder UUID and tag UUID, 
      * and checks if the user has permission to add the tag to the folder. If the user does not have permission, 
      * it will return an error response. If the user has permission, it will add the tag to the folder.
      * 
      * @param \Illuminate\Http\Request $request The incoming request containing 'folder_id' and 'tag_id'.
      * 
-     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the tag ID or an error message.
+     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the tag UUID or an error message.
      * 
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder or tag is not found.
      * @throws \Exception For general exceptions that may occur during the process.
@@ -774,7 +782,7 @@ class FolderController extends Controller
     /**
      * Remove a tag from a folder.
      * 
-     * This method removes a tag from a folder. It accepts a JSON request containing the folder ID and tag ID, 
+     * This method removes a tag from a folder. It accepts a JSON request containing the folder UUID and tag UUID, 
      * and checks if the user has permission to remove the tag from the folder. If the user does not have permission, 
      * it will return an error response. If the user has permission, it will remove the tag from the folder.
      * 
@@ -1262,12 +1270,12 @@ class FolderController extends Controller
     /**
      * Get folder path in storage for a given folder id.
      * 
-     * This method takes a folder ID and returns the path of the folder in storage.
-     * If the folder ID is null, it returns an empty string, which is the root directory.
+     * This method takes a folder UUID and returns the path of the folder in storage.
+     * If the folder UUID is null, it returns an empty string, which is the root directory.
      * Otherwise, it uses a recursive approach to build the path from the folder to the root.
      * It uses the folder's NanoID in the storage path.
      * 
-     * @param uuid|null $parentId The ID of the folder to get the path for.
+     * @param string|null $parentId The UUID of the folder to get the path for.
      * 
      * @return string The path of the folder in storage.
      */
@@ -1290,7 +1298,7 @@ class FolderController extends Controller
     /**
      * Get full path of a folder for included in response.
      *
-     * @param int $id The ID of the folder to get the full path for.
+     * @param string $id The UUID of the folder to get the full path for.
      * 
      * @return \Illuminate\Http\JsonResponse Returns a JSON response with the full path of the folder or an error message.
      * 
@@ -1324,12 +1332,12 @@ class FolderController extends Controller
     /**
      * Get full path of a folder.
      * 
-     * This method takes a folder ID and returns JSON response of full path of the folder.
+     * This method takes a folder UUID and returns JSON response of full path of the folder.
      * The full path includes the folder's name and all its parents' names, separated by slashes.
-     * If the folder ID is not found, it returns a JSON response with an error message.
+     * If the folder UUID is not found, it returns a JSON response with an error message.
      * If an error occurs during the process, it logs the error and returns a JSON response with an error message.
      * 
-     * @param int $id The ID of the folder to get the full path for.
+     * @param string $id The UUID of the folder to get the full path for.
      * 
      * @return \Illuminate\Http\JsonResponse Returns a JSON response with the full path of the folder or an error message.
      * 
@@ -1391,10 +1399,10 @@ class FolderController extends Controller
     /**
      * Get the depth of a folder in the folder hierarchy.
      *
-     * This method recursively traverses the folder hierarchy starting from the given parent ID
+     * This method recursively traverses the folder hierarchy starting from the given parent UUID
      * and calculates the depth of the folder. The root folder has a depth of 0.
      *
-     * @param string $parentId The ID of the parent folder.
+     * @param string $parentId The UUID of the parent folder.
      *
      * @return int The depth of the folder.
      */

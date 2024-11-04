@@ -20,7 +20,7 @@ class PermissionFolderController extends Controller
     /**
      * Check if the authenticated user has permission to access the specified folder.
      *
-     * @param int $folderId The ID of the folder to check.
+     * @param string $folderId The UUID of the folder to check.
      * @return bool|Illuminate\Http\JsonResponse True if the user has permission, false otherwise.
      *  Returns a 404 JSON response if the folder is not found.
      */
@@ -50,7 +50,7 @@ class PermissionFolderController extends Controller
      * Retrieves all users with their respective permissions on a given folder.
      * Requires authentication and authorization: only the folder owner can access this information.
      *
-     * @param string $folderIdParam The ID of the folder.
+     * @param string $folderIdParam The UUID of the folder.
      * @return Illuminate\Http\JsonResponse A JSON response containing the list of users with permissions or an error message.
      */
     public function getAllPermissionOnFolder($folderIdParam)
@@ -111,7 +111,7 @@ class PermissionFolderController extends Controller
      * Retrieves the permission of a specific user on a given folder.
      * Requires authentication and authorization: only the folder owner can access this information.
      *
-     * @param Request $request The request containing the user ID and folder ID.
+     * @param Request $request The request containing the user UUID and folder UUID.
      * @return Illuminate\Http\JsonResponse A JSON response containing the user's permission or an error message.
      * @throws Exception If an error occurs during the process.
      */
@@ -192,7 +192,7 @@ class PermissionFolderController extends Controller
      * This also applies the permission recursively to subfolders and files within that folder.
      * Requires authentication and authorization: only the folder owner can grant permissions.
      *
-     * @param Request $request The request containing the user ID, folder ID, and permission type.
+     * @param Request $request The request containing the user UUID, folder UUID, and permission type.
      * @return Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      * @throws Exception If an error occurs during the process.
      */
@@ -285,7 +285,7 @@ class PermissionFolderController extends Controller
      * It checks for existing permissions before creating new ones to avoid duplicates.
      * 
      * @param Folder $folder The parent folder.
-     * @param string $userId The ID of the user.
+     * @param string $userId The UUID of the user.
      * @param string $permissions The permission to apply ('read' or 'write').
      */
     private function applyPermissionToSubfoldersAndFiles($folder, $userId, $permissions)
@@ -326,7 +326,7 @@ class PermissionFolderController extends Controller
      * This also applies the permission recursively to subfolders and files within that folder.
      * Requires authentication and authorization: only the folder owner can change permissions.
      *
-     * @param Request $request The request containing the user ID, folder ID, and permission type.
+     * @param Request $request The request containing the user UUID, folder UUID, and permission type.
      * @return Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      * @throws Exception If an error occurs during the process.
      */
@@ -408,7 +408,7 @@ class PermissionFolderController extends Controller
      * Revokes all permissions of a user on a given folder and its subfolders and files.
      * Requires authentication and authorization: only the folder owner can revoke permissions.
      *
-     * @param Request $request The request containing the user ID and folder ID.
+     * @param Request $request The request containing the user UUID and folder UUID.
      * @return Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      * @throws Exception If an error occurs during the process.
      */
@@ -487,7 +487,7 @@ class PermissionFolderController extends Controller
      * Recursively remove permissions from subfolders and files.
      *
      * @param Folder $folder The parent folder.
-     * @param int $userId The ID of the user whose permissions to remove.
+     * @param string $userId The UUID of the user whose permissions to remove.
      */
     private function removePermissionFromSubfoldersAndFiles($folder, $userId)
     {

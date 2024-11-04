@@ -8,6 +8,13 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * This middleware validates if the authenticated user has the 'admin' role.
+ * 
+ * It checks if the user has the 'admin' role, regardless of their 'is_superadmin' status.
+ * If the user is an admin, the request is allowed to proceed.
+ * Otherwise, a 403 Forbidden response is returned.
+ */
 class ValidateAdmin
 {
     /**

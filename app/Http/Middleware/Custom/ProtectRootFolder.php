@@ -7,6 +7,13 @@ use App\Models\Folder;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * This middleware protects the root folder from being modified.
+ * 
+ * It checks if the incoming request is attempting to modify (POST, PUT, DELETE)
+ * a folder and if that folder is the root folder (identified by parent_id being null).
+ * If it is, the request is blocked with a 403 Forbidden response.
+ */
 class ProtectRootFolder
 {
     /**

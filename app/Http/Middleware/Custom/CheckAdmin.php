@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * This middleware checks if the authenticated user has the 'admin' role.
+ *
+ * If the user is an admin (regardless of 'is_superadmin' status), it returns a 403 Forbidden response,
+ * indicating that they should be using routes with the "admin" prefix.
+ * Otherwise, the request is allowed to proceed.
+ */
 class CheckAdmin
 {
     /**

@@ -6,6 +6,13 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * This middleware hides the 'is_superadmin' flag from JSON responses.
+ * 
+ * It processes the response after the request is handled by the next middleware or controller.
+ * If the response is a JSON response, it recursively removes the 'is_superadmin' key
+ * from the response data to prevent it from being exposed to the client.
+ */
 class HideSuperadminFlag
 {
     /**

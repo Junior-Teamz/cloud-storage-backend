@@ -5,6 +5,13 @@ namespace App\Http\Middleware\Custom;
 use Closure;
 use Illuminate\Http\Request;
 
+/**
+ * This middleware removes the 'nanoid' attribute from JSON responses.
+ * 
+ * It intercepts the response after the request is handled and checks if it's a JSON response.
+ * If it is, it recursively removes any 'nanoid' keys from the response data
+ * before sending it back to the client.
+ */
 class RemoveNanoidFromResponse
 {
     /**

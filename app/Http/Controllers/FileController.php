@@ -36,13 +36,13 @@ class FileController extends Controller
     }
 
     /**
-     * Get file information by ID.
+     * Get file information by UUID (UUID).
      *
      * This method retrieves detailed information about a file, including its metadata,
      * associated tags, instances, and sharing permissions. It also checks for file existence
      * and user permissions before returning the data.
      * 
-     * @param int $id The ID of the file.
+     * @param string $id The UUID of the file.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the file information or an error message.
      */
     public function info($id)
@@ -212,7 +212,7 @@ class FileController extends Controller
      * This method handles the upload of multiple files. It performs validation,
      * malware scanning, and database operations to store file information.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming request containing the files, folder ID, and tag IDs.
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the files, folder UUID, and tag IDs.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
      * @throws \Exception If any error occurs during file upload or database operations.
      */
@@ -483,7 +483,7 @@ class FileController extends Controller
      * This method adds a tag to a specified file. It validates the request, checks permissions,
      * handles potential errors, and returns a JSON response indicating success or failure.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming request containing the file ID and tag ID.
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the file UUID and tag UUID.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
      */
     public function addTagToFile(Request $request)
@@ -601,7 +601,7 @@ class FileController extends Controller
      * handles potential errors, and returns a JSON response indicating success or failure.  The method
      * also includes detailed logging for error handling and security.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming request containing the file ID and tag ID.
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the file UUID and tag UUID.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
      * @throws \Exception If any error occurs during the tag removal process.
      */
@@ -704,7 +704,7 @@ class FileController extends Controller
      * handles potential errors.
      *
      * @param  \Illuminate\Http\Request  $request The incoming request containing the new file name.
-     * @param  int  $id The ID of the file to be updated.
+     * @param  string  $id The UUID of the file to be updated.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
      * @throws \Exception If any error occurs during the file name update process.
      *
@@ -831,8 +831,8 @@ class FileController extends Controller
      * for both the source file and the destination folder, updates the file's path in both
      * the storage and the database, and returns a JSON response indicating success or failure.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming request containing the new folder ID.
-     * @param  int  $id The ID of the file to be moved.
+     * @param  \Illuminate\Http\Request  $request The incoming request containing the new folder UUID.
+     * @param string $id The UUID of the file to be moved.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, including error messages if any.
      * @throws \Exception If any error occurs during the file move process.
      */
@@ -967,7 +967,7 @@ class FileController extends Controller
      * **Caution:** Deleting files is a destructive action and cannot be undone. Ensure that the files are no 
      * longer needed before proceeding with the deletion.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing an array of file IDs to delete.
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing an array of file UUIDs to delete.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes.
      */
     public function delete(Request $request)
@@ -1057,17 +1057,17 @@ class FileController extends Controller
     }
 
     /**
-     * Serve a file by its ID.
+     * Serve a file by its UUID (UUID).
      *
-     * This method retrieves and serves a file from storage based on its ID.
+     * This method retrieves and serves a file from storage based on its UUID.
      * It handles cases where the file is not found, returning an appropriate response.
      *
-     * @param  int  $fileId The ID of the file to be served.
+     * @param string $fileId The UUID of the file to be served.
      * @return \Illuminate\Http\Response A file download response or a JSON error response.
      */
     public function serveFileById($fileId)
     {
-        // Cari file berdasarkan ID
+        // Cari file berdasarkan UUID
         $file = File::find($fileId);
 
         if (!$file) {
@@ -1082,18 +1082,18 @@ class FileController extends Controller
     }
 
     /**
-     * Serve a video file by its ID.
+     * Serve a video file by its UUID (UUID).
      *
-     * This method retrieves and serves a video file from storage based on its ID.
+     * This method retrieves and serves a video file from storage based on its UUID.
      * It checks if the file is a video and streams it to the client.  It handles cases
      * where the file is not found or is not a video, returning appropriate responses.
      * 
-     * @param  int  $fileId The ID of the video file to be served.
+     * @param string $fileId The UUID of the video file to be served.
      * @return \Illuminate\Http\Response A streamed video response or a JSON error response.
      */
     public function serveFileVideoById($fileId)
     {
-        // Cari file berdasarkan ID
+        // Cari file berdasarkan UUID
         $file = File::find($fileId);
 
         if (!$file) {
@@ -1121,10 +1121,10 @@ class FileController extends Controller
     /**
      * Generate the public path for a file.
      *
-     * This method constructs the public path for a file based on its folder ID and file name.
+     * This method constructs the public path for a file based on its folder UUID and file name.
      * It traverses the folder hierarchy to build the complete path.
      *
-     * @param  int  $folderId The ID of the folder containing the file.
+     * @param string $folderId The UUID of the folder containing the file.
      * @param  string  $fileName The name of the file.
      * @return string The generated public path for the file.
      */
@@ -1158,10 +1158,10 @@ class FileController extends Controller
     /**
      * Generate the file path for storage.
      *
-     * This method constructs the file path for storage based on its folder ID and file NanoID.
+     * This method constructs the file path for storage based on its folder UUID and file NanoID.
      * It uses NanoIDs for folders and files to create a unique path.
      *
-     * @param  int  $folderId The ID of the folder containing the file.
+     * @param string $folderId The UUID of the folder containing the file.
      * @param  string  $fileNanoid The NanoID of the file.
      * @return string The generated file path for storage.
      */

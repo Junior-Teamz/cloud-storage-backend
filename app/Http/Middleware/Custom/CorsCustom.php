@@ -7,6 +7,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * This middleware handles Cross-Origin Resource Sharing (CORS) for the application.
+ * 
+ * It allows requests from specified origins (defined in the 'frontend.url' config)
+ * and sets the appropriate CORS headers in the response.
+ * For preflight requests (OPTIONS), it immediately returns a 200 OK response
+ * with the necessary headers.
+ * For other requests, it adds the CORS headers to the response if the origin is allowed.
+ * If the origin is not allowed, the request is continued without adding CORS headers.
+ */
 class CorsCustom
 {
     /**

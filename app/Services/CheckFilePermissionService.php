@@ -11,7 +11,15 @@ use Illuminate\Support\Facades\Auth;
 class CheckFilePermissionService
 {
     /**
-     * Check the user permission for file
+     * Check if the authenticated user has permission to perform actions on a file.
+     *
+     * This method checks if the authenticated user has the necessary permissions to perform
+     * the specified actions on a file. It considers file ownership, admin privileges,
+     * explicit file permissions, and permissions on the folder where the file is located.
+     *
+     * @param string $fileId The UUID of the file.
+     * @param string|array $actions The action(s) to check permission for (e.g., 'read', 'write', ['read', 'write']).
+     * @return bool|JsonResponse True if the user has permission, false otherwise. Returns a JsonResponse with a 404 status code if the file is not found.
      */
     public function checkPermissionFile($fileId, $actions)
     {
@@ -58,7 +66,15 @@ class CheckFilePermissionService
     }
 
     /**
-     * Recursive function to check permission on parent folders
+     * Recursively checks folder permissions up the folder tree.
+     *
+     * This private method is used to recursively check if a user has permission to perform
+     * certain actions on a folder, by traversing up the folder tree from a starting folder ID.
+     * It considers folder ownership, admin privileges, and explicit folder permissions.
+     *
+     * @param string $folderId The UUID of the folder to start checking permissions from.
+     * @param string|array $actions The action(s) to check permission for (e.g., 'read', 'write', ['read', 'write']).
+     * @return bool True if the user has permission, false otherwise.
      */
     private function checkPermissionFolderRecursive($folderId, $actions)
     {

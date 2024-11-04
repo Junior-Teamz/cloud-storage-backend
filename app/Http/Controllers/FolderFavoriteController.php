@@ -173,7 +173,7 @@ class FolderFavoriteController extends Controller
      * Retrieve all favorite items (folders and files) for the authenticated user.
      *
      * This method retrieves a paginated list of both favorite folders and files for the currently authenticated user.
-     * It allows filtering by search query and instance ID. The response includes separate paginated lists for folders
+     * It allows filtering by search query and instance UUID. The response includes separate paginated lists for folders
      * and files, along with additional data such as whether the item is favorited, favorited timestamp, and shared user details.
      *
      * @param  \Illuminate\Http\Request  $request The incoming request containing search parameters and pagination options.
@@ -453,7 +453,7 @@ class FolderFavoriteController extends Controller
      * It checks if the folder exists and if it's in the user's favorites before attempting removal.
      * If successful, it returns a success message and the updated folder details.
      *
-     * @param string $folderId The ID of the folder to remove from favorites.
+     * @param string $folderId The UUID of the folder to remove from favorites.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      */
     public function deleteFavoriteFolder($folderId)

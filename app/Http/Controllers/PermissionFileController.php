@@ -21,7 +21,7 @@ class PermissionFileController extends Controller
      * If the file is not found, it returns a 404 Not Found JSON response. If the user is the owner, it returns `true`,
      * indicating that the user has permission. Otherwise, it returns `false`.
      *
-     * @param string $fileId The ID of the file to check permissions for.
+     * @param string $fileId The UUID of the file to check permissions for.
      * @return bool|\Illuminate\Http\JsonResponse Returns `true` if the user has permission, `false` otherwise, or a JSON response if the file is not found.
      */
     private function checkPermission($fileId)
@@ -53,7 +53,7 @@ class PermissionFileController extends Controller
      * to the file, including the associated user information. The response includes a list of users with
      * their respective permissions on the file.
      *
-     * @param string $fileIdParam The ID of the file to retrieve permissions for.
+     * @param string $fileIdParam The UUID of the file to retrieve permissions for.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the list of user permissions or an error message.
      */
     public function getAllPermissionOnFile($fileIdParam)
@@ -118,7 +118,7 @@ class PermissionFileController extends Controller
      * related to the user and file, including the associated user and file information. 
      * The response includes the user's permission on the file.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the user ID and file ID.
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the user UUID and file UUID.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the user's permission on the file or an error message.
      */
     public function getPermission(Request $request)
@@ -193,7 +193,7 @@ class PermissionFileController extends Controller
      * It validates the request, checks if the user is the owner of the file, and ensures the user doesn't already have permissions. 
      * If all checks pass, it creates a new permission record.
      *
-     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the user ID, file ID, and permissions.
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the user UUID, file UUID, and permissions.
      * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
      */
     public function grantFilePermission(Request $request)
@@ -278,7 +278,7 @@ class PermissionFileController extends Controller
      * Change the permission of a user for a specific file.
      *
      * This method allows the owner of a file to change the permission of a user who has access to the file.
-     * It validates the request to ensure the user ID, file ID, and new permissions are valid.
+     * It validates the request to ensure the user UUID, file UUID, and new permissions are valid.
      * It also checks if the authenticated user is the owner of the file and if the user whose permission is being changed
      * is not the owner themselves. If all checks pass, the user's permission is updated in the database.
      *
@@ -360,7 +360,7 @@ class PermissionFileController extends Controller
      * Revoke all permissions for a user on a specific file.
      *
      * This method revokes all permissions a user has on a specific file. It first validates the request,
-     * ensuring that the user ID and file ID are valid. It then checks if the authenticated user is the
+     * ensuring that the user UUID and file UUID are valid. It then checks if the authenticated user is the
      * owner of the file and if the user whose permissions are being revoked is not the owner themselves.
      * If all checks pass, the user's permission record is deleted from the database.
      *

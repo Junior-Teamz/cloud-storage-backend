@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * This is Model for Legal Basis (IDN: Dasar Hukum).
+ */
 class LegalBasis extends Model
 {
     use HasFactory, HasUuids;

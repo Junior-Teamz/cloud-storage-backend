@@ -364,7 +364,7 @@ class UserController extends Controller
      *
      * This function builds the full storage path for a given folder ID by recursively traversing its parent folders.
      *
-     * @param uuid|null $parentId The ID of the folder.
+     * @param string|null $parentId The UUID of the folder.
      * @return string The storage path for the folder.
      */
     private function getFolderPath($parentId)
