@@ -14,8 +14,8 @@ class CheckFilePermissionService
      * Check if the authenticated user has permission to perform actions on a file.
      *
      * This method checks if the authenticated user has the necessary permissions to perform
-     * the specified actions on a file. It considers file ownership, admin privileges,
-     * explicit file permissions, and permissions on the folder where the file is located.
+     * the specified actions on a file. It considers file ownership, explicit file permissions,
+     * and permissions on the folder where the file is located.
      *
      * @param string $fileId The UUID of the file.
      * @param string|array $actions The action(s) to check permission for (e.g., 'read', 'write', ['read', 'write']).
@@ -38,14 +38,7 @@ class CheckFilePermissionService
             return true; // The owner has all permissions
         }
 
-        // Step 2: Check if user is admin with SUPERADMIN privilege
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
-            return true;
-        } else if ($user->hasRole('admin')) {
-            return false; // Regular admin without SUPERADMIN privilege
-        }
-
-        // Step 3: Check if user has explicit permission to the file
+        // Step 2: Check if user has explicit permission to the file
         $userFilePermission = UserFilePermission::where('user_id', $user->id)->where('file_id', $file->id)->first();
         if ($userFilePermission) {
             $checkPermission = $userFilePermission->permissions;
@@ -61,7 +54,7 @@ class CheckFilePermissionService
             }
         }
 
-        // Step 4: Check permission for folder where file is located, including parent folders
+        // Step 3: Check permission for folder where file is located, including parent folders
         return $this->checkPermissionFolderRecursive($file->folder_id, $actions);
     }
 
@@ -91,14 +84,7 @@ class CheckFilePermissionService
             return true; // The owner has all permissions
         }
 
-        // Step 2: Check if user is admin with SUPERADMIN privilege
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
-            return true;
-        } else if ($user->hasRole('admin')) {
-            return false;
-        }
-
-        // Step 3: Check if user has explicit permission to the folder
+        // Step 2: Check if user has explicit permission to the folder
         $userFolderPermission = UserFolderPermission::where('user_id', $user->id)->where('folder_id', $folder->id)->first();
         if ($userFolderPermission) {
             $checkPermission = $userFolderPermission->permissions;
@@ -114,7 +100,7 @@ class CheckFilePermissionService
             }
         }
 
-        // Step 4: Check if the folder has a parent folder
+        // Step 3: Check if the folder has a parent folder
         if ($folder->parent_id) {
             return $this->checkPermissionFolderRecursive($folder->parent_id, $actions); // Recursive call to check parent folder
         }

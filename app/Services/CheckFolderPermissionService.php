@@ -12,8 +12,8 @@ class CheckFolderPermissionService
      * Check if the authenticated user has permission to perform actions on a folder.
      *
      * This method checks if the authenticated user has the necessary permissions to perform
-     * the specified actions on a folder. It considers folder ownership, admin privileges,
-     * explicit folder permissions, and permissions inherited from parent folders.
+     * the specified actions on a folder. It considers folder ownership, explicit folder permissions,
+     * and permissions inherited from parent folders.
      *
      * @param string $folderId The UUID of the folder.
      * @param string|array $actions The action(s) to check permission for (e.g., 'read', 'write', ['read', 'write']).
@@ -36,20 +36,13 @@ class CheckFolderPermissionService
             return true; // The owner has all permissions
         }
 
-        // Step 2: Check if user is admin with SUPERADMIN privilege
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
-            return true;
-        } else if ($user->hasRole('admin')) {
-            return false; // Regular admin without SUPERADMIN privilege
-        }
-
-        // Step 3: Check if user has explicit permission to the folder
+        // Step 2: Check if user has explicit permission to the folder
         $userFolderPermission = $this->getUserFolderPermission($user->id, $folder->id, $actions);
         if ($userFolderPermission) {
             return true;
         }
 
-        // Step 4: Check if user has permission for any parent folder
+        // Step 3: Check if user has permission for any parent folder
         if ($this->hasParentFolderPermission($folder, $user->id, $actions)) {
             return true;
         }
