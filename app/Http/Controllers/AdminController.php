@@ -229,7 +229,7 @@ class AdminController extends Controller
 
             $user = User::where('id', $id)->with('instances:id,name,address')->first();
 
-            if (!$user){
+            if (!$user) {
                 return response()->json([
                     'message' => "User not found.",
                     'data' => []
@@ -543,14 +543,14 @@ class AdminController extends Controller
                 ], 403);
             }
 
+            DB::beginTransaction();
+
             // Hapus folder dan file terkait dari local storage
             $folders = Folder::where('user_id', $userData->id)->get();
 
-            DB::beginTransaction();
-
-            if ($folders) {
+            if ($folders->count() > 0) {
                 foreach ($folders as $folder) {
-                    $this->deleteFolderAndFiles($folder);
+                    $this->deleteFolderAndFiles($folder->id); // Pass folder ID instead of the object
                 }
             }
 
@@ -582,9 +582,18 @@ class AdminController extends Controller
      * @param Folder $folder The folder to delete.
      * @throws \Exception If any error occurs during the deletion process.
      */
-    private function deleteFolderAndFiles(Folder $folder)
+    private function deleteFolderAndFiles($folderId)
     {
         try {
+            // Find the folder by ID
+            $folder = Folder::find($folderId);
+
+            // If the folder doesn't exist, log a warning and return
+            if (!$folder) {
+                Log::warning("Folder with ID {$folderId} not found during deletion.");
+                return;
+            }
+
             // Hapus semua file dalam folder
             $files = $folder->files;
 
@@ -608,7 +617,7 @@ class AdminController extends Controller
             // Hapus subfolder dan file dalam subfolder
             $subfolders = $folder->subfolders;
             foreach ($subfolders as $subfolder) {
-                $this->deleteFolderAndFiles($subfolder);
+                $this->deleteFolderAndFiles($subfolder->id); // Recursively delete subfolders
             }
 
             // Hapus folder dari storage
@@ -641,7 +650,7 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             // Rollback transaksi jika terjadi kesalahan
             DB::rollBack();
-            Log::error('Error occurred while processing folder with ID ' . $folder->id . ': ' . $e->getMessage(), [
+            Log::error('Error occurred while processing folder with ID ' . $folderId . ': ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
             // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
