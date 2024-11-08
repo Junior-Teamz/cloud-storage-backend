@@ -214,6 +214,7 @@ class SharingController extends Controller
                     'public_path' => $file->public_path,
                     'size' => $file->size,
                     'type' => $file->type,
+                    'file_url' => $file->file_url,
                     'user' => $file->user,
                     'created_at' => $file->created_at,
                     'updated_at' => $file->updated_at,

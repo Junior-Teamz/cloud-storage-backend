@@ -71,6 +71,8 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_na
 
     Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
 
+    Route::get('/userInfo/{id}', [UserController::class, 'userInfo']); // Mendapatkan informasi user tertentu
+
     Route::prefix('folder')->group(function () {
         Route::get('/', [FolderController::class, 'index']); // dapatkan list folder dan file yang ada pada user yang login saat ini pada folder rootnya.
 

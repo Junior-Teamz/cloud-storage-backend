@@ -117,6 +117,33 @@ class UserController extends Controller
     // }
 
     /**
+     * Get a user information
+     */
+    public function userInfo()
+    {
+        $user = Auth::user();
+
+        try {
+
+            $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
+            
+            // Sembunyikan relasi roles dari hasil response
+            $userInfo->makeHidden('roles');
+
+            return response()->json([
+                'data' => $userInfo
+            ]);
+        } catch (Exception $e) {
+            Log::error('Error occurred on getting user information: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+            return response()->json([
+                'errors' => 'An error occured on getting user information.',
+            ], 500);
+        }
+    }
+
+    /**
      * Get the authenticated user's information.
      *
      * This method retrieves the details of the currently authenticated user, including their associated instances.
