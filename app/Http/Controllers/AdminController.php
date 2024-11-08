@@ -26,7 +26,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
+     * Display a listing of users.
      *
      * This function retrieves a list of users based on various search criteria.
      * It allows searching by name, email, or instance name. 
