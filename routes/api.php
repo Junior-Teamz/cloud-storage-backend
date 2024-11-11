@@ -77,8 +77,18 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'check_adm
     Route::get('/getSharedFolderAndFile', [SharingController::class, 'getSharedFolderAndFile']); // Mendapatkan semua folder dan file yang dibagikan kepada user
 
     Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
+    
+    Route::prefix('user')->group(function () {
 
-    Route::get('/userInfo/{id}', [UserController::class, 'userInfo']); // Mendapatkan informasi user tertentu
+        Route::get('/userInfo/{id}', [UserController::class, 'userInfo']); // Mendapatkan informasi user tertentu
+
+        Route::get('/index', [UserController::class, 'index']);
+
+        Route::put('/update', [UserController::class, 'update']);
+
+        Route::delete('/delete', [UserController::class, 'delete']);
+
+    });
 
     Route::prefix('folder')->group(function () {
         Route::get('/', [FolderController::class, 'index']); // dapatkan list folder dan file yang ada pada user yang login saat ini pada folder rootnya.
