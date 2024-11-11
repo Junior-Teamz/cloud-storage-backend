@@ -18,6 +18,8 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->boolean('is_superadmin')->default(false);
+            $table->string('photo_profile_path')->nullable();
+            $table->string('photo_profile_url')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

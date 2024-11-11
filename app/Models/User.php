@@ -4,7 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -32,7 +32,9 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
-        'is_superadmin'
+        'is_superadmin',
+        'photo_profile_path',
+        'photo_profile_url'
     ];
 
     /**
@@ -147,4 +149,8 @@ class User extends Authenticatable implements JWTSubject
     // // Append custom attribute `instance_data` ke model User
     // protected $appends = ['instance_data'];
 
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
 }

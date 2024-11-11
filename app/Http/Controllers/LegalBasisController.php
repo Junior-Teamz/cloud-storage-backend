@@ -265,9 +265,9 @@ class LegalBasisController extends Controller
             $legalBasis = LegalBasis::where('id', $id)->first();
 
             // Perbarui nama jika ada
-            if ($request->has('name')) {
+            if ($request->filled('name')) {
                 $legalBasis->name = $request->name;
-            }
+            }    
 
             // Periksa apakah ada file yang diunggah
             if ($request->hasFile('file')) {

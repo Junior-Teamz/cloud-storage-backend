@@ -55,6 +55,7 @@ class UserController extends Controller
     //         ],
     //         'password' => ['required', 'string', 'min:8', 'confirmed'],
     //         'instance_id' => ['required', 'string', 'exists:instances,id'],
+    //         'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpeg,jpg,png']
     //     ]);
 
     //     if ($validator->fails()) {
@@ -80,6 +81,28 @@ class UserController extends Controller
     //         $user->assignRole($role);
 
     //         $user->instances()->sync($instance->id);
+
+    //         if($request->has('photo_profile')){
+
+    //             $photoFile = $request->file('photo_profile');
+
+    //             $photoProfilePath = 'users_photo_profile';
+
+    //             // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
+    //             if (!Storage::disk('public')->exists($photoProfilePath)) {
+    //                 Storage::disk('public')->makeDirectory($photoProfilePath);
+    //             }
+
+    //             // Simpan file thumbnail ke storage/app/public/news_thumbnail
+    //             $photoProfile = $photoFile->store($photoProfilePath, 'public');
+
+    //             // Buat URL publik untuk thumbnail
+    //             $photoProfileUrl = Storage::disk('public')->url($photoProfile);
+
+    //             $user->photo_profile_path = $photoProfile;
+    //             $user->photo_profile_url = $photoProfileUrl;
+    //             $user->save();
+    //         }
 
     //         $user->load('instances:id,name,address');
 
@@ -119,13 +142,19 @@ class UserController extends Controller
     /**
      * Get a user information
      */
-    public function userInfo()
+    public function userInfo($id)
     {
-        $user = Auth::user();
-
         try {
 
-            $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
+            $userInfo = User::where('id', $id)->with(['instances:id,name,address'])->first();
+
+            if(!$userInfo){
+                return response()->json([
+                    'message' => 'User not found.'
+                ], 200);
+            }
+            
+            $userInfo['role'] = $userInfo->roles->pluck('name');
             
             // Sembunyikan relasi roles dari hasil response
             $userInfo->makeHidden('roles');
@@ -228,6 +257,7 @@ class UserController extends Controller
                 },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpeg,jpg,png']
         ]);
 
         if ($validator->fails()) {
@@ -237,8 +267,6 @@ class UserController extends Controller
         }
 
         try {
-            $instance = Instance::where('id', $request->instance_id)->first();
-
             DB::beginTransaction();
 
             $updatedUser = User::where('id', $user->id)->update([
@@ -247,9 +275,41 @@ class UserController extends Controller
                 'password' => bcrypt($request->password),
             ]);
 
-            DB::commit();
+            if($request->has('photo_profile')){
 
+                $photoFile = $request->file('photo_profile');
+
+                $photoProfilePath = 'users_photo_profile';
+                
+                // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
+                if (!Storage::disk('public')->exists($photoProfilePath)) {
+                    Storage::disk('public')->makeDirectory($photoProfilePath);
+                }
+
+                // Cek apakah ada foto profil lama dan hapus jika ada
+                if ($updatedUser->photo_profile_path && Storage::disk('public')->exists($updatedUser->photo_profile_path)) {
+                    Storage::disk('public')->delete($updatedUser->photo_profile_path);
+                }
+
+                // Simpan file foto profil ke storage/app/public/news_foto profil
+                $photoProfile = $photoFile->store($photoProfilePath, 'public');
+
+                // Buat URL publik untuk foto profil
+                $photoProfileUrl = Storage::disk('public')->url($photoProfile);
+
+                $updatedUser->photo_profile_path = $photoProfile;
+                $updatedUser->photo_profile_url = $photoProfileUrl;
+                $updatedUser->save();
+            }
+            
             $updatedUser->load('instances:id,name,address');
+            
+            $updatedUser['role'] = $updatedUser->roles->pluck('name');
+            
+            // Sembunyikan relasi roles dari hasil response
+            $updatedUser->makeHidden('roles');
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Data user berhasil diperbarui',
@@ -266,6 +326,8 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+
 
     /**
      * Delete the authenticated user's account.
@@ -297,6 +359,12 @@ class UserController extends Controller
             $userData = User::where('id', $user->id);
 
             $userData->instances()->detach();
+
+            // Cek apakah ada foto profil lama dan hapus jika ada
+            if ($userData->photo_profile_path && Storage::disk('public')->exists($userData->photo_profile_path)) {
+                Storage::disk('public')->delete($userData->photo_profile_path);
+            }
+            
             $userData->delete();
 
             DB::commit();

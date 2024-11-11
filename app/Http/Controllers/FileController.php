@@ -36,7 +36,7 @@ class FileController extends Controller
     }
 
     /**
-     * Get file information by UUID (UUID).
+     * Get file information by ID (UUID).
      *
      * This method retrieves detailed information about a file, including its metadata,
      * associated tags, instances, and sharing permissions. It also checks for file existence
@@ -92,6 +92,7 @@ class FileController extends Controller
                         'id' => $permission->user->id,
                         'name' => $permission->user->name,
                         'email' => $permission->user->email,
+                        'photo_profile_url' => $permission->user->photo_profile_url
                     ]
                 ];
             });
@@ -177,6 +178,7 @@ class FileController extends Controller
                             'id' => $permission->user->id,
                             'name' => $permission->user->name,
                             'email' => $permission->user->email,
+                            'photo_profile_url' => $permission->user->photo_profile_url,
                         ]
                     ];
                 });
@@ -560,6 +562,7 @@ class FileController extends Controller
                         'id' => $permission->user->id,
                         'name' => $permission->user->name,
                         'email' => $permission->user->email,
+                        'photo_profile_url' => $permission->user->photo_profile_url,
                     ]
                 ];
             });
@@ -661,6 +664,7 @@ class FileController extends Controller
                         'id' => $permission->user->id,
                         'name' => $permission->user->name,
                         'email' => $permission->user->email,
+                        'photo_profile_url' => $permission->user->photo_profile_url,
                     ]
                 ];
             });
@@ -794,6 +798,7 @@ class FileController extends Controller
                         'id' => $permission->user->id,
                         'name' => $permission->user->name,
                         'email' => $permission->user->email,
+                        'photo_profile_url' => $permission->user->photo_profile_url,
                     ]
                 ];
             });
@@ -925,6 +930,7 @@ class FileController extends Controller
                         'id' => $permission->user->id,
                         'name' => $permission->user->name,
                         'email' => $permission->user->email,
+                        'photo_profile_url' => $permission->user->photo_profile_url,
                     ]
                 ];
             });

@@ -16,6 +16,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SharingController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VerificationAndForgetPasswordController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,7 +41,7 @@ Route::get('/file/preview/{id}', [FileController::class, 'serveFileById'])->name
 
 Route::get('/file/videoStream/{id}', [FileController::class, 'serveFileVideoById'])->name('video.stream');
 
-Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'remove_nanoid', 'hide_superadmin_flag']);
+Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'hide_superadmin_flag']);
 
 Route::prefix('/legal_basis')->group(function () {
     Route::get('/getAllLegalBasis', [LegalBasisController::class, 'getAll']);
@@ -55,7 +56,13 @@ Route::prefix('news')->group(function () {
 
 });
 
-Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'remove_nanoid', 'check_admin', 'hide_superadmin_flag'])->group(function () {
+Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'check_admin', 'hide_superadmin_flag'])->group(function () {
+
+    // Route::get('/emailVerification', [VerificationAndForgetPasswordController::class, 'sendVerificationEmail']); // Endpoint untuk mengirim link URL verifikasi email
+
+    // Route::get('/email/verify/{id}', [VerificationAndForgetPasswordController::class, 'verify'])
+    // ->middleware(['signed'])
+    // ->name('verification.verify');
 
     Route::get('/searchUser', [SearchController::class, 'searchUser']); // Mencari user dengan name atau email
 

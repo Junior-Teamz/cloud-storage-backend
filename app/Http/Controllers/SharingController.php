@@ -77,6 +77,7 @@ class SharingController extends Controller
                             'id' => $permission->user->id,
                             'name' => $permission->user->name,
                             'email' => $permission->user->email,
+'photo_profile_url' => $permission->user->photo_profile_url,
                         ]
                     ];
                 });
@@ -200,6 +201,7 @@ class SharingController extends Controller
                                 'id' => $permission->user->id,
                                 'name' => $permission->user->name,
                                 'email' => $permission->user->email,
+                                'photo_profile_url' => $permission->user->photo_profile_url,
                             ]
                         ];
                     })
@@ -230,6 +232,7 @@ class SharingController extends Controller
                                 'id' => $permission->user->id,
                                 'name' => $permission->user->name,
                                 'email' => $permission->user->email,
+                                'photo_profile_url' => $permission->user->photo_profile_url,
                             ]
                         ];
                     })

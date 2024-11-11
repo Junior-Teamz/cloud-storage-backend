@@ -313,6 +313,7 @@ class AdminController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', 'exists:roles,name'],
             'instance_id' => ['required', 'string', 'exists:instances,id'],
+            'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
         if ($validator->fails()) {
@@ -335,6 +336,28 @@ class AdminController extends Controller
             $newUser->assignRole($request->role);
 
             $newUser->instances()->sync($instance->id);
+
+            if ($request->has('photo_profile')) {
+
+                $photoFile = $request->file('photo_profile');
+
+                $photoProfilePath = 'users_photo_profile';
+
+                // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
+                if (!Storage::disk('public')->exists($photoProfilePath)) {
+                    Storage::disk('public')->makeDirectory($photoProfilePath);
+                }
+
+                // Simpan file thumbnail ke storage/app/public/news_thumbnail
+                $photoProfile = $photoFile->store($photoProfilePath, 'public');
+
+                // Buat URL publik untuk thumbnail
+                $photoProfileUrl = Storage::disk('public')->url($photoProfile);
+
+                $newUser->photo_profile_path = $photoProfile;
+                $newUser->photo_profile_url = $photoProfileUrl;
+                $newUser->save();
+            }
 
             $newUser->load('instances:id,name,address');
 
@@ -431,6 +454,7 @@ class AdminController extends Controller
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'instance_id' => ['required', 'string', 'exists:instances,id'],
+            'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
         if ($validator->fails()) {
@@ -465,6 +489,32 @@ class AdminController extends Controller
 
             // Perbarui instance user
             $userToBeUpdated->instances()->sync($instance->id);
+
+            if ($request->has('photo_profile')) {
+                $photoFile = $request->file('photo_profile');
+
+                $photoProfilePath = 'users_photo_profile';
+                
+                // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
+                if (!Storage::disk('public')->exists($photoProfilePath)) {
+                    Storage::disk('public')->makeDirectory($photoProfilePath);
+                }
+
+                // Cek apakah ada foto profil lama dan hapus jika ada
+                if ($userToBeUpdated->photo_profile_path && Storage::disk('public')->exists($userToBeUpdated->photo_profile_path)) {
+                    Storage::disk('public')->delete($userToBeUpdated->photo_profile_path);
+                }
+
+                // Simpan file foto profil ke storage/app/public/news_foto profil
+                $photoProfile = $photoFile->store($photoProfilePath, 'public');
+
+                // Buat URL publik untuk foto profil
+                $photoProfileUrl = Storage::disk('public')->url($photoProfile);
+
+                $userToBeUpdated->photo_profile_path = $photoProfile;
+                $userToBeUpdated->photo_profile_url = $photoProfileUrl;
+                $userToBeUpdated->save();
+            }
 
             // Cari folder yang terkait dengan user
             $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
@@ -552,6 +602,11 @@ class AdminController extends Controller
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder->id); // Pass folder ID instead of the object
                 }
+            }
+
+            // Cek apakah ada foto profil lama dan hapus jika ada
+            if ($userData->photo_profile_path && Storage::disk('public')->exists($userData->photo_profile_path)) {
+                Storage::disk('public')->delete($userData->photo_profile_path);
             }
 
             $userData->delete();
