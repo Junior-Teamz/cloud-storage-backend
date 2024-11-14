@@ -15,6 +15,18 @@ use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
+    /**
+     * Create new user account.
+     *
+     * This method handles the registration of a new user. It validates the incoming request data,
+     * including name, email, password, instance ID, and optional profile photo. It ensures that
+     * the email is unique, follows a valid format, and belongs to an allowed domain. If validation
+     * passes, it creates a new user record in the database, assigns the 'user' role, associates
+     * the user with the specified instance, and handles profile photo upload if provided.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the user registration data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure, with appropriate status codes and messages.
+     */
     // public function register(Request $request)
     // {
     //     $validator = Validator::make($request->all(), [
@@ -140,7 +152,13 @@ class UserController extends Controller
     // }
 
     /**
-     * Get a user information
+     * Retrieve information about a specific user.
+     *
+     * This method retrieves the details of a user identified by their unique ID.
+     * It includes the user's associated instances, role, and hides the 'roles' relationship from the response.
+     *
+     * @param string $id The UUID of the user to retrieve information for.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the user's information or an error message.
      */
     public function userInfo($id)
     {
@@ -327,7 +345,64 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * Update the authenticated user's password.
+     *
+     * This method allows the currently authenticated user to update their password.
+     * It validates the input data, updates the user record in the database,
+     * and returns a JSON response indicating success or failure.
+     *
+     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing the new password data.
+     * @return \Illuminate\Http\JsonResponse A JSON response indicating success or failure.
+     */
+    public function updatePassword(Request $request)
+    {
+        $userLogin = Auth::user();
 
+        $validator = Validator::make($request->all(), [
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $user = User::where('id', $userLogin->id)->first();
+
+            // Check if the current password matches with old password
+            if (password_verify($request->password, $user->password)) {
+                return response()->json([
+                    'errors' => 'New password cannot be the same as the old password.'
+                ], 422); // Return a 422 Unprocessable Entity status code
+            }
+
+            DB::beginTransaction();
+
+            $user->update([
+                'password' => bcrypt($request->password),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Password updated successfully.'
+            ], 200);
+
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error occurred on updating password: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while updating your password.'
+            ], 500);
+        }
+    }
 
     /**
      * Delete the authenticated user's account.

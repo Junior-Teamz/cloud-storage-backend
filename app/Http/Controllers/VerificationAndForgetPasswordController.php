@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class VerificationAndForgetPasswordController extends Controller
@@ -55,7 +56,20 @@ class VerificationAndForgetPasswordController extends Controller
 
     public function sendPasswordResetLink(Request $request)
     {
-        $request->validate(['email' => 'required|email|exists:users,email']);
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'email' => 'required|email|exists:users,email'
+            ], [
+                'email.exists' => 'Email not registered in system.'
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         // Mengirimkan email reset password
         $status = Password::sendResetLink(

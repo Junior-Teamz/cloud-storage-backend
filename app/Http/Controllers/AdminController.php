@@ -550,6 +550,79 @@ class AdminController extends Controller
     }
 
     /**
+     * Update a user's password.
+     *
+     * This function allows an administrator to update a user's password. It validates the new password,
+     * updates the user's password in the database, and handles potential errors.  It prevents the user
+     * from setting their password to the same as their old password.
+     *
+     * Requires admin authentication.
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $userId The UUID of the user whose password is to be updated.
+     */
+    public function updateUserPassword(Request $request, $userId)
+    {
+        $checkAdmin = $this->checkAdminService->checkAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $user = User::where('id', $userId)->first();
+
+            if(!$user){
+                return response()->json([
+                    'errors' => 'User not found.'
+                ], 404);
+            }
+
+            // Check if the current password matches with old password
+            if (password_verify($request->password, $user->password)) {
+                return response()->json([
+                    'errors' => 'New password cannot be the same as the old password.'
+                ], 422); // Return a 422 Unprocessable Entity status code
+            }
+
+            DB::beginTransaction();
+
+            $user->update([
+                'password' => bcrypt($request->password),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Password updated successfully.'
+            ], 200);
+
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error occurred on updating password: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while updating your password.'
+            ], 500);
+        }
+    }
+
+    /**
      * Delete a user from the system.
      *
      * This function deletes a user from the database and removes associated files and folders from storage.
