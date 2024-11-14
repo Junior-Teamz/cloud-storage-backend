@@ -416,9 +416,9 @@ class AdminController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 function ($attribute, $value, $fail) use ($request) {
                     // Validasi format email menggunakan Laravel's 'email' rule
@@ -452,8 +452,8 @@ class AdminController extends Controller
                 // Validasi unique email kecuali email yang sudah ada (email saat ini)
                 Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
             ],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'instance_id' => ['required', 'string', 'exists:instances,id'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'instance_id' => ['nullable', 'string', 'exists:instances,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
@@ -465,7 +465,6 @@ class AdminController extends Controller
 
         try {
             $userToBeUpdated = User::where('id', $userIdToBeUpdated)->first();
-            $instance = Instance::where('id', $request->instance_id)->first();
 
             if (!$userToBeUpdated) {
                 return response()->json([
@@ -487,14 +486,24 @@ class AdminController extends Controller
                 'password' => bcrypt($request->password),
             ]);
 
-            // Perbarui instance user
-            $userToBeUpdated->instances()->sync($instance->id);
+            if ($request->instance_id) {
+                $instance = Instance::where('id', $request->instance_id)->first();
+
+                if(!$instance){
+                    return response()->json([
+                        'errors' => 'Instance not found.'
+                    ], 404);
+                }
+
+                // Perbarui instance user
+                $userToBeUpdated->instances()->sync($instance->id);
+            }
 
             if ($request->has('photo_profile')) {
                 $photoFile = $request->file('photo_profile');
 
                 $photoProfilePath = 'users_photo_profile';
-                
+
                 // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
                 if (!Storage::disk('public')->exists($photoProfilePath)) {
                     Storage::disk('public')->makeDirectory($photoProfilePath);
@@ -584,7 +593,7 @@ class AdminController extends Controller
         try {
             $user = User::where('id', $userId)->first();
 
-            if(!$user){
+            if (!$user) {
                 return response()->json([
                     'errors' => 'User not found.'
                 ], 404);
@@ -608,8 +617,6 @@ class AdminController extends Controller
             return response()->json([
                 'message' => 'Password updated successfully.'
             ], 200);
-
-
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error occurred on updating password: ' . $e->getMessage(), [

@@ -86,6 +86,8 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'check_adm
 
         Route::put('/update', [UserController::class, 'update']);
 
+        Route::put('/updatePassword', [UserController::class, 'updatePassword']);
+
         Route::delete('/delete', [UserController::class, 'delete']);
 
     });
@@ -221,6 +223,8 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
         Route::post('/create_user', [AdminController::class, 'createUserFromAdmin']); // route untuk membuat user baru melalui admin.
 
         Route::put('/update_user/{userIdToBeUpdated}', [AdminController::class, 'updateUserFromAdmin']); // route untuk mengupdate user yang sudah ada melalui admin.
+
+        Route::put('/update_user_password/{userId}', [AdminController::class, 'updateUserPassword']);
 
         Route::delete('/delete_user/{userIdToBeDeleted}', [AdminController::class, 'deleteUserFromAdmin']); // route untuk menghapus user yang sudah ada melalui admin. (DANGEROUS!)
     });
