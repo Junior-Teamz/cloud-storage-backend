@@ -239,9 +239,9 @@ class UserController extends Controller
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 'unique:users,email', // Menentukan kolom yang dicek di tabel users
                 function ($attribute, $value, $fail) {
@@ -274,7 +274,7 @@ class UserController extends Controller
                     }
                 },
             ],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpeg,jpg,png']
         ]);
 

@@ -455,6 +455,9 @@ class AdminController extends Controller
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['nullable', 'string', 'exists:roles,name'],
             'instance_id' => ['nullable', 'string', 'exists:instances,id'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'role' => ['nullable', 'string', 'exists:roles,name'],
+            'instance_id' => ['nullable', 'string', 'exists:instances,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
@@ -487,13 +490,14 @@ class AdminController extends Controller
                 'password' => bcrypt($request->password),
             ]);
 
-            if($request->role){
-                $userToBeUpdated->assignRole($request->role);
-            }
-
             if ($request->instance_id) {
-                
                 $instance = Instance::where('id', $request->instance_id)->first();
+
+                if (!$instance) {
+                    return response()->json([
+                        'errors' => 'Instance not found.'
+                    ], 404);
+                }
 
                 // Perbarui instance user
                 $userToBeUpdated->instances()->sync($instance->id);
@@ -506,11 +510,27 @@ class AdminController extends Controller
                     $folder->instances()->sync($instance->id);
                 }
             }
+                // Perbarui instance user
+                $userToBeUpdated->instances()->sync($instance->id);
+
+                // Cari folder yang terkait dengan user
+                $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
+
+                foreach ($userFolders as $folder) {
+                    // Perbarui relasi instance pada setiap folder terkait
+                    $folder->instances()->sync($instance->id);
+                }
+            }
+
+            if($request->role){
+                $userToBeUpdated->assignRole($request->role);
+            }
 
             if ($request->has('photo_profile')) {
                 $photoFile = $request->file('photo_profile');
 
                 $photoProfilePath = 'users_photo_profile';
+
 
                 // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
                 if (!Storage::disk('public')->exists($photoProfilePath)) {
@@ -593,6 +613,7 @@ class AdminController extends Controller
         try {
             $user = User::where('id', $userId)->first();
 
+            if (!$user) {
             if (!$user) {
                 return response()->json([
                     'errors' => 'User not found.'
