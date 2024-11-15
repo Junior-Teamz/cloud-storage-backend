@@ -474,9 +474,11 @@ class AdminController extends Controller
             }
 
             if ($userToBeUpdated->is_superadmin == 1) {
-                return response()->json([
-                    'errors' => 'You are not allowed to update superadmin user.',
-                ], 403);
+                if(!Auth::user()->id === $userToBeUpdated->id){
+                    return response()->json([
+                        'errors' => 'You are not allowed to update superadmin user.',
+                    ], 403);
+                }
             }
 
             DB::beginTransaction();
