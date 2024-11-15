@@ -453,6 +453,7 @@ class AdminController extends Controller
                 Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'role' => ['nullable', 'string', 'exists:roles,name'],
             'instance_id' => ['nullable', 'string', 'exists:instances,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
@@ -489,7 +490,7 @@ class AdminController extends Controller
             if ($request->instance_id) {
                 $instance = Instance::where('id', $request->instance_id)->first();
 
-                if(!$instance){
+                if (!$instance) {
                     return response()->json([
                         'errors' => 'Instance not found.'
                     ], 404);
@@ -497,6 +498,18 @@ class AdminController extends Controller
 
                 // Perbarui instance user
                 $userToBeUpdated->instances()->sync($instance->id);
+
+                // Cari folder yang terkait dengan user
+                $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
+
+                foreach ($userFolders as $folder) {
+                    // Perbarui relasi instance pada setiap folder terkait
+                    $folder->instances()->sync($instance->id);
+                }
+            }
+
+            if($request->role){
+                $userToBeUpdated->assignRole($request->role);
             }
 
             if ($request->has('photo_profile')) {
@@ -523,14 +536,6 @@ class AdminController extends Controller
                 $userToBeUpdated->photo_profile_path = $photoProfile;
                 $userToBeUpdated->photo_profile_url = $photoProfileUrl;
                 $userToBeUpdated->save();
-            }
-
-            // Cari folder yang terkait dengan user
-            $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
-
-            foreach ($userFolders as $folder) {
-                // Perbarui relasi instance pada setiap folder terkait
-                $folder->instances()->sync($instance->id);
             }
 
             DB::commit();
