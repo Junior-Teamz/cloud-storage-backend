@@ -27,7 +27,7 @@ Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
 
-Route::post('/login', [AuthController::class, 'login']); // login user
+Route::post('/login', [AuthController::class, 'login']); // login users
 
 Route::post('/refreshToken', [AuthController::class, 'refresh']); // refresh token
 
