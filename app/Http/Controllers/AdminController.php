@@ -483,11 +483,16 @@ class AdminController extends Controller
 
             DB::beginTransaction();
 
-            $userToBeUpdated->update([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => bcrypt($request->password),
-            ]);
+            // Cek dan update data berdasarkan input request
+            $dataToUpdate = $request->only(['name', 'email', 'password']);
+
+            // Cek jika password ada dan hash password baru
+            if (isset($dataToUpdate['password'])) {
+                $dataToUpdate['password'] = bcrypt($dataToUpdate['password']);
+            }
+
+            // Perbarui user hanya dengan data yang ada dalam request
+            $userToBeUpdated->update(array_filter($dataToUpdate));
 
             if($request->role){
                 $userToBeUpdated->assignRole($request->role);

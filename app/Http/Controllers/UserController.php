@@ -287,11 +287,18 @@ class UserController extends Controller
         try {
             DB::beginTransaction();
 
-            $updatedUser = User::where('id', $user->id)->update([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => bcrypt($request->password),
-            ]);
+            $userToBeUpdated = User::where('id', $user->id)->first();
+
+            // Cek dan update data berdasarkan input request
+            $dataToUpdate = $request->only(['name', 'email', 'password']);
+
+            // Cek jika password ada dan hash password baru
+            if (isset($dataToUpdate['password'])) {
+                $dataToUpdate['password'] = bcrypt($dataToUpdate['password']);
+            }
+
+            // Perbarui user hanya dengan data yang ada dalam request
+            $userToBeUpdated->update(array_filter($dataToUpdate));
 
             if($request->has('photo_profile')){
 
@@ -305,8 +312,8 @@ class UserController extends Controller
                 }
 
                 // Cek apakah ada foto profil lama dan hapus jika ada
-                if ($updatedUser->photo_profile_path && Storage::disk('public')->exists($updatedUser->photo_profile_path)) {
-                    Storage::disk('public')->delete($updatedUser->photo_profile_path);
+                if ($userToBeUpdated->photo_profile_path && Storage::disk('public')->exists($userToBeUpdated->photo_profile_path)) {
+                    Storage::disk('public')->delete($userToBeUpdated->photo_profile_path);
                 }
 
                 // Simpan file foto profil ke storage/app/public/news_foto profil
@@ -315,23 +322,23 @@ class UserController extends Controller
                 // Buat URL publik untuk foto profil
                 $photoProfileUrl = Storage::disk('public')->url($photoProfile);
 
-                $updatedUser->photo_profile_path = $photoProfile;
-                $updatedUser->photo_profile_url = $photoProfileUrl;
-                $updatedUser->save();
+                $userToBeUpdated->photo_profile_path = $photoProfile;
+                $userToBeUpdated->photo_profile_url = $photoProfileUrl;
+                $userToBeUpdated->save();
             }
             
-            $updatedUser->load('instances:id,name,address');
+            $userToBeUpdated->load('instances:id,name,address');
             
-            $updatedUser['role'] = $updatedUser->roles->pluck('name');
+            $userToBeUpdated['role'] = $userToBeUpdated->roles->pluck('name');
             
             // Sembunyikan relasi roles dari hasil response
-            $updatedUser->makeHidden('roles');
+            $userToBeUpdated->makeHidden('roles');
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Data user berhasil diperbarui',
-                'data' => $updatedUser
+                'data' => $userToBeUpdated
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
