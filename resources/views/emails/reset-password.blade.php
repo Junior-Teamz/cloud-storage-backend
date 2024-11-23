@@ -1,5 +1,5 @@
 <?php 
-$imagePath = public_path('application_image/KemenkopUKM File Sharing Logo.png');
+$imagePath = 'application_image/KemenkopUKM File Sharing Logo.png';
 $imageUrl = $message->embed($imagePath, 'KemenkopUKM Logo');
 ?>
 
