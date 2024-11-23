@@ -5,9 +5,9 @@
 </head>
 <body>
     <!-- Banner -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <img src="{{ $message->embed($imagePathFromStorage) }}" alt="KemenkopUKM Logo" style="max-width: 100%; height: auto;">
-    </div>
+    <!-- <div style="text-align: center; margin-bottom: 20px;">
+        <img src="" alt="KemenkopUKM Logo" style="max-width: 100%; height: auto;">
+    </div> -->
 
     <!-- Konten Email -->
     <h3>Halo, {{ $name }}!</h3>
