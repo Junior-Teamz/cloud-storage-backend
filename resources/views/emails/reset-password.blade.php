@@ -1,3 +1,8 @@
+<?php 
+$imagePath = public_path('application_image/KemenkopUKM File Sharing Logo.png');
+$imageUrl = $message->embed($imagePath, 'KemenkopUKM Logo')
+?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,7 +11,7 @@
 <body>
     <!-- Banner -->
     <div style="text-align: center; margin-bottom: 20px;">
-        <img src="{{ $image_app }}" alt="Banner" style="max-width: 100%; height: auto;">
+        <img src="{{ $message->embed($imageUrl) }}" alt="KemenkopUKM Logo" style="max-width: 100%; height: auto;">
     </div>
 
     <!-- Konten Email -->
