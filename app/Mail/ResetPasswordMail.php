@@ -37,7 +37,7 @@ class ResetPasswordMail extends Mailable implements ShouldQueue
         $imagePathFromStorage = Storage::path($imagePath);
 
         return $this->subject('Reset Password Request')
-            ->view('emails.reset-password')
+            ->view('mails.reset-password')
             ->with([
                 'name' => $this->name,
                 'resetLink' => $this->resetLink,
