@@ -34,15 +34,18 @@ class ResetPasswordMail extends Mailable implements ShouldQueue
     public function build()
     {
         $imagePath = 'application_image/KemenkopUKM File Sharing Logo.png';
+        $imagePath2 = Storage::path($imagePath);
         $imageStorage = Storage::disk('public')->get($imagePath);
-        $imageCID = $this->embed($imageStorage);
 
         return $this->subject('Reset Password Request')
             ->view('emails.reset-password')
             ->with([
                 'name' => $this->name,
                 'resetLink' => $this->resetLink,
-                'imageUrl' => $imageCID
-            ]);
+            ])
+            ->withSwiftMessage(function ($message) use ($imagePath2) {
+                $cid = $message->embed($imagePath2);
+                $this->with('imageUrl', $cid);
+            });
     }
 }
