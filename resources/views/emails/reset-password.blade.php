@@ -15,7 +15,6 @@
     <p>Klik tautan di bawah ini untuk mengatur ulang password Anda:</p>
     <a href="{{ $resetLink }}">{{ $resetLink }}</a>
     <p>Jika Anda tidak meminta reset password, abaikan email ini.</p>
-    <p>Terima kasih,</p>
-    <p>Tim Kami</p>
+    <p>Terima kasih</p>
 </body>
 </html>
