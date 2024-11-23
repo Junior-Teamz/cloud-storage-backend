@@ -66,7 +66,7 @@ class VerificationAndForgetPasswordController extends Controller
 
     public function sendPasswordResetLink(Request $request)
     {
-        // Rate limiting: Maksimum 3 permintaan dalam 5 menit
+        // Rate limiting: Maksimum 3 permintaan dalam 1 menit
         $email = $request->email;
         $key = "password-reset:{$email}";
 
@@ -75,12 +75,12 @@ class VerificationAndForgetPasswordController extends Controller
 
             return response()->json([
                 'message' => 'Too many attempts. Please try again later.',
-                'retry_after' => $seconds . 'seconds',
+                'retry_after' => $seconds . ' seconds',
             ], 429);
         }
 
         // Tambahkan satu percobaan ke rate limiter
-        RateLimiter::hit($key, 300); // 300 detik = 5 menit
+        RateLimiter::hit($key, 60); // = 1 menit
 
         // Validasi email
         $validator = Validator::make(
