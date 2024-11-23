@@ -6,7 +6,7 @@
 <body>
     <!-- Banner -->
     <div style="text-align: center; margin-bottom: 20px;">
-        <img src="{{ $imageUrl }}" alt="KemenkopUKM Logo" style="max-width: 100%; height: auto;">
+        <img src="{{ $message->embed($imagePathFromStorage) }}" alt="KemenkopUKM Logo" style="max-width: 100%; height: auto;">
     </div>
 
     <!-- Konten Email -->
