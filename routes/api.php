@@ -25,6 +25,10 @@ Route::post('/storeImageTesting', [NewsController::class, 'storeImage']); // END
 
 Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
+Route::post('/sendLinkResetPassword', [VerificationAndForgetPasswordController::class, 'sendPasswordResetLink']); // Send link for reset password.
+
+Route::post('/resetPassword', [VerificationAndForgetPasswordController::class, 'resetPassword']);
+
 // Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
 
 Route::post('/login', [AuthController::class, 'login']); // login users

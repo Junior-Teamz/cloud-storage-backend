@@ -88,6 +88,7 @@ class PermissionFileController extends Controller
                     'user_id' => $permission->user->id,
                     'user_name' => $permission->user->name,
                     'user_email' => $permission->user->email,
+                    'photo_profile_url' => $permission->user->photo_profile_url,
                     'permissions' => $permission->permissions
                 ];
             }

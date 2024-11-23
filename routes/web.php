@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\FileController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
+
 
 /*
 |--------------------------------------------------------------------------

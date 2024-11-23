@@ -148,9 +148,4 @@ class User extends Authenticatable implements JWTSubject
 
     // // Append custom attribute `instance_data` ke model User
     // protected $appends = ['instance_data'];
-
-    public function sendPasswordResetNotification($token)
-    {
-        $this->notify(new ResetPasswordNotification($token));
-    }
 }

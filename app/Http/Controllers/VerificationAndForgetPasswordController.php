@@ -2,10 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ResetPasswordMail;
+use App\Models\User;
+use App\Notifications\ResetPasswordNotification;
+use Exception;
+use Hidehalo\Nanoid\Client;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -56,52 +66,143 @@ class VerificationAndForgetPasswordController extends Controller
 
     public function sendPasswordResetLink(Request $request)
     {
+        // Rate limiting: Maksimum 3 permintaan dalam 5 menit
+        $email = $request->email;
+        $key = "password-reset:{$email}";
+
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            return response()->json([
+                'message' => 'Too many attempts. Please try again later.',
+                'retry_after' => $seconds . 'seconds',
+            ], 429);
+        }
+
+        // Tambahkan satu percobaan ke rate limiter
+        RateLimiter::hit($key, 300); // 300 detik = 5 menit
+
+        // Validasi email
         $validator = Validator::make(
             $request->all(),
             [
-                'email' => 'required|email|exists:users,email'
-            ], [
-                'email.exists' => 'Email not registered in system.'
+                'email' => 'required|email|exists:users,email',
+            ],
+            [
+                'email.exists' => 'Email not registered in the system.',
             ]
         );
 
         if ($validator->fails()) {
             return response()->json([
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
-        // Mengirimkan email reset password
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        try {
+            $user = User::where('email', $email)->first();
+            $nameOfUser = $user->name;
 
-        return $status === Password::RESET_LINK_SENT
-            ? response()->json(['message' => 'Tautan reset password telah dikirim ke email Anda.'], 200)
-            : response()->json(['message' => 'Terjadi kesalahan atau email tidak terdaftar.'], 400);
+            DB::beginTransaction();
+
+            // Hapus entri token lama untuk email ini
+            DB::table('password_reset_tokens')->where('email', $email)->delete();
+
+            // Buat token manual
+            $client = new Client();
+            $token = $client->generateId(21);
+
+            // Simpan token ke database
+            DB::table('password_reset_tokens')->insert([
+                'email' => $email,
+                'token' => $token,
+                'created_at' => now(),
+                'expired_at' => now()->addMinutes(60),
+            ]);
+
+            DB::commit();
+
+            $frontendUrl = config('frontend.url');
+
+            // Kirimkan email reset password
+            $resetLink = $frontendUrl[0] . "/reset-password?token={$token}";
+            Mail::to($email)->send(new ResetPasswordMail($nameOfUser, $resetLink, $token));
+
+            return response()->json([
+                'message' => 'Password reset link has been sent to your email.',
+            ], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('An error occurred while sending password reset link', [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while sending password reset link. Please try again later.'
+            ], 500);
+        }
     }
 
     public function resetPassword(Request $request)
     {
-        $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed'
-        ]);
+        try {
+            $validator = Validator::make([
+                'token' => 'required',
+                'password' => 'required|string|min:8|confirmed'
+            ]);
 
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => bcrypt($password)
-                ])->save();
-
-                $user->setRememberToken(Str::random(60));
+            if ($validator->fails()) {
+                return response()->json([
+                    'errors' => $validator->errors()
+                ], 422);
             }
-        );
 
-        return $status === Password::PASSWORD_RESET
-            ? response()->json(['message' => 'Password berhasil direset.'], 200)
-            : response()->json(['message' => 'Token tidak valid atau kedaluwarsa.'], 400);
+            // Cari token di database
+            $tokenEntry = DB::table('password_reset_tokens')
+                ->where('token', $request->token)
+                ->first();
+
+            if (!$tokenEntry) {
+                return response()->json(['message' => 'Invalid token.'], 400);
+            }
+
+            // Cek apakah token sudah kedaluwarsa
+            if (now()->greaterThan($tokenEntry->expired_at)) {
+                return response()->json(['message' => 'Token has expired.'], 400);
+            }
+
+            // Cari pengguna berdasarkan email
+            $user = User::where('email', $tokenEntry->email)->first();
+
+            if (!$user) {
+                return response()->json(['message' => 'User not found.'], 404);
+            }
+
+            DB::beginTransaction();
+
+            // Reset password pengguna
+            $user->forceFill([
+                'password' => bcrypt($request->password)
+            ])->save();
+
+            // Hapus entri di tabel password_reset_tokens untuk keamanan
+            DB::table('password_reset_tokens')->where('email', $tokenEntry->email)->delete();
+
+            DB::commit();
+
+            return response()->json(['message' => 'Password has been reset successfully.'], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('An error occurred while resetting password', [
+                'token' => $request->token,
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'message' => 'An error occurred while resetting password.'
+            ], 500);
+        }
     }
 }
