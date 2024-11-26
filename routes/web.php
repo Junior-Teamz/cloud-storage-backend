@@ -18,3 +18,7 @@ use Illuminate\Support\Facades\Response;
 Route::get('/', function () {
     return view('app');
 });
+
+Route::get('/email_page', function () {
+    return view('mails.reset-password');
+})->name('email_template');

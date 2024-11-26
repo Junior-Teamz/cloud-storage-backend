@@ -21,7 +21,7 @@ class CheckStorageLimit
     public function __construct()
     {
         // Mengambil nilai dari config dan mengubahnya ke byte (GB -> Byte)
-        $this->storageLimit = config('storage-limit.storage_limit') * 1024 * 1024 * 1024;
+        $this->storageLimit = config('storage-config.storage_limit') * 1024 * 1024 * 1024;
     }
 
     /**

@@ -586,7 +586,7 @@ class FolderController extends Controller
             }
 
             // Check folder depth limit
-            $subfolderDepth = env('SUBFOLDER_DEPTH', 5);
+            $subfolderDepth = config('storage-config.max_subfolder_depth');
             $depth = $this->getFolderDepth($parentId);
             if ($depth >= $subfolderDepth) {
                 return response()->json([

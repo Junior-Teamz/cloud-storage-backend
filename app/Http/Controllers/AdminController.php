@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\File;
 use App\Models\Folder;
 use App\Models\Instance;
+use App\Models\Tags;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
@@ -474,7 +475,7 @@ class AdminController extends Controller
             }
 
             if ($userToBeUpdated->is_superadmin == 1) {
-                if(!Auth::user()->id === $userToBeUpdated->id){
+                if (!Auth::user()->id === $userToBeUpdated->id) {
                     return response()->json([
                         'errors' => 'You are not allowed to update superadmin user.',
                     ], 403);
@@ -494,7 +495,7 @@ class AdminController extends Controller
             // Perbarui user hanya dengan data yang ada dalam request
             $userToBeUpdated->update(array_filter($dataToUpdate));
 
-            if($request->role){
+            if ($request->role) {
                 $userToBeUpdated->assignRole($request->role);
             }
 
@@ -888,8 +889,9 @@ class AdminController extends Controller
     /**
      * Get storage usage per instance.
      *
-     * This function calculates the storage usage for each instance in the system.  It retrieves all instances,
-     * calculates the total storage used by their associated files, and returns the results in a formatted JSON response.
+     * This endpoint calculates the storage usage for each instance in the system. It retrieves all instances along with their associated files and folders.
+     * For each instance, it calculates the total storage used by its files, the total number of folders, and the total number of files.
+     * The results are returned in a JSON response, with storage usage presented in both raw bytes and a human-readable format (KB, MB, GB).
      * 
      * Requires super admin authentication.
      * 
@@ -913,8 +915,8 @@ class AdminController extends Controller
         }
 
         try {
-            // Ambil semua instance
-            $instances = Instance::with(['files'])->get();
+            // Ambil semua instance beserta folder dan file-nya
+            $instances = Instance::with(['files', 'folders'])->get();
 
             $storageUsagePerInstance = [];
 
@@ -922,11 +924,17 @@ class AdminController extends Controller
                 // Hitung total penggunaan penyimpanan dari semua file yang terkait dengan instance ini
                 $totalStorageUsage = $instance->files->sum('size');
 
+                // Hitung jumlah folder dan file
+                $totalFolders = $instance->folders->count();
+                $totalFiles = $instance->files->count();
+
                 $storageUsagePerInstance[] = [
                     'instance_id' => $instance->id,
                     'instance_name' => $instance->name,
                     'storage_usage_raw' => $totalStorageUsage, // dalam bytes
                     'storage_usage_formatted' => $this->formatSizeUnits($totalStorageUsage), // format sesuai ukuran (KB, MB, GB, dll.)
+                    'total_folders' => $totalFolders,
+                    'total_files' => $totalFiles,
                 ];
             }
 
@@ -939,6 +947,73 @@ class AdminController extends Controller
 
             return response()->json([
                 'errors' => 'An error occurred while calculating storage usage.'
+            ], 500);
+        }
+    }
+
+    public function tagsUsedByInstance()
+    {
+        $userInfo = Auth::user();
+
+        // Pastikan hanya super admin yang dapat mengakses fitur ini
+        $checkSuperAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkSuperAdmin) {
+            Log::warning('Attempt to access features that can only be accessed by super admins', [
+                'user_id' => $userInfo->id,
+                'user_role' => $userInfo->roles->pluck('name'),
+            ]);
+            return response()->json([
+                'errors' => 'You cannot perform this action.'
+            ], 403);
+        }
+
+        try {
+            // Ambil semua tag beserta hubungan dengan folder dan file
+            $tags = Tags::with(['folders.instances', 'files.instances'])->get();
+
+            $tagsUsedByInstance = [];
+
+            foreach ($tags as $tag) {
+                // Kumpulkan semua instansi yang menggunakan tag melalui folder atau file
+                $instances = collect();
+
+                // Tambahkan instansi dari folder
+                foreach ($tag->folders as $folder) {
+                    $instances = $instances->merge($folder->instances);
+                }
+
+                // Tambahkan instansi dari file
+                foreach ($tag->files as $file) {
+                    $instances = $instances->merge($file->instances);
+                }
+
+                // Hapus duplikasi instansi
+                $instances = $instances->unique('id');
+
+                // Format data
+                $tagsUsedByInstance[] = [
+                    'tag_id' => $tag->id,
+                    'tag_name' => $tag->name,
+                    'instances' => $instances->map(function ($instance) {
+                        return [
+                            'instance_id' => $instance->id,
+                            'instance_name' => $instance->name,
+                            'instance_address' => $instance->address
+                        ];
+                    }),
+                ];
+            }
+
+            return response()->json($tagsUsedByInstance, 200);
+        } catch (Exception $e) {
+            Log::error('Error occurred while fetching tags used by instance: ' . $e->getMessage(), [
+                'user_id' => $userInfo->id,
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while fetching tag usage information.'
             ], 500);
         }
     }

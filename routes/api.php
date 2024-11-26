@@ -212,6 +212,8 @@ Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(functi
 
         Route::get('/storageUsagePerInstance', [AdminController::class, 'storageUsagePerInstance']); // Mendapatkan informasi penggunaan penyimpanan per instansi
 
+        Route::get('/tagUsedByInstance', [AdminController::class, 'tagsUsedByInstance']); // Mendapatkan informasi tag digunakan oleh instansi.
+
         Route::get('/getFolderCreated', [AdminController::class, 'allFolderCount']); // Mendapatkan informasi total folder dibuat
 
         Route::get('/getFiles', [AdminController::class, 'allFileCount']); // Mendapatkan informasi total file
