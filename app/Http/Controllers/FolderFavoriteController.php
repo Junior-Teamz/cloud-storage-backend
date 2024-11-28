@@ -108,7 +108,7 @@ class FolderFavoriteController extends Controller
     //         $perPage = $request->input('per_page', 10); // Default 10 items per page
 
     //         // Query folder favorit user dengan pivot data
-    //         $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions',]);
+    //         $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions',]);
 
     //         // Filter berdasarkan nama folder jika ada parameter 'search'
     //         if ($search) {
@@ -197,7 +197,7 @@ class FolderFavoriteController extends Controller
             $pageFile = $request->input('page_file', 1);
 
             // Query folder favorit user dengan pivot data
-            $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions',]);
+            $favoriteFoldersQuery = $user->favoriteFolders()->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions',]);
 
             // Filter berdasarkan nama folder jika ada parameter 'search'
             if ($search) {
@@ -247,7 +247,7 @@ class FolderFavoriteController extends Controller
             $favoriteFolders->makeHidden(['nanoid', 'user_id', 'pivot', 'userFolderPermissions']);
 
             // Query file favorit user
-            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions']);
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userPermissions']);
 
             // Filter berdasarkan nama file jika ada parameter 'search'
             if ($search) {
@@ -345,7 +345,7 @@ class FolderFavoriteController extends Controller
             $user = User::find($userLogin->id);
 
             // Ambil folder yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-            $folder = Folder::with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions'])->findOrFail($request->folder_id);
+            $folder = Folder::with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions'])->findOrFail($request->folder_id);
 
             // Cek apakah user memiliki izin untuk memfavoritkan folder
             $checkPermission = $this->checkPermissionFolderService->checkPermissionFolder($folder->id, ['write']);
@@ -399,7 +399,7 @@ class FolderFavoriteController extends Controller
             $user->favoriteFolders()->attach($folder->id);
 
             // Ambil ulang folder setelah ditambahkan ke favorit
-            $folder->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions']);
+            $folder->load(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userFolderPermissions']);
 
             $isFavorite = $folder->favorite()->where('user_id', $user->id)->first();
 
@@ -493,7 +493,7 @@ class FolderFavoriteController extends Controller
 
             // Reload folder setelah dihapus dari favorit untuk memuat kembali datanya
             $folder->load([
-                'user:id,name,email',
+                'user:id,name,email,photo_profile_url',
                 'tags:id,name',
                 'instances:id,name,address',
                 'userFolderPermissions',

@@ -96,7 +96,7 @@ class FileFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query file favorit user dengan pivot data
-            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email',]);
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user:id,name,email,photo_profile_url', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email,photo_profile_url',]);
 
             // Filter berdasarkan nama file jika ada parameter 'search'
             if ($search) {
@@ -191,7 +191,7 @@ class FileFavoriteController extends Controller
             $user = User::find($userLogin->id);
 
             // Ambil file yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-            $file = File::with(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email'])->where('id', $request->file_id)->first();
+            $file = File::with(['user:id,name,email,photo_profile_url', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email,photo_profile_url'])->where('id', $request->file_id)->first();
 
             // Cek apakah user memiliki izin untuk memfavoritkan file
             $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, ['read', 'write']);
@@ -261,7 +261,7 @@ class FileFavoriteController extends Controller
             DB::commit();
 
             // Ambil ulang file setelah ditambahkan ke favorit
-            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email']);
+            $file->load(['user:id,name,email,photo_profile_url', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email,photo_profile_url']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -355,7 +355,7 @@ class FileFavoriteController extends Controller
 
             DB::commit();
 
-            $file->load(['user:id,name,email', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email']);
+            $file->load(['user:id,name,email,photo_profile_url', 'folder:id', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email,photo_profile_url']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);

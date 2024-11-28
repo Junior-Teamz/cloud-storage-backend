@@ -59,12 +59,12 @@ class FileController extends Controller
 
         try {
             $file = File::with([
-                'user:id,name,email',
+                'user:id,name,email,photo_profile_url',
                 'folder:id',
                 'tags',
                 'instances:id,name,address',
                 'favorite',
-                'userPermissions.user:id,name,email',
+                'userPermissions.user:id,name,email,photo_profile_url',
             ])->where('id', $id)->first();
 
             if (!$file) {
@@ -144,7 +144,7 @@ class FileController extends Controller
 
             // Ambil semua file dari database dengan paginasi, termasuk user, tags, dan instances
             $filesQuery = File::where('user_id', $user->id)
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email',])
+                ->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email,photo_profile_url',])
                 ->orderBy('size', $sortOrder); // Urutkan berdasarkan ukuran file (size)
 
             // Hitung total ukuran file langsung dari query sebelum paginasi
@@ -330,7 +330,7 @@ class FileController extends Controller
 
                 $file->instances()->sync($userInstances);
 
-                $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                $file->load(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address']);
 
                 if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
                     $file['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id); // URL Streaming
@@ -543,7 +543,7 @@ class FileController extends Controller
             // Menambahkan tag ke file (tabel pivot file_has_tags)
             $file->tags()->attach($tag->id);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite']);
+            $file->load(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email,photo_profile_url', 'favorite']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -645,7 +645,7 @@ class FileController extends Controller
             // Menghapus tag dari file (tabel pivot file_has_tags)
             $file->tags()->detach($tag->id);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite']);
+            $file->load(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email,photo_profile_url', 'favorite']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -779,7 +779,7 @@ class FileController extends Controller
                 'public_path' => $publicPath,
             ]);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email', 'favorite']);
+            $file->load(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'userPermissions.user:id,name,email,photo_profile_url', 'favorite']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);
@@ -911,7 +911,7 @@ class FileController extends Controller
                 'public_path' => $newPublicPath,
             ]);
 
-            $file->load(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email']);
+            $file->load(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userPermissions.user:id,name,email,photo_profile_url']);
 
             $favorite = $file->favorite()->where('user_id', $user->id)->first();
             $isFavorite = !is_null($favorite);

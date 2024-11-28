@@ -65,7 +65,7 @@ class SharingController extends Controller
 
             // Ambil daftar user (id, name, email) yang memiliki akses ke folder
             $sharedUsers = UserFolderPermission::where('folder_id', $folder->id)
-                ->with(['user:id,name,email', 'user.instances:id,name,address']) // Hanya memuat kolom yang dibutuhkan
+                ->with(['user:id,name,email,photo_profile_url', 'user.instances:id,name,address']) // Hanya memuat kolom yang dibutuhkan
                 ->get()
                 ->map(function ($permission) {
                     return [
@@ -77,7 +77,7 @@ class SharingController extends Controller
                             'id' => $permission->user->id,
                             'name' => $permission->user->name,
                             'email' => $permission->user->email,
-'photo_profile_url' => $permission->user->photo_profile_url,
+                            'photo_profile_url' => $permission->user->photo_profile_url,
                         ]
                     ];
                 });
@@ -130,7 +130,7 @@ class SharingController extends Controller
             // Query untuk mengambil semua folder yang dibagikan ke user
             $sharedFoldersQuery = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders']);
+            })->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders']);
 
             // Jika ada filter berdasarkan nama instansi, tambahkan ke query
             if ($instanceNameFilter) {
@@ -162,7 +162,7 @@ class SharingController extends Controller
             // Query untuk mengambil file yang dibagikan ke user dengan pagination
             $sharedFilesQuery = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+            })->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address']);
 
             if ($instanceNameFilter) {
                 $sharedFilesQuery->whereHas('instances', function ($query) use ($instanceNameFilter) {

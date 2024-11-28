@@ -48,26 +48,26 @@ class SearchController extends Controller
             // Pencarian folder milik user
             $ownFoldersQuery = Folder::where('user_id', $user->id)
                 ->where('name', 'LIKE', '%' . $request->name . '%')
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                ->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address']);
 
             // Pencarian file milik user
             $ownFilesQuery = File::where('user_id', $user->id)
                 ->where('name', 'LIKE', '%' . $request->name . '%')
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                ->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address']);
 
             // Pencarian folder yang dibagikan kepada user
             $sharedFoldersQuery = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
                 ->where('name', 'LIKE', '%' . $request->name . '%')
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                ->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address']);
 
             // Pencarian file yang dibagikan kepada user
             $sharedFilesQuery = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
                 ->where('name', 'LIKE', '%' . $request->name . '%')
-                ->with(['user:id,name,email', 'tags:id,name', 'instances:id,name,address']);
+                ->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address']);
 
             // Paginasi untuk folder milik user dan folder yang dibagikan
             $ownFolders = $ownFoldersQuery->paginate($perPage, ['*'], 'own_folders_page', $folderPage);

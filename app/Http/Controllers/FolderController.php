@@ -184,7 +184,7 @@ class FolderController extends Controller
             $parentFolder = Folder::where('user_id', $user->id)
                 ->whereNull('parent_id')
                 ->with([
-                    'user:id,name,email',
+                    'user:id,name,email,photo_profile_url',
                     'tags:id,name',
                     'instances:id,name,address',
                     'userFolderPermissions',
@@ -195,7 +195,7 @@ class FolderController extends Controller
                     'subfolders.userFolderPermissions',
                     'subfolders.favorite', // Relasi favorite untuk subfolders
                     'files.folder:id',
-                    'files.user:id,name,email', // Ambil data user yang terkait dengan file
+                    'files.user:id,name,email,photo_profile_url', // Ambil data user yang terkait dengan file
                     'files.tags:id,name', // Ambil tags file
                     'files.instances:id,name,address', // Ambil instances file
                     'files.favorite',
@@ -346,18 +346,18 @@ class FolderController extends Controller
         try {
             // Cari folder dengan ID yang diberikan dan sertakan subfolder, file, tags, instances, dan userFolderPermissions yang relevan
             $folder = Folder::with([
-                'user:id,name,email',
+                'user:id,name,email,photo_profile_url',
                 'parentFolder:id',
                 'tags:id,name',
                 'instances:id,name,address',
                 'favorite',
                 'userFolderPermissions', // Menambahkan relasi untuk mengambil shared users
-                'subfolders.user:id,name,email', // Ambil data user yang terkait dengan folder
+                'subfolders.user:id,name,email,photo_profile_url', // Ambil data user yang terkait dengan folder
                 'subfolders.tags:id,name', // Ambil tags folder
                 'subfolders.instances:id,name,address', // Ambil instances folder
                 'subfolders.userFolderPermissions',
                 'subfolders.favorite', // Relasi favorite untuk subfolders
-                'files.user:id,name,email', // Ambil data user yang terkait dengan file
+                'files.user:id,name,email,photo_profile_url', // Ambil data user yang terkait dengan file
                 'files.favorite',
                 'files.folder:id',
                 'files.tags:id,name', // Ambil tags file
@@ -634,7 +634,7 @@ class FolderController extends Controller
             Storage::makeDirectory($fullPath);
 
             // Load instances and tags for the response
-            $newFolder->load('user:id,name,email', 'parentFolder:id', 'instances:id,name,address', 'tags:id,name');
+            $newFolder->load('user:id,name,email,photo_profile_url', 'parentFolder:id', 'instances:id,name,address', 'tags:id,name');
 
             $newFolder->parent_id = $newFolder->parentFolder->id ?? null;
 
@@ -724,7 +724,7 @@ class FolderController extends Controller
             // Menambahkan tag ke folder (tabel pivot folder_has_tags)
             $folder->tags()->attach($tag->id);
 
-            $folder->load(['user:id,name,email', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
+            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
 
             // Ubah response parent_id menjadi id dari parent folder
             $folder->parent_id = $folder->parentFolder->id ?? null;
@@ -844,7 +844,7 @@ class FolderController extends Controller
             // Menghapus tag dari folder (tabel pivot folder_has_tags)
             $folder->tags()->detach($tag->id);
 
-            $folder->load(['user:id,name,email', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
+            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
 
             $folder->parent_id = $folder->parentFolder->id ?? null;
 
@@ -972,7 +972,7 @@ class FolderController extends Controller
                 Storage::move($oldFullPath, $newFullPath);
             }
 
-            $folder->load(['user:id,name,email', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
+            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
 
             $folder->parent_id = $folder->parentFolder->id ?? null;
 
@@ -1219,7 +1219,7 @@ class FolderController extends Controller
                 Storage::move($oldFullPath, $newFullPath);
             }
 
-            $folder->load(['user:id,name,email', 'parentFolder:id', 'tags:id,name', 'instances:id,name', 'favorite', 'userFolderPermissions']);
+            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name', 'favorite', 'userFolderPermissions']);
 
             $folder->parent_id = $folder->parentFolder;
 
