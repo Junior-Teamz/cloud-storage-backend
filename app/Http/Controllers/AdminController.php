@@ -931,6 +931,7 @@ class AdminController extends Controller
                 $storageUsagePerInstance[] = [
                     'instance_id' => $instance->id,
                     'instance_name' => $instance->name,
+                    'instance_address' => $instance->address,
                     'storage_usage_raw' => $totalStorageUsage, // dalam bytes
                     'storage_usage_formatted' => $this->formatSizeUnits($totalStorageUsage), // format sesuai ukuran (KB, MB, GB, dll.)
                     'total_folders' => $totalFolders,
