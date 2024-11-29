@@ -970,37 +970,50 @@ class AdminController extends Controller
         }
 
         try {
-            // Ambil semua tag beserta hubungan dengan folder dan file
+            // Ambil semua tag beserta hubungannya
             $tags = Tags::with(['folders.instances', 'files.instances'])->get();
 
             $tagsUsedByInstance = [];
 
             foreach ($tags as $tag) {
-                // Kumpulkan semua instansi yang menggunakan tag melalui folder atau file
                 $instances = collect();
 
-                // Tambahkan instansi dari folder
+                // Mengumpulkan semua instansi yang menggunakan tag melalui folder
                 foreach ($tag->folders as $folder) {
                     $instances = $instances->merge($folder->instances);
                 }
 
-                // Tambahkan instansi dari file
+                // Mengumpulkan semua instansi yang menggunakan tag melalui file
                 foreach ($tag->files as $file) {
                     $instances = $instances->merge($file->instances);
+                }
+
+                // Mengumpulkan semua instansi yang menggunakan tag melalui berita
+                foreach ($tag->news as $news) {
+                    $instances = $instances->merge($news->instances);
                 }
 
                 // Hapus duplikasi instansi
                 $instances = $instances->unique('id');
 
-                // Format data
+                // Format data untuk masing-masing instansi
                 $tagsUsedByInstance[] = [
                     'tag_id' => $tag->id,
                     'tag_name' => $tag->name,
-                    'instances' => $instances->map(function ($instance) {
+                    'instances' => $instances->map(function ($instance) use ($tag) {
+                        $folderUsage = $tag->folders()->whereHas('instances', function ($query) use ($instance) {
+                            $query->where('id', $instance->id);
+                        })->count();
+
+                        $fileUsage = $tag->files()->whereHas('instances', function ($query) use ($instance) {
+                            $query->where('id', $instance->id);
+                        })->count();
+
                         return [
                             'instance_id' => $instance->id,
                             'instance_name' => $instance->name,
-                            'instance_address' => $instance->address
+                            'instance_address' => $instance->address,
+                            'tag_use_count' => $folderUsage + $fileUsage // gabungan total dari tag digunakan pada folder dan file per instansi. TODO: penggunaan tag pada file harus dihapus.
                         ];
                     }),
                 ];

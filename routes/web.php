@@ -22,3 +22,5 @@ Route::get('/', function () {
 Route::get('/email_page', function () {
     return view('mails.reset-password');
 })->name('email_template');
+
+require __DIR__.'/auth.php';

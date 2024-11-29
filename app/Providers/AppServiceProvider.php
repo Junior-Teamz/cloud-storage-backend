@@ -6,8 +6,11 @@ use App\Services\CheckAdminService;
 use App\Services\CheckFilePermissionService;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Opcodes\LogViewer\Facades\LogViewer;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,5 +44,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // FOR FIXING ERROR NO HINT PATH FOR ERRORS TEMPLATE
         View::addNamespace('errors', resource_path('views/errors'));
+
+        LogViewer::auth(function () {
+            return Auth::guard('web')->check();
+        });
     }
 }
