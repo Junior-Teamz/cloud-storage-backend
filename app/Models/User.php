@@ -22,6 +22,8 @@ class User extends Authenticatable implements JWTSubject
 
     protected $guard_name = 'api';
 
+    protected $appends = ['roles'];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -59,8 +61,6 @@ class User extends Authenticatable implements JWTSubject
             'password' => 'hashed',
         ];
     }
-
-    protected $appends = ['roles'];
 
     public function getRolesAttribute()
     {
