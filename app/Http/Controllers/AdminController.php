@@ -329,8 +329,6 @@ class AdminController extends Controller
 
             $newUser->load('instances:id,name,address');
 
-            $newUser['role'] = $newUser->roles->pluck('name');
-
             // Cari folder yang terkait dengan user yang baru dibuat
             $userFolders = Folder::where('user_id', $newUser->id)->get();
 
@@ -338,9 +336,6 @@ class AdminController extends Controller
                 // Perbarui relasi instance pada setiap folder terkait
                 $folder->instances()->sync($instance->id);
             }
-
-            // Sembunyikan relasi roles dari hasil response
-            $newUser->makeHidden('roles');
 
             DB::commit();
 
@@ -511,11 +506,6 @@ class AdminController extends Controller
             DB::commit();
 
             $userToBeUpdated->load('instances:id,name,address');
-
-            $userToBeUpdated['role'] = $userToBeUpdated->roles->pluck('name');
-
-            // Sembunyikan relasi roles dari hasil response
-            $userToBeUpdated->makeHidden('roles');
 
             return response()->json([
                 'message' => 'User updated successfully.',

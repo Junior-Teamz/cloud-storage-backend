@@ -135,10 +135,6 @@ class SearchController extends Controller
             // Dapatkan hasil dengan pagination
             $allUser = $query->paginate(10);
 
-            // Sembunyikan relasi roles dari hasil response
-            $allUser->makeHidden('roles');
-
-            // Kembalikan hasil pagination tanpa membungkus lagi
             return response()->json($allUser, 200);
         } catch (\Exception $e) {
             Log::error("Error occurred on getting user list: " . $e->getMessage(), [

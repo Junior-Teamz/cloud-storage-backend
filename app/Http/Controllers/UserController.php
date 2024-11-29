@@ -118,8 +118,6 @@ class UserController extends Controller
 
     //         $user->load('instances:id,name,address');
 
-    //         $user['role'] = $user->roles->pluck('name');
-
     //         // Cari folder yang terkait dengan user yang baru dibuat
     //         $userFolders = Folder::where('user_id', $user->id)->get();
 
@@ -127,9 +125,6 @@ class UserController extends Controller
     //             // Perbarui relasi instance pada setiap folder terkait
     //             $folder->instances()->sync($instance->id);
     //         }
-
-    //         // Sembunyikan relasi roles dari hasil response
-    //         $user->makeHidden('roles');
 
     //         // COMMIT JIKA TIDAK ADA KESALAHAN
     //         DB::commit();
@@ -155,7 +150,7 @@ class UserController extends Controller
      * Retrieve information about a specific user.
      *
      * This method retrieves the details of a user identified by their unique ID.
-     * It includes the user's associated instances, role, and hides the 'roles' relationship from the response.
+     * It includes the user's associated instances.
      *
      * @param string $id The UUID of the user to retrieve information for.
      * @return \Illuminate\Http\JsonResponse A JSON response containing the user's information or an error message.
@@ -318,11 +313,6 @@ class UserController extends Controller
             }
 
             $userToBeUpdated->load('instances:id,name,address');
-
-            $userToBeUpdated['role'] = $userToBeUpdated->roles->pluck('name');
-
-            // Sembunyikan relasi roles dari hasil response
-            $userToBeUpdated->makeHidden('roles');
 
             DB::commit();
 
