@@ -22,7 +22,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $guard_name = 'api';
 
-    protected $appends = ['roles'];
+    protected $appends = ['role'];
 
     /**
      * The attributes that are mass assignable.
