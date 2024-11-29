@@ -1002,13 +1002,13 @@ class AdminController extends Controller
                     'tag_name' => $tag->name,
                     'instances' => $instances->map(function ($instance) use ($tag) {
                         $folderUsage = $tag->folders()->whereHas('instances', function ($query) use ($instance) {
-                            $query->where('id', $instance->id);
+                            $query->where('instances.id', $instance->id); // Tambahkan prefix tabel
                         })->count();
-
+                        
                         $fileUsage = $tag->files()->whereHas('instances', function ($query) use ($instance) {
-                            $query->where('id', $instance->id);
+                            $query->where('instances.id', $instance->id); // Tambahkan prefix tabel
                         })->count();
-
+                        
                         return [
                             'instance_id' => $instance->id,
                             'instance_name' => $instance->name,
