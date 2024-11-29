@@ -22,7 +22,7 @@ class User extends Authenticatable implements JWTSubject
 
     protected $guard_name = 'api';
 
-    protected $appends = ['roles'];
+    protected $appends = ['user_roles'];
 
     /**
      * The attributes that are mass assignable.
@@ -62,9 +62,18 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
-    public function getRolesAttribute()
+    // Getter untuk roles yang tidak konflik
+    public function getUserRolesAttribute()
     {
         return $this->getRoleNames()->toArray(); // Mengambil nama-nama role sebagai array
+    }
+
+    // Alias agar tetap mendukung nama 'roles'
+    public function toArray()
+    {
+        $array = parent::toArray();
+        $array['roles'] = $this->user_roles; // Tambahkan roles secara manual
+        return $array;
     }
 
     protected static function booted()
