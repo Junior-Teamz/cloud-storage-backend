@@ -65,7 +65,11 @@ class AuthController extends Controller
 
             // Dapatkan informasi pengguna
             $user = auth()->guard('api')->user();
-            $userData = $user->only(['name', 'email']);
+
+            $userData = array_intersect_key(
+                $user->toArray(),
+                array_flip(['name', 'email', 'roles', 'photo_profile_url'])
+            );
 
             // Buat access token ID
             $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil ID dari access token
