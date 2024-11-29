@@ -60,9 +60,11 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
+    protected $appends = ['roles'];
+
     public function getRolesAttribute()
     {
-        return $this->roles->pluck('name')->toArray();
+        return $this->getRoleNames()->toArray(); // Mengambil nama-nama role sebagai array
     }
 
     protected static function booted()
