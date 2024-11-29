@@ -78,7 +78,7 @@ class UserController extends Controller
 
     //     try {
     //         $instance = Instance::where('id', $request->instance_id)->first();
-    
+
     //         // MEMULAI TRANSACTION MYSQL
     //         DB::beginTransaction();
 
@@ -166,15 +166,19 @@ class UserController extends Controller
 
             $userInfo = User::where('id', $id)->with(['instances:id,name,address'])->first();
 
-            if(!$userInfo){
+            if (!$userInfo) {
                 return response()->json([
                     'message' => 'User not found.'
                 ], 200);
             }
-            
-            $userInfo['role'] = $userInfo->roles->pluck('name');
-            
-            // Sembunyikan relasi roles dari hasil response
+
+            // Ambil hanya nama roles menggunakan Spatie
+            $userRoles = $userInfo->getRoleNames(); // Mengambil nama roles langsung dari Spatie
+
+            // Tambahkan role names ke atribut 'roles' pada respons
+            $userInfo->setAttribute('roles', $userRoles);
+
+            // Sembunyikan relasi asli 'roles' jika ada
             $userInfo->makeHidden('roles');
 
             return response()->json([
@@ -206,9 +210,13 @@ class UserController extends Controller
 
             $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
 
-            $userInfo['role'] = $userInfo->roles->pluck('name');
+            // Ambil hanya nama roles menggunakan Spatie
+            $userRoles = $userInfo->getRoleNames(); // Mengambil nama roles langsung dari Spatie
 
-            // Sembunyikan relasi roles dari hasil response
+            // Tambahkan role names ke atribut 'roles' pada respons
+            $userInfo->setAttribute('roles', $userRoles);
+
+            // Sembunyikan relasi asli 'roles' jika ada
             $userInfo->makeHidden('roles');
 
             return response()->json([
@@ -300,12 +308,12 @@ class UserController extends Controller
             // Perbarui user hanya dengan data yang ada dalam request
             $userToBeUpdated->update(array_filter($dataToUpdate));
 
-            if($request->has('photo_profile')){
+            if ($request->has('photo_profile')) {
 
                 $photoFile = $request->file('photo_profile');
 
                 $photoProfilePath = 'users_photo_profile';
-                
+
                 // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
                 if (!Storage::disk('public')->exists($photoProfilePath)) {
                     Storage::disk('public')->makeDirectory($photoProfilePath);
@@ -326,11 +334,11 @@ class UserController extends Controller
                 $userToBeUpdated->photo_profile_url = $photoProfileUrl;
                 $userToBeUpdated->save();
             }
-            
+
             $userToBeUpdated->load('instances:id,name,address');
-            
+
             $userToBeUpdated['role'] = $userToBeUpdated->roles->pluck('name');
-            
+
             // Sembunyikan relasi roles dari hasil response
             $userToBeUpdated->makeHidden('roles');
 
@@ -397,8 +405,6 @@ class UserController extends Controller
             return response()->json([
                 'message' => 'Password updated successfully.'
             ], 200);
-
-
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error occurred on updating password: ' . $e->getMessage(), [
@@ -446,7 +452,7 @@ class UserController extends Controller
             if ($userData->photo_profile_path && Storage::disk('public')->exists($userData->photo_profile_path)) {
                 Storage::disk('public')->delete($userData->photo_profile_path);
             }
-            
+
             $userData->delete();
 
             DB::commit();

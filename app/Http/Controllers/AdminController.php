@@ -237,9 +237,13 @@ class AdminController extends Controller
                 ], 200);
             }
 
-            $user['role'] = $user->roles->pluck('name');
+            // Ambil hanya nama roles menggunakan Spatie
+            $userRoles = $user->getRoleNames(); // Mengambil nama roles langsung dari Spatie
 
-            // Sembunyikan relasi roles dari hasil response
+            // Tambahkan role names ke atribut 'roles' pada respons
+            $user->setAttribute('roles', $userRoles);
+
+            // Sembunyikan relasi asli 'roles' jika ada
             $user->makeHidden('roles');
 
             return response()->json([
@@ -986,11 +990,6 @@ class AdminController extends Controller
                 // Mengumpulkan semua instansi yang menggunakan tag melalui file
                 foreach ($tag->files as $file) {
                     $instances = $instances->merge($file->instances);
-                }
-
-                // Mengumpulkan semua instansi yang menggunakan tag melalui berita
-                foreach ($tag->news as $news) {
-                    $instances = $instances->merge($news->instances);
                 }
 
                 // Hapus duplikasi instansi
