@@ -172,15 +172,6 @@ class UserController extends Controller
                 ], 200);
             }
 
-            // Ambil hanya nama roles menggunakan Spatie
-            $userRoles = $userInfo->getRoleNames(); // Mengambil nama roles langsung dari Spatie
-
-            // Tambahkan role names ke atribut 'roles' pada respons
-            $userInfo->setAttribute('roles', $userRoles);
-
-            // Sembunyikan relasi asli 'roles' jika ada
-            $userInfo->makeHidden('roles');
-
             return response()->json([
                 'data' => $userInfo
             ]);
@@ -209,15 +200,6 @@ class UserController extends Controller
         try {
 
             $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
-
-            // Ambil hanya nama roles menggunakan Spatie
-            $userRoles = $userInfo->getRoleNames(); // Mengambil nama roles langsung dari Spatie
-
-            // Tambahkan role names ke atribut 'roles' pada respons
-            $userInfo->setAttribute('roles', $userRoles);
-
-            // Sembunyikan relasi asli 'roles' jika ada
-            $userInfo->makeHidden('roles');
 
             return response()->json([
                 'data' => $userInfo

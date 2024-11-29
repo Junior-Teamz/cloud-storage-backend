@@ -65,13 +65,6 @@ class AdminController extends Controller
                     ])
                     ->paginate(10);
 
-                // Tambahkan informasi role dan sembunyikan relasi roles
-                $allUser->getCollection()->transform(function ($user) {
-                    $user['role'] = $user->roles->pluck('name');
-                    $user->makeHidden('roles');
-                    return $user;
-                });
-
                 return response()->json($allUser, 200);
             }
             // Cari data berdasarkan Email User
@@ -88,13 +81,6 @@ class AdminController extends Controller
                         }
                     ])
                     ->paginate(10);
-
-                // Tambahkan informasi role dan sembunyikan relasi roles
-                $allUser->getCollection()->transform(function ($user) {
-                    $user['role'] = $user->roles->pluck('name');
-                    $user->makeHidden('roles');
-                    return $user;
-                });
 
                 return response()->json($allUser, 200);
             }
@@ -115,13 +101,6 @@ class AdminController extends Controller
                     ])
                     ->paginate(10);
 
-                // Tambahkan informasi role dan sembunyikan relasi roles
-                $allUser->getCollection()->transform(function ($user) {
-                    $user['role'] = $user->roles->pluck('name');
-                    $user->makeHidden('roles');
-                    return $user;
-                });
-
                 return response()->json($allUser, 200);
             } else {
                 // Ambil semua user dengan relasi instances, roles, dan folder root
@@ -131,13 +110,6 @@ class AdminController extends Controller
                         $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
                     }
                 ])->paginate(10);
-
-                // Iterasi setiap user dan tambahkan informasi role serta sembunyikan relasi roles
-                $allUser->getCollection()->transform(function ($user) {
-                    $user['role'] = $user->roles->pluck('name');
-                    $user->makeHidden('roles');
-                    return $user;
-                });
 
                 return response()->json($allUser, 200);
             }
@@ -236,15 +208,6 @@ class AdminController extends Controller
                     'data' => []
                 ], 200);
             }
-
-            // Ambil hanya nama roles menggunakan Spatie
-            $userRoles = $user->getRoleNames(); // Mengambil nama roles langsung dari Spatie
-
-            // Tambahkan role names ke atribut 'roles' pada respons
-            $user->setAttribute('roles', $userRoles);
-
-            // Sembunyikan relasi asli 'roles' jika ada
-            $user->makeHidden('roles');
 
             return response()->json([
                 'data' => $user
