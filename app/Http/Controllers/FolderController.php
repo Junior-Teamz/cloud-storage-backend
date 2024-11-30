@@ -30,34 +30,6 @@ class FolderController extends Controller
     }
 
     /**
-     * Calculate the total size of a folder and all its subfolders and files.
-     *
-     * This function takes a folder object and recursively calculates the total size of the folder
-     * and all its subfolders and files. It returns the total size in bytes.
-     *
-     * @param \App\Models\Folder $folder The folder object to calculate the size for.
-     *
-     * @return int The total size of the folder in bytes.
-     */
-    private function calculateFolderSize(Folder $folder)
-    {
-        $totalSize = 0;
-
-        // Hitung ukuran semua file di folder
-        foreach ($folder->files as $file) {
-            $totalSize += $file->size;
-        }
-
-        // Rekursif menghitung ukuran semua subfolder
-        foreach ($folder->subfolders as $subfolder) {
-            $totalSize += $this->calculateFolderSize($subfolder);
-        }
-
-        return $totalSize;
-    }
-
-
-    /**
      * Format bytes into a human-readable size unit (KB, MB, GB).
      *
      * This helper function converts a given size in bytes into a more user-friendly representation,
@@ -108,7 +80,7 @@ class FolderController extends Controller
             }
 
             // Hitung total penyimpanan yang digunakan user
-            $totalUsedStorage = $this->calculateFolderSize($rootFolder);
+            $totalUsedStorage = $rootFolder->calculateTotalSize();
 
             // Format ukuran penyimpanan ke dalam KB, MB, atau GB
             $formattedStorageSize = $this->formatSizeUnits($totalUsedStorage);
@@ -218,17 +190,13 @@ class FolderController extends Controller
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
-                // Hitung total subfolder dan file di dalam folder
-                $totalSubfolder = $folder->subfolders()->count();
-                $totalFile = $folder->files()->count();
-
                 return [
                     'folder_id' => $folder->id,
                     'name' => $folder->name,
                     'public_path' => $folder->public_path,
-                    'total_subfolder' => $totalSubfolder, // Menampilkan total subfolder
-                    'total_file' => $totalFile, // Menampilkan total file di dalam folder
-                    'total_size' => $this->calculateFolderSize($folder), // Hitung total ukuran folder
+                    'total_subfolder' => $folder->calculateTotalSubfolder(), // Menampilkan total subfolder
+                    'total_file' => $folder->calculateTotalFile(), // Menampilkan total file di dalam folder
+                    'total_size' => $folder->calculateTotalSize(), // Hitung total ukuran folder
                     'type' => $folder->type,
                     'is_favorite' => $isFavorite,
                     'favorited_at' => $favoritedAt,
@@ -377,18 +345,14 @@ class FolderController extends Controller
             $isFavorite = !is_null($favorite);
             $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
-            // Hitung total subfolder dan file di dalam folder
-            $totalSubfolder = $folder->subfolders()->count();
-            $totalFile = $folder->files()->count();
-
             // Persiapkan respon untuk folder
             $folderResponse = [
                 'folder_id' => $folder->id,
                 'name' => $folder->name,
                 'public_path' => $folder->public_path,
-                'total_subfolder' => $totalSubfolder,
-                'total_file' => $totalFile,
-                'total_size' => $this->calculateFolderSize($folder),
+                'total_subfolder' => $folder->calculateTotalSubfolder(),
+                'total_file' => $folder->calculateTotalFile(),
+                'total_size' => $folder->calculateTotalSize(),
                 'type' => $folder->type,
                 'parent_id' => $folder->parent_id ? $folder->parentFolder->id ?? null : null,
                 'is_favorited' => $isFavorite, // Tambahkan atribut is_favorited
@@ -419,21 +383,18 @@ class FolderController extends Controller
                 $favorite = $subfolder->favorite()->where('user_id', $user->id)->first();
                 $isFavorite = !is_null($favorite);
                 $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-                // Hitung total subfolder dan file di dalam folder
-                $totalSubfolder = $subfolder->subfolders()->count();
-                $totalFile = $subfolder->files()->count();
 
                 return [
                     'id' => $subfolder->id,
                     'name' => $subfolder->name,
                     'public_path' => $subfolder->public_path,
-                    'total_subfolder' => $totalSubfolder,
-                    'total_file' => $totalFile,
-                    'total_size' => $this->calculateFolderSize($subfolder), // Hitung total ukuran folder
+                    'total_subfolder' => $subfolder->calculateTotalSubfolder(),
+                    'total_file' => $subfolder->calculateTotalFile(),
+                    'total_size' => $subfolder->calculateTotalSize(), 
                     'type' => $subfolder->type,
                     'created_at' => $subfolder->created_at,
                     'updated_at' => $subfolder->updated_at,
-                    'is_favorited' => $isFavorite, // Tambahkan atribut is_favorited
+                    'is_favorited' => $isFavorite,
                     'favorited_at' => $favoritedAt,
                     'user' => $subfolder->user,
                     'tags' => $subfolder->tags,

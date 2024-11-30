@@ -71,6 +71,41 @@ class Folder extends Model
         return implode('/', $path);
     }
 
+    // Function untuk menghitung ukuran folder
+    public function calculateTotalSize()
+    {
+        return $this->calculateFolderSize($this);
+    }
+
+    // Function untuk menghitung total subfolder
+    public function calculateTotalSubfolder()
+    {
+        return $this->subfolders()->count();
+    }
+
+    // Function untuk menghitung total file pada suatu folder
+    public function calculateTotalFile()
+    {
+        return $this->files()->count();
+    }
+
+    private function calculateFolderSize(Folder $folder)
+    {
+        $totalSize = 0;
+
+        // Hitung ukuran semua file di folder
+        foreach ($folder->files as $file) {
+            $totalSize += $file->size;
+        }
+
+        // Rekursif menghitung ukuran semua subfolder
+        foreach ($folder->subfolders as $subfolder) {
+            $totalSize += $this->calculateFolderSize($subfolder);
+        }
+
+        return $totalSize;
+    }
+
     public function files()
     {
         return $this->hasMany(File::class);

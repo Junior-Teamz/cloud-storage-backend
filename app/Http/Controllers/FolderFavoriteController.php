@@ -26,32 +26,6 @@ class FolderFavoriteController extends Controller
     }
 
     /**
-     * Calculate the total size of a folder and its subfolders.
-     *
-     * This method recursively calculates the total size of a folder, including the sizes of all files
-     * within the folder and its subfolders.
-     *
-     * @param Folder $folder The folder object to calculate the size of.
-     * @return int The total size of the folder in bytes.
-     */
-    private function calculateFolderSize(Folder $folder)
-    {
-        $totalSize = 0;
-
-        // Hitung ukuran semua file di folder
-        foreach ($folder->files as $file) {
-            $totalSize += $file->size;
-        }
-
-        // Rekursif menghitung ukuran semua subfolder
-        foreach ($folder->subfolders as $subfolder) {
-            $totalSize += $this->calculateFolderSize($subfolder);
-        }
-
-        return $totalSize;
-    }
-
-    /**
      * Count all favorite folders.
      *
      * This function counts the total number of favorite folders,
@@ -367,7 +341,7 @@ class FolderFavoriteController extends Controller
                         'id' => $folder->id,
                         'name' => $folder->name,
                         'public_path' => $folder->public_path,
-                        'total_size' => $this->calculateFolderSize($folder),
+                        'total_size' => $folder->calculateTotalSize(),
                         'type' => $folder->type,
                         'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
                         'is_favorited' => !is_null($existingFavorite),
@@ -412,7 +386,7 @@ class FolderFavoriteController extends Controller
                     'id' => $folder->id,
                     'name' => $folder->name,
                     'public_path' => $folder->public_path,
-                    'total_size' => $this->calculateFolderSize($folder),
+                    'total_size' => $folder->calculateTotalSize(),
                     'type' => $folder->type,
                     'parent_id' => $folder->parent_id ? $folder->parentFolder->id : null,
                     'is_favorited' => !is_null($isFavorite),
@@ -509,7 +483,7 @@ class FolderFavoriteController extends Controller
                     'id' => $favoriteFolder->id,
                     'name' => $favoriteFolder->name,
                     'public_path' => $favoriteFolder->public_path,
-                    'total_size' => $this->calculateFolderSize($favoriteFolder),
+                    'total_size' => $favoriteFolder->calculateTotalSize(),
                     'type' => $favoriteFolder->type,
                     'parent_id' => $favoriteFolder->parent_id ? $favoriteFolder->parentFolder->id : null,
                     'is_favorited' => !is_null($loadFavorite),  // Tentukan apakah folder masih favorit

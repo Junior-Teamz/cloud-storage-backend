@@ -159,7 +159,7 @@ class UserController extends Controller
     {
         try {
 
-            $userInfo = User::where('id', $id)->with(['instances:id,name,address'])->first();
+            $userInfo = User::with(['instances:id,name,address'])->where('id', $id)->first();
 
             if (!$userInfo) {
                 return response()->json([
@@ -194,7 +194,7 @@ class UserController extends Controller
 
         try {
 
-            $userInfo = User::where('id', $user->id)->with(['instances:id,name,address'])->first();
+            $userInfo = User::with('instances:id,name,address')->where('id', $user->id)->first();
 
             return response()->json([
                 'data' => $userInfo

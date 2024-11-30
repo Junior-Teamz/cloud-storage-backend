@@ -50,69 +50,38 @@ class AdminController extends Controller
         }
 
         try {
-            // Cari data berdasarkan Nama User
+            // Cari data berdasarkan query parameter
+            $query = User::query();
+
             if ($request->query('name')) {
-
-                $keywordName = $request->query('name');
-
-                // Cari user berdasarkan nama dengan relasi instances, roles, dan folder root
-                $allUser = User::where('name', 'like', '%' . $keywordName . '%')
-                    ->with([
-                        'instances:id,name,address',
-                        'folders' => function ($query) {
-                            $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
-                        }
-                    ])
-                    ->paginate(10);
-
-                return response()->json($allUser, 200);
+                $query->where('name', 'like', '%' . $request->query('name') . '%');
+            } elseif ($request->query('email')) {
+                $query->where('email', 'like', '%' . $request->query('email') . '%');
+            } elseif ($request->query('instance')) {
+                $query->whereHas('instances', function ($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->query('instance') . '%');
+                });
             }
-            // Cari data berdasarkan Email User
-            else if ($request->query('email')) {
 
-                $keywordEmail = $request->query('email');
+            $allUser = $query->with([
+                'instances:id,name,address',
+                'folders' => function ($query) {
+                    $query->whereNull('parent_id');
+                }
+            ])->paginate(10);
 
-                // Cari user berdasarkan email dengan relasi instances, roles, dan folder root
-                $allUser = User::where('email', 'like', '%' . $keywordEmail . '%')
-                    ->with([
-                        'instances:id,name,address',
-                        'folders' => function ($query) {
-                            $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
-                        }
-                    ])
-                    ->paginate(10);
+            // Proses untuk menambahkan total_subfolder
+            $allUser->getCollection()->transform(function ($user) {
+                $user->folders->transform(function ($folder) {
+                    $folder->total_subfolder = $folder->calculateTotalSubfolder();
+                    $folder->total_file = $folder->calculateTotalFile(); // Menampilkan total file di dalam folder
+                    $folder->total_size = $folder->calculateTotalSize(); // Hitung total ukuran folder
+                    return $folder;
+                });
+                return $user;
+            });
 
-                return response()->json($allUser, 200);
-            }
-            // Cari berdasarkan nama instansi yang terdaftar pada user
-            else if ($request->query('instance')) {
-
-                $keywordInstance = $request->query('instance');
-
-                // Cari user berdasarkan nama instansi dengan relasi instances, roles, dan folder root
-                $allUser = User::whereHas('instances', function ($query) use ($keywordInstance) {
-                    $query->where('name', 'like', '%' . $keywordInstance . '%');
-                })
-                    ->with([
-                        'instances:id,name,address',
-                        'folders' => function ($query) {
-                            $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
-                        }
-                    ])
-                    ->paginate(10);
-
-                return response()->json($allUser, 200);
-            } else {
-                // Ambil semua user dengan relasi instances, roles, dan folder root
-                $allUser = User::with([
-                    'instances:id,name,address',
-                    'folders' => function ($query) {
-                        $query->whereNull('parent_id')->select('id'); // Ambil folder root dan hide nanoid
-                    }
-                ])->paginate(10);
-
-                return response()->json($allUser, 200);
-            }
+            return response()->json($allUser, 200);
         } catch (\Exception $e) {
             Log::error("Error occurred on getting user list: " . $e->getMessage(), [
                 'trace' => $e->getTrace()
@@ -200,7 +169,20 @@ class AdminController extends Controller
 
         try {
 
-            $user = User::where('id', $id)->with('instances:id,name,address')->first();
+            $user = User::with([
+                'instances:id,name,address',
+                'folders' => function ($query) {
+                    $query->whereNull('parent_id');
+                }
+            ])->where('id', $id)->first();
+
+            // Transformasi data pada folders
+            $user->folders->transform(function ($folder) {
+                $folder->total_subfolder = $folder->calculateTotalSubfolder();
+                $folder->total_file = $folder->calculateTotalFile();
+                $folder->total_size = $folder->calculateTotalSize();
+                return $folder;
+            });
 
             if (!$user) {
                 return response()->json([
@@ -956,11 +938,11 @@ class AdminController extends Controller
                         $folderUsage = $tag->folders()->whereHas('instances', function ($query) use ($instance) {
                             $query->where('instances.id', $instance->id); // Tambahkan prefix tabel
                         })->count();
-                        
+
                         $fileUsage = $tag->files()->whereHas('instances', function ($query) use ($instance) {
                             $query->where('instances.id', $instance->id); // Tambahkan prefix tabel
                         })->count();
-                        
+
                         return [
                             'instance_id' => $instance->id,
                             'instance_name' => $instance->name,
