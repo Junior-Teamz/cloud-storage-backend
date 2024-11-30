@@ -355,6 +355,16 @@ class FolderController extends Controller
                 'total_size' => $folder->calculateTotalSize(),
                 'type' => $folder->type,
                 'parent_id' => $folder->parent_id ? $folder->parentFolder->id ?? null : null,
+            ];
+
+            // Tambahkan created_at dan updated_at di posisi tertentu jika folder bukan root
+            if ($folder->parent_id !== null) {
+                $folderResponse['created_at'] = $folder->created_at;
+                $folderResponse['updated_at'] = $folder->updated_at;
+            }
+
+            // Lanjutkan menambahkan atribut lainnya
+            $folderResponse += [
                 'is_favorited' => $isFavorite, // Tambahkan atribut is_favorited
                 'favorited_at' => $favoritedAt,
                 'user' => $folder->user,
@@ -372,9 +382,9 @@ class FolderController extends Controller
                             'name' => $permission->user->name,
                             'email' => $permission->user->email,
                             'photo_profile_url' => $permission->user->photo_profile_url,
-                        ]
+                        ],
                     ];
-                })
+                }),
             ];
 
             // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
@@ -390,7 +400,7 @@ class FolderController extends Controller
                     'public_path' => $subfolder->public_path,
                     'total_subfolder' => $subfolder->calculateTotalSubfolder(),
                     'total_file' => $subfolder->calculateTotalFile(),
-                    'total_size' => $subfolder->calculateTotalSize(), 
+                    'total_size' => $subfolder->calculateTotalSize(),
                     'type' => $subfolder->type,
                     'created_at' => $subfolder->created_at,
                     'updated_at' => $subfolder->updated_at,
@@ -666,6 +676,17 @@ class FolderController extends Controller
         try {
             $folder = Folder::where('id', $request->folder_id)->first();
             $tag = Tags::where('id', $request->tag_id)->first();
+
+            if($folder->parent_id === null){
+                Log::warning('Attempt to adding tag to root folder', [
+                    'user_id' => $userLogin->id,
+                    'folder_id' => $folder->id,
+                    'tag_id' => $tag->id
+                ]);
+                return response()->json([
+                    'errors' => 'Cannot add tag to this folder.'
+                ], 403);
+            }
 
             // Memeriksa apakah tag sudah terkait dengan folder
             if ($folder->tags->contains($tag->id)) {

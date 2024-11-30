@@ -76,6 +76,7 @@ class AdminController extends Controller
                     $folder->total_subfolder = $folder->calculateTotalSubfolder();
                     $folder->total_file = $folder->calculateTotalFile(); // Menampilkan total file di dalam folder
                     $folder->total_size = $folder->calculateTotalSize(); // Hitung total ukuran folder
+                    unset($folder->user_id, $folder->created_at, $folder->updated_at, $folder->files, $folder->subfolders);
                     return $folder;
                 });
                 return $user;
@@ -181,6 +182,7 @@ class AdminController extends Controller
                 $folder->total_subfolder = $folder->calculateTotalSubfolder();
                 $folder->total_file = $folder->calculateTotalFile();
                 $folder->total_size = $folder->calculateTotalSize();
+                unset($folder->user_id, $folder->created_at, $folder->updated_at, $folder->files, $folder->subfolders);
                 return $folder;
             });
 

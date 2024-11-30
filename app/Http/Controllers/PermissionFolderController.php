@@ -218,24 +218,33 @@ class PermissionFolderController extends Controller
             $folder = Folder::where('id', $request->folder_id)->first();
             $userInfo = User::where('id', $request->user_id)->first();
 
-            $folderId = $folder->id;
-            $userId = $userInfo->id;
+            if($folder->parent_id === null){
+                Log::warning('Attempt to grant permission on root folder.', [
+                    'folder_id' => $folder->id,
+                    'user_id' => Auth::user()->id,
+                    'user_id_to_be_granted' => $userInfo->id,
+                    'permissions' => $request->permissions
+                ]);
+                return response()->json([
+                    'errors' => 'Cannot grant permission on this folder.'
+                ], 403);
+            }
 
-            if ($folder->user_id == $userId) {
+            if ($folder->user_id == $userInfo->id) {
                 return response()->json([
                     'errors' => 'You cannot modify permissions for the owner of the folder.'
                 ], 403);
             }
 
             // check if the user who owns the folder will grant permissions.
-            $permission = $this->checkPermission($folderId);
+            $permission = $this->checkPermission($folder->id);
             if (!$permission) {
                 return response()->json([
                     'errors' => 'You do not have the authority to grant permissions on this Folder.'
                 ], 403);
             }
 
-            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->with(['user', 'folder'])->first();
+            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userInfo->id)->where('folder_id', $folder->id)->with(['user', 'folder'])->first();
 
             if ($checkUserFolderPermission) {
                 return response()->json([
@@ -247,13 +256,13 @@ class PermissionFolderController extends Controller
 
             // Berikan izin pada folder induk
             $createNewUserFolderPermission = UserFolderPermission::create([
-                'user_id' => $userId,
-                'folder_id' => $folderId,
+                'user_id' => $userInfo->id,
+                'folder_id' => $folder->id,
                 'permissions' => $request->permissions
             ]);
 
             // Terapkan izin pada subfolder dan file (kecuali file yang sudah ada izin)
-            $this->applyPermissionToSubfoldersAndFiles($folder, $userId, $request->permissions);
+            $this->applyPermissionToSubfoldersAndFiles($folder, $userInfo->id, $request->permissions);
 
             DB::commit();
 
