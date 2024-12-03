@@ -79,27 +79,27 @@ class User extends Authenticatable implements JWTSubject
     protected static function booted()
     {
         static::created(function ($user) {
-            // Create the root folder in the database
+            // Buat folder root di database
             $folder = \App\Models\Folder::create([
                 'name' => $user->name . ' Main Folder',
                 'user_id' => $user->id,
-                'parent_id' => null, // Root folder has no parent
+                'parent_id' => null, // Folder root tidak memiliki parent
             ]);
 
             $tag = Tags::where('name', 'Root')->first();
+
             $folder->tags()->attach($tag->id);
 
-            // Get the nanoid of the newly created folder
+            // Ambil nanoid dari folder yang baru dibuat
             $folderNanoid = $folder->nanoid;
 
-            // Create the directory path including 'users'
-            $folderPath = 'users/' . $folderNanoid;
+            // Buat direktori di storage/app/ dengan nama folder adalah nanoid
+            $folderPath = $folderNanoid;
 
-            // Create the physical directory in Laravel's local storage
+            // Buat direktori fisik di penyimpanan lokal Laravel
             Storage::makeDirectory($folderPath);
         });
     }
-
 
     public function getPermissionArray()
     {
