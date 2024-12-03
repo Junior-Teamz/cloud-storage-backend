@@ -7,6 +7,9 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Handle github webhook push event
+ */
 class WebhookController extends Controller
 {
     // Handle webhook push from github repository.
@@ -15,7 +18,7 @@ class WebhookController extends Controller
         // Secret yang diset di GitHub Webhook
         $secret = env('GITHUB_WEBHOOK_SECRET');
         $payload = $request->getContent();
-        
+
         $localSignature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
         $githubSignature = $request->header('X-Hub-Signature-256');
 
