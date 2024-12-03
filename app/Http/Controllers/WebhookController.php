@@ -12,15 +12,18 @@ class WebhookController extends Controller
     // Handle webhook push from github repository.
     public function handle(Request $request)
     {
-        // // Secret yang diset di GitHub Webhook
-        // $secret = env('GITHUB_WEBHOOK_SECRET');
-        // $signature = 'sha256=' . hash_hmac('sha256', $request->getContent(), $secret);
+        // Secret yang diset di GitHub Webhook
+        $secret = env('GITHUB_WEBHOOK_SECRET');
+        $payload = $request->getContent();
+        
+        $localSignature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
+        $githubSignature = $request->header('X-Hub-Signature-256');
 
-        // // Verifikasi signature untuk memastikan request asli dari GitHub
-        // if (!hash_equals($signature, $request->header('X-Hub-Signature-256'))) {
-        //     Log::error('Invalid GitHub signature');
-        //     return response('Invalid signature', 403);
-        // }
+        // Verifikasi signature untuk memastikan request asli dari GitHub
+        if (!hash_equals($localSignature, $githubSignature)) {
+            Log::error('Invalid GitHub signature');
+            return response('Invalid signature', 403);
+        }
 
         if (!$request->header('X-Github-Event')) {
             Log::error('Invalid GitHub request');
