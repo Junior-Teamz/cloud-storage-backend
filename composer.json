@@ -2,7 +2,10 @@
     "name": "laravel/laravel",
     "type": "project",
     "description": "The Laravel Framework.",
-    "keywords": ["framework", "laravel"],
+    "keywords": [
+        "framework",
+        "laravel"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.1",
@@ -14,8 +17,8 @@
         "laravel/telescope": "^5.2",
         "laravel/tinker": "^2.8",
         "maatwebsite/excel": "^3.1",
+        "opcodesio/log-viewer": "dev-main",
         "marcocesarato/amwscan": "^0.14.0",
-        "opcodesio/log-viewer": "^3.11",
         "spatie/laravel-permission": "^6.9",
         "sqids/sqids": "^0.4.1",
         "tightenco/ziggy": "^2.0",
@@ -75,6 +78,12 @@
             "pestphp/pest-plugin": true
         }
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/Isjustmy/log-viewer"
+        }
+    ],
     "minimum-stability": "stable",
     "prefer-stable": true
 }

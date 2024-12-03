@@ -11,6 +11,9 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+
+    // Route::post('/toggle-theme', [AuthenticatedUserWebController::class, 'toggle'])->name('toggle-theme');
+
     Route::post('logout', [AuthenticatedUserWebController::class, 'destroy'])
                 ->name('logout');
 });

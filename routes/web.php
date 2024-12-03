@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthenticatedUserWebController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
 
@@ -19,8 +20,13 @@ Route::get('/', function () {
     return view('app');
 });
 
+Route::middleware('auth')->group(function () {
+    Route::post('logout', [AuthenticatedUserWebController::class, 'destroy'])
+        ->name('logout');
+});
+
 Route::get('/email_page', function () {
     return view('mails.reset-password');
 })->name('email_template');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
