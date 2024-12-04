@@ -34,13 +34,8 @@ class CorsCustom
         // Ambil origin dari header
         $origin = $request->header('Origin', '');
 
-        // Tambahkan log untuk memverifikasi request yang masuk
-        Log::info('CORS Middleware: Handling Request from Origin: ' . $origin);
-
         // Cek apakah origin yang datang ada di dalam daftar allowed origins
         if (in_array($origin, $allowedOrigins)) {
-
-            Log::info('CORS Middleware: Origin Allowed: ' . $origin);
 
             $headers = [
                 'Access-Control-Allow-Origin' => $origin,
@@ -68,14 +63,11 @@ class CorsCustom
                 $response->headers->set($key, $value);
             }
 
-            // Tambahkan log untuk memverifikasi header yang ditambahkan
-            Log::info('CORS Middleware: Adding headers to the response.');
-
             return $response;
         }
 
         // Tambahkan log untuk memverifikasi origin yang tidak diizinkan
-        Log::info('CORS Middleware: Origin not allowed: ' . $origin);
+        Log::warning('CORS Middleware: Origin not allowed: ' . $origin);
 
         // Jika origin tidak diizinkan, lanjutkan request tanpa header CORS
         return $next($request);
