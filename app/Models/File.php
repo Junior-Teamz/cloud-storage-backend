@@ -20,7 +20,7 @@ class File extends Model
         'size',
         'type',
         'user_id',
-        'folder_id'
+        'folder_id',
     ];
 
     // // Override method toArray to hide file_url if null

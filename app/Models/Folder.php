@@ -20,7 +20,7 @@ class Folder extends Model
         'type',
         'public_path',
         'user_id',
-        'parent_id'
+        'parent_id',
     ];
 
     protected static function boot()

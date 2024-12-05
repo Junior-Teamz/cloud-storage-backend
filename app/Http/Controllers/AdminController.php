@@ -16,14 +16,17 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use App\Services\GetPathService;
 
 class AdminController extends Controller
 {
     protected $checkAdminService;
+    protected $getPathService;
 
-    public function __construct(CheckAdminService $checkAdminService)
+    public function __construct(CheckAdminService $checkAdminService, GetPathService $getPathService)
     {
         $this->checkAdminService = $checkAdminService;
+        $this->getPathService = $getPathService;
     }
 
     /**
@@ -706,7 +709,7 @@ class AdminController extends Controller
 
             // Hapus folder dari storage
             try {
-                $folderPath = $this->getFolderPath($folder->id);
+                $folderPath = $this->getPathService->getFolderPath($folder->id);
                 if (Storage::exists($folderPath)) {
                     Storage::deleteDirectory($folderPath);
                 }
@@ -741,30 +744,6 @@ class AdminController extends Controller
             throw $e;
         }
     }
-
-    /**
-     * Recursively get the storage path for a folder.
-     *
-     * This function builds the full storage path for a given folder ID by recursively traversing its parent folders.
-     *
-     * @param string|null $parentId The UUID of the folder.
-     * @return string The storage path for the folder.
-     */
-    private function getFolderPath($parentId)
-    {
-        if ($parentId === null) {
-            return ''; // Root directory, no need for 'folders' base path
-        }
-
-        $parentFolder = Folder::findOrFail($parentId);
-        $path = $this->getFolderPath($parentFolder->parent_id);
-
-        // Use the folder's NanoID in the storage path
-        $folderNameWithNanoId = $parentFolder->nanoid;
-
-        return $path . '/' . $folderNameWithNanoId;
-    }
-
 
     // Dibawah ini, function endpoint untuk mendapatkan statistik semua folder dan file yang ada. HANYA DIGUNAKAN UNTUK SUPERADMIN.
 

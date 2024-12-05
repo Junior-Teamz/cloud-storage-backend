@@ -6,6 +6,7 @@ use App\Services\CheckAdminService;
 use App\Services\CheckFilePermissionService;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
+use App\Services\GetPathService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -17,22 +18,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(CheckAdminService::class, function ($app) {
+        $this->app->singleton(CheckAdminService::class, function () {
             return new CheckAdminService();
         });
 
-        $this->app->bind(CheckFolderPermissionService::class, function ($app) {
+        $this->app->singleton(CheckFolderPermissionService::class, function () {
             return new CheckFolderPermissionService();
         });
 
-        $this->app->bind(CheckFilePermissionService::class, function ($app) {
+        $this->app->singleton(CheckFilePermissionService::class, function () {
             return new CheckFilePermissionService();
         });
 
-        $this->app->singleton(GenerateURLService::class, function ($app) {
+        $this->app->singleton(GenerateURLService::class, function () {
             return new GenerateURLService();
         });
 
+        $this->app->singleton(GetPathService::class, function () {
+            return new GetPathService();
+        });
     }
 
     /**

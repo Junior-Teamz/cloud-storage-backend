@@ -15,18 +15,21 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
+use App\Services\GetPathService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FolderController extends Controller
 {
     protected $checkPermissionFolderService;
     protected $GenerateURLService;
+    protected $getPathService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, GenerateURLService $GenerateURLService, GetPathService $getPathServices)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
         $this->GenerateURLService = $GenerateURLService;
+        $this->getPathService = $getPathServices;
     }
 
     /**
@@ -595,12 +598,12 @@ class FolderController extends Controller
             $newFolder->tags()->sync($tagIds);
 
             // Generate public path after folder creation
-            $publicPath = $this->getPublicPath($newFolder->id);
+            $publicPath = $this->getPathService->getPublicPath($newFolder->id);
             $newFolder->update(['public_path' => $publicPath]);
 
             // Get the folder's NanoID for use in storage path
             $folderNameWithNanoId = $newFolder->nanoid;
-            $path = $this->getFolderPath($newFolder->parent_id);
+            $path = $this->getPathService->getFolderPath($newFolder->parent_id);
             $fullPath = $path . '/' . $folderNameWithNanoId;
             Storage::makeDirectory($fullPath);
 
@@ -936,7 +939,7 @@ class FolderController extends Controller
 
             $oldNanoid = $folder->nanoid;
 
-            $publicPath = $this->getPublicPath($folder->id);
+            $publicPath = $this->getPathService->getPublicPath($folder->id);
 
             DB::beginTransaction();
 
@@ -946,7 +949,7 @@ class FolderController extends Controller
             ]);
 
             // Update folder name in storage
-            $path = $this->getFolderPath($folder->parent_id);
+            $path = $this->getPathService->getFolderPath($folder->parent_id);
             $oldFullPath = $path . '/' . $oldNanoid;
             $newFullPath = $path . '/' . $folder->nanoid;
 
@@ -1092,7 +1095,7 @@ class FolderController extends Controller
 
             // Hapus folder dari storage setelah commit ke database berhasil
             foreach ($folders as $folder) {
-                $path = $this->getFolderPath($folder->parent_id);
+                $path = $this->getPathService->getFolderPath($folder->parent_id);
                 $fullPath = $path . '/' . $folder->nanoid;
 
                 if (Storage::exists($fullPath)) {
@@ -1192,8 +1195,8 @@ class FolderController extends Controller
             $folder->save();
 
             // Move folder in storage
-            $oldPath = $this->getFolderPath($oldParentId);
-            $newPath = $this->getFolderPath($folder->parent_id);
+            $oldPath = $this->getPathService->getFolderPath($oldParentId);
+            $newPath = $this->getPathService->getFolderPath($folder->parent_id);
             $oldFullPath = $oldPath . '/' . $folder->nanoid;
             $newFullPath = $newPath . '/' . $folder->nanoid;
 
@@ -1259,68 +1262,6 @@ class FolderController extends Controller
     }
 
     /**
-     * Get folder path in storage for a given folder id.
-     * 
-     * This method takes a folder UUID and returns the path of the folder in storage.
-     * If the folder UUID is null, it returns an empty string, which is the root directory.
-     * Otherwise, it uses a recursive approach to build the path from the folder to the root.
-     * It uses the folder's NanoID in the storage path.
-     * 
-     * @param string|null $parentId The UUID of the folder to get the path for.
-     * 
-     * @return string The path of the folder in storage.
-     */
-    private function getFolderPath($parentId)
-    {
-        if ($parentId === null) {
-            return ''; // Root directory, no need for 'folders' base path
-        }
-
-        $parentFolder = Folder::findOrFail($parentId);
-        $path = $this->getFolderPath($parentFolder->parent_id);
-
-        // Use the folder's NanoID in the storage path
-        $folderNameWithNanoId = $parentFolder->nanoid;
-
-        return $path . '/' . $folderNameWithNanoId;
-    }
-
-
-    /**
-     * Get full path of a folder for included in response.
-     *
-     * @param string $id The UUID of the folder to get the full path for.
-     * 
-     * @return \Illuminate\Http\JsonResponse Returns a JSON response with the full path of the folder or an error message.
-     * 
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException If the folder is not found.
-     * @throws \Exception For general exceptions that may occur during the process.
-     */
-    public function getPublicPath($id)
-    {
-        try {
-            $folder = Folder::findOrFail($id);
-            $path = [];
-
-            while ($folder) {
-                array_unshift($path, $folder->name);
-                $folder = $folder->parentFolder;
-            }
-
-            return implode('/', $path);
-        } catch (Exception $e) {
-            Log::error('Error occurred on getting folder path: ' . $e->getMessage(), [
-                'folder_id' => $id,
-                'trace' => $e->getTrace()
-            ]);
-
-            return response()->json([
-                'errors' => 'An error occurred on getting folder path.',
-            ], 500);
-        }
-    }
-
-    /**
      * Get full path of a folder.
      * 
      * This method takes a folder UUID and returns JSON response of full path of the folder.
@@ -1351,30 +1292,6 @@ class FolderController extends Controller
             return response()->json([
                 'full_path' => $pathReady
             ], 200);
-        } catch (Exception $e) {
-            Log::error('Error occurred on getting folder path: ' . $e->getMessage(), [
-                'folder_id' => $id,
-                'trace' => $e->getTrace()
-            ]);
-
-            return response()->json([
-                'errors' => 'An error occurred on getting folder path.',
-            ], 500);
-        }
-    }
-
-    private function getPathNanoid($id)
-    {
-        try {
-            $folder = Folder::findOrFail($id);
-            $path = [];
-
-            while ($folder) {
-                array_unshift($path, $folder->nanoid);
-                $folder = $folder->parentFolder;
-            }
-
-            return implode('/', $path);
         } catch (Exception $e) {
             Log::error('Error occurred on getting folder path: ' . $e->getMessage(), [
                 'folder_id' => $id,

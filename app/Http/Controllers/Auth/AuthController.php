@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie; // maybe next time
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -68,8 +69,10 @@ class AuthController extends Controller
 
             $userData = array_intersect_key(
                 $user->toArray(),
-                array_flip(['name', 'email', 'roles', 'photo_profile_url'])
+                array_flip(['name', 'email', 'photo_profile_url'])
             );
+
+            $userRole = $user->roles->pluck('name');
 
             // Buat access token ID
             $accessTokenId = JWTAuth::setToken($accessToken)->getPayload()['jti']; // Ambil ID dari access token
@@ -86,6 +89,7 @@ class AuthController extends Controller
                 'refreshToken' => $refreshToken,
                 'success' => true,
                 'user' => $userData,
+                'roles' => $userRole,
                 'permissions' => $user->getPermissionArray(),
             ];
 
@@ -208,14 +212,21 @@ class AuthController extends Controller
                 return response()->json(['errors' => 'Refresh token not found.'], 400);
             }
 
-            JWTAuth::setToken($refreshToken);
+            // Cek apakah refresh token valid
+            $check = JWTAuth::setToken($refreshToken)->check();
+
+            if (!$check) {
+                return response()->json([
+                    'errors' => 'Invalid refresh token.'
+                ], 401);
+            }
 
             // Ambil klaim dari refresh token
             $claims = JWTAuth::getPayload()->toArray();
 
             // Cek apakah refresh token memiliki access_token_id
             if (!isset($claims['access_token_id'])) {
-                return response()->json(['errors' => 'Refresh token is invalid.'], 401);
+                return response()->json(['errors' => 'Refresh token is invalid.'], 400);
             }
 
             // Ambil access token ID dari klaim refresh token
@@ -228,14 +239,36 @@ class AuthController extends Controller
                 return response()->json(['errors' => 'Access token does not match in refresh token.'], 401);
             }
 
-            // Set refresh token dan refresh JWT
-            JWTAuth::setToken($refreshToken);
+            // Ambil additional_time dari klaim refresh token
+            $additionalTime = $claims['additional_time'];
+
+            // Set TTL untuk JWTAuth
+            JWTAuth::factory()->setTTL($additionalTime);
+
+            // Generate access token baru dengan TTL yang disesuaikan
             $newAccessToken = JWTAuth::refresh();
 
-            JWTAuth::setToken($accessToken);
-            JWTAuth::invalidate($accessToken);
+            // Buat refresh token lama menjadi tidak valid.
+            JWTAuth::setToken($refreshToken)->invalidate();
 
-            return response()->json(['accessToken' => $newAccessToken]);
+            // Ambil user dari token
+            $user = JWTAuth::setToken($newAccessToken)->toUser();
+
+            // Buat refresh token baru
+            JWTAuth::factory()->setTTL(7 * 24 * 60); // TTL untuk refresh token (7 hari)
+            $newRefreshToken = JWTAuth::claims([
+                'access_token_id' => JWTAuth::setToken($newAccessToken)->getPayload()['jti'],
+                'additional_time' => 3600
+            ])->fromUser($user);
+
+            // Buat access token lama menjadi tidak valid.
+            JWTAuth::setToken($accessToken)->invalidate();
+
+            return response()->json([
+                'message' => 'Refresh accessToken successfully.',
+                'new_access_token' => $newAccessToken,
+                'new_refresh_token' => $newRefreshToken
+            ]);
         } catch (TokenExpiredException $e) {
             return response()->json(['errors' => 'Refresh token expired.'], 401);
         } catch (JWTException $e) {
@@ -265,7 +298,7 @@ class AuthController extends Controller
             // Get accessToken from Authorization Bearer header
             $accessToken = $request->bearerToken('Authorization');
 
-            if(!$accessToken) {
+            if (!$accessToken) {
                 return response()->json([
                     'errors' => 'Access token not found in Authorization Bearer Header!'
                 ], 400);

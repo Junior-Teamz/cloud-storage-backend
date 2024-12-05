@@ -18,21 +18,23 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
+use App\Services\GetPathService;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FileController extends Controller
 {
     protected $checkPermissionFolderService;
     protected $GenerateURLService;
     protected $checkPermissionFileServices;
+    protected $getPathService;
 
-    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, CheckFilePermissionService $checkFilePermissionService, GenerateURLService $GenerateURLService)
+    public function __construct(CheckFolderPermissionService $checkPermissionFolderService, CheckFilePermissionService $checkFilePermissionService, GenerateURLService $GenerateURLService, GetPathService $getPathServices)
     {
         // Simpan service ke dalam property
         $this->checkPermissionFolderService = $checkPermissionFolderService;
         $this->GenerateURLService = $GenerateURLService;
         $this->checkPermissionFileServices = $checkFilePermissionService;
+        $this->getPathService = $getPathServices;
     }
 
     /**
@@ -289,7 +291,7 @@ class FileController extends Controller
                 }
 
                 // Pindahkan file yang telah discan ke storage utama
-                $path = $this->generateFilePath($folderId, $storageFileName);
+                $path = $this->getPathService->generateFilePath($folderId, $storageFileName);
                 Storage::put($path, file_get_contents($tempPath));
 
                 // Ambil ukuran file dari storage utama
@@ -303,7 +305,7 @@ class FileController extends Controller
                 }
 
                 // generate path for public (exposed path for frontend)
-                $publicPath = $this->generateFilePublicPath($folderId, $originalFileName);
+                $publicPath = $this->getPathService->generateFilePublicPath($folderId, $originalFileName);
 
                 // Buat catatan file di database
                 $file = File::create([
@@ -763,9 +765,9 @@ class FileController extends Controller
 
             // Update file name in storage
             $oldFullPath = $file->path;
-            $newPath = $this->generateFilePath($file->folder_id, $storageFileName);
+            $newPath = $this->getPathService->generateFilePath($file->folder_id, $storageFileName);
 
-            $publicPath = $this->generateFilePublicPath($file->folder_id, $newFileName);
+            $publicPath = $this->getPathService->generateFilePublicPath($file->folder_id, $newFileName);
 
             if (Storage::exists($oldFullPath)) {
                 Storage::move($oldFullPath, $newPath);
@@ -889,9 +891,9 @@ class FileController extends Controller
             $fileNameWithNanoid = $file->nanoid . '.' . $fileExtension;
 
             // Generate new path
-            $newPath = $this->generateFilePath($request->new_folder_id, $fileNameWithNanoid);
+            $newPath = $this->getPathService->generateFilePath($request->new_folder_id, $fileNameWithNanoid);
 
-            $newPublicPath = $this->generateFilePublicPath($request->new_folder_id, $file->name);
+            $newPublicPath = $this->getPathService->generateFilePublicPath($request->new_folder_id, $file->name);
 
             // Check if old file path exists
             if (!Storage::exists($oldPath)) {
@@ -1122,79 +1124,5 @@ class FileController extends Controller
             'Content-Type' => Storage::mimeType($file->path),
             'Content-Length' => Storage::size($file->path),
         ]);
-    }
-
-    /**
-     * Generate the public path for a file.
-     *
-     * This method constructs the public path for a file based on its folder UUID and file name.
-     * It traverses the folder hierarchy to build the complete path.
-     *
-     * @param string $folderId The UUID of the folder containing the file.
-     * @param  string  $fileName The name of the file.
-     * @return string The generated public path for the file.
-     */
-    public function generateFilePublicPath($folderId, $fileName)
-    {
-        // Initialize an array to store the folder names
-        $path = [];
-
-        // If folderId is provided, build the path from the folder to the root
-        while ($folderId) {
-            // Find the folder by ID
-            $folder = Folder::findOrFail($folderId);
-            if ($folder) {
-                // Prepend the folder name to the path array
-                array_unshift($path, $folder->name);
-                // Set the folder ID to its parent folder's ID
-                $folderId = $folder->parent_id;
-            } else {
-                // If the folder is not found, stop the loop
-                break;
-            }
-        }
-
-        // Add the file name to the end of the path
-        $path[] = $fileName;
-
-        // Join the path array into a single string
-        return implode('/', $path);
-    }
-
-    /**
-     * Generate the file path for storage.
-     *
-     * This method constructs the file path for storage based on its folder UUID and file NanoID.
-     * It uses NanoIDs for folders and files to create a unique path.
-     *
-     * @param string $folderId The UUID of the folder containing the file.
-     * @param  string  $fileNanoid The NanoID of the file.
-     * @return string The generated file path for storage.
-     */
-    private function generateFilePath($folderId, $fileNanoid)
-    {
-        // Initialize an array to store the folder names
-        $path = [];
-
-        // If folderId is provided, build the path from the folder to the root
-        while ($folderId) {
-            // Find the folder by ID
-            $folder = Folder::findOrFail($folderId);
-            if ($folder) {
-                // Prepend the folder name to the path array
-                array_unshift($path, $folder->nanoid);
-                // Set the folder ID to its parent folder's ID
-                $folderId = $folder->parent_id;
-            } else {
-                // If the folder is not found, stop the loop
-                break;
-            }
-        }
-
-        // Add the file name to the end of the path
-        $path[] = $fileNanoid;
-
-        // Join the path array into a single string
-        return implode('/', $path);
     }
 }

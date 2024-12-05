@@ -12,9 +12,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Services\GetPathService;
 
 class UserController extends Controller
 {
+    protected $getPathService;
+
+    public function __construct(GetPathService $getPathService)
+    {
+        $this->getPathService = $getPathService;
+    }
+
     /**
      * Create new user account.
      *
@@ -486,7 +494,7 @@ class UserController extends Controller
 
             // Hapus folder dari storage
             try {
-                $folderPath = $this->getFolderPath($folder->id);
+                $folderPath = $this->getPathService->getFolderPath($folder->id);
                 if (Storage::exists($folderPath)) {
                     Storage::deleteDirectory($folderPath);
                 }
@@ -512,28 +520,5 @@ class UserController extends Controller
             // Lemparkan kembali exception agar dapat ditangani di tingkat pemanggil
             throw $e;
         }
-    }
-
-    /**
-     * Recursively get the storage path for a folder.
-     *
-     * This function builds the full storage path for a given folder ID by recursively traversing its parent folders.
-     *
-     * @param string|null $parentId The UUID of the folder.
-     * @return string The storage path for the folder.
-     */
-    private function getFolderPath($parentId)
-    {
-        if ($parentId === null) {
-            return ''; // Root directory, no need for 'folders' base path
-        }
-
-        $parentFolder = Folder::findOrFail($parentId);
-        $path = $this->getFolderPath($parentFolder->parent_id);
-
-        // Use the folder's NanoID in the storage path
-        $folderNameWithNanoId = $parentFolder->nanoid;
-
-        return $path . '/' . $folderNameWithNanoId;
     }
 }
