@@ -265,7 +265,7 @@ class AuthController extends Controller
             JWTAuth::setToken($accessToken)->invalidate();
 
             return response()->json([
-                'message' => 'Refresh accessToken successfully.',
+                'message' => 'Successfully refreshing token.',
                 'new_access_token' => $newAccessToken,
                 'new_refresh_token' => $newRefreshToken
             ]);
@@ -314,12 +314,10 @@ class AuthController extends Controller
             }
 
             // Invalidate accessToken
-            JWTAuth::setToken($accessToken);
-            JWTAuth::invalidate();
+            JWTAuth::setToken($accessToken)->invalidate();
 
             // Invalidate refreshToken
-            JWTAuth::setToken($refreshToken);
-            JWTAuth::invalidate();
+            JWTAuth::setToken($refreshToken)->invalidate();
 
             return response()->json(['message' => 'Successfully logout.']);
         } catch (JWTException $e) {
