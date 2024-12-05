@@ -12,21 +12,21 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Services\CheckAdminService;
+use App\Services\GetPathService;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use App\Services\GetPathService;
 
 class AdminController extends Controller
 {
     protected $checkAdminService;
     protected $getPathService;
 
-    public function __construct(CheckAdminService $checkAdminService, GetPathService $getPathService)
+    public function __construct(CheckAdminService $checkAdminService, GetPathService $getPathServiceParam)
     {
         $this->checkAdminService = $checkAdminService;
-        $this->getPathService = $getPathService;
+        $this->getPathService = $getPathServiceParam;
     }
 
     /**
@@ -744,6 +744,7 @@ class AdminController extends Controller
             throw $e;
         }
     }
+
 
     // Dibawah ini, function endpoint untuk mendapatkan statistik semua folder dan file yang ada. HANYA DIGUNAKAN UNTUK SUPERADMIN.
 

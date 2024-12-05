@@ -268,7 +268,7 @@ class UserController extends Controller
                 },
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpeg,jpg,png']
+            'photo_profile' => ['required', 'file', 'max:3000', 'mimes:jpeg,jpg,png']
         ]);
 
         if ($validator->fails()) {
@@ -417,14 +417,14 @@ class UserController extends Controller
             // Hapus folder dan file terkait dari local storage
             $folders = Folder::where('user_id', $user->id)->get();
 
-            if (!!$folders) {
+            if (!$folders) {
                 foreach ($folders as $folder) {
                     $this->deleteFolderAndFiles($folder);
                 }
             }
 
             // Hapus data pengguna dari database
-            $userData = User::where('id', $user->id);
+            $userData = User::where('id', $user->id)->first();
 
             $userData->instances()->detach();
 
