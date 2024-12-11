@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
         $adminSeeder = User::updateOrCreate([
             'name' => 'Administrator',
             'email' => 'administrator@gmail.com',
-            'password' => bcrypt('inmydream205'),
+            'password' => bcrypt('administrator!@123'),
             'is_superadmin' => true
         ]);
 

@@ -10,6 +10,7 @@ use App\Services\GetPathService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Opcodes\LogViewer\Facades\LogViewer;
 
 class AppServiceProvider extends ServiceProvider
 {

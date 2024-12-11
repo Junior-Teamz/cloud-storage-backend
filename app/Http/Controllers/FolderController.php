@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\File\FileCollection;
+use App\Http\Resources\Folder\FolderCollection;
+use App\Http\Resources\Folder\FolderResource;
 use Exception;
 use App\Models\Tags;
 use App\Models\User;
 use App\Models\Folder;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -158,25 +160,7 @@ class FolderController extends Controller
             // Ambil folder root user dengan eager loading untuk subfolders dan files
             $parentFolder = Folder::where('user_id', $user->id)
                 ->whereNull('parent_id')
-                ->with([
-                    'user:id,name,email,photo_profile_url',
-                    'tags:id,name',
-                    'instances:id,name,address',
-                    'userFolderPermissions',
-                    'favorite',
-                    'subfolders.user', // Ambil data user yang terkait dengan folder
-                    'subfolders.tags:id,name', // Ambil tags folder
-                    'subfolders.instances:id,name,address', // Ambil instances folder
-                    'subfolders.userFolderPermissions',
-                    'subfolders.favorite', // Relasi favorite untuk subfolders
-                    'files.folder:id',
-                    'files.user:id,name,email,photo_profile_url', // Ambil data user yang terkait dengan file
-                    'files.tags:id,name', // Ambil tags file
-                    'files.instances:id,name,address', // Ambil instances file
-                    'files.favorite',
-                    'files.userPermissions',
-                ])
-                ->select('id', 'name', 'created_at', 'updated_at', 'user_id') // Pilih hanya kolom yang diperlukan
+                ->with(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite'])
                 ->first();
 
             // Cek apakah parent folder ditemukan
@@ -186,94 +170,27 @@ class FolderController extends Controller
                 ], 500);
             }
 
-            // Optimasi data subfolder
-            $userFolders = $parentFolder->subfolders->map(function ($folder) use ($user) {
-                // Cek apakah folder ini difavoritkan oleh user yang sedang login
-                $favorite = $folder->favorite()->where('user_id', $user->id)->first();
-                $isFavorite = !is_null($favorite);
-                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-                return [
-                    'folder_id' => $folder->id,
-                    'name' => $folder->name,
-                    'public_path' => $folder->public_path,
-                    'total_subfolder' => $folder->calculateTotalSubfolder(), // Menampilkan total subfolder
-                    'total_file' => $folder->calculateTotalFile(), // Menampilkan total file di dalam folder
-                    'total_size' => $folder->calculateTotalSize(), // Hitung total ukuran folder
-                    'type' => $folder->type,
-                    'is_favorite' => $isFavorite,
-                    'favorited_at' => $favoritedAt,
-                    'created_at' => $folder->created_at,
-                    'updated_at' => $folder->updated_at,
-                    'user' => $folder->user,
-                    'tags' => $folder->tags, // Tags sudah diambil dengan select
-                    'instances' => $folder->instances, // Instances sudah diambil dengan select
-                    'shared_with' => $folder->userFolderPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->id,
-                            'folder_id' => $permission->folder_id,
-                            'permissions' => $permission->permissions,
-                            'created_at' => $permission->created_at,
-                            'user' => [
-                                'id' => $permission->user->id,
-                                'name' => $permission->user->name,
-                                'email' => $permission->user->email,
-                                'photo_profile_url' => $permission->user->photo_profile_url,
-                            ]
-                        ];
-                    })
-                ];
-            });
-
-            // Optimasi data file
-            $responseFile = $parentFolder->files->map(function ($file) use ($user) {
-                $favorite = $file->favorite()->where('user_id', $user->id)->first();
-                $isFavorite = !is_null($favorite);
-                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-                $fileResponse = [
-                    'id' => $file->id,
-                    'name' => $file->name,
-                    'public_path' => $file->public_path,
-                    'size' => $file->size,
-                    'type' => $file->type,
-                    'created_at' => $file->created_at,
-                    'updated_at' => $file->updated_at,
-                    'folder_id' => $file->folder->id,
-                    'file_url' => $file->file_url,
-                    'is_favorite' => $isFavorite,
-                    'favorited_at' => $favoritedAt,
-                    'user' => $file->user, // User sudah diambil dengan select
-                    'tags' => $file->tags, // Tags sudah diambil dengan select
-                    'instances' => $file->instances, // Instances sudah diambil dengan select
-                    'shared_with' => $file->userPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->id,
-                            'file_id' => $permission->file_id,
-                            'permissions' => $permission->permissions,
-                            'created_at' => $permission->created_at,
-                            'user' => [
-                                'id' => $permission->user->id,
-                                'name' => $permission->user->name,
-                                'email' => $permission->user->email,
-                                'photo_profile_url' => $permission->user->photo_profile_url,
-                            ]
-                        ];
-                    })
-                ];
-
-                // Tambahkan video_url hanya jika file adalah video
-                if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
-                    $fileResponse['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
-                }
-
-                return $fileResponse;
-            });
+            $subfolders = $parentFolder->subfolders()->with(['user', 'user.instances', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite'])->paginate(10);
+            $files = $parentFolder->files()->with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])->paginate(10);
 
             return response()->json([
                 'data' => [
-                    'folders' => $userFolders, // Sekarang berisi array folder dan tags
-                    'files' => $responseFile
+                    'subfolders' => new FolderCollection($subfolders),
+                    'files' => new FileCollection($files)
+                ],
+                'pagination' => [
+                    'subfolders' => [
+                        'current_page' => $subfolders->currentPage(),
+                        'last_page' => $subfolders->lastPage(),
+                        'per_page' => $subfolders->perPage(),
+                        'total' => $subfolders->total(),
+                    ],
+                    'files' => [
+                        'current_page' => $files->currentPage(),
+                        'last_page' => $files->lastPage(),
+                        'per_page' => $files->perPage(),
+                        'total' => $files->total(),
+                    ]
                 ]
             ], 200);
         } catch (Exception $e) {
@@ -316,25 +233,7 @@ class FolderController extends Controller
 
         try {
             // Cari folder dengan ID yang diberikan dan sertakan subfolder, file, tags, instances, dan userFolderPermissions yang relevan
-            $folder = Folder::with([
-                'user:id,name,email,photo_profile_url',
-                'parentFolder:id',
-                'tags:id,name',
-                'instances:id,name,address',
-                'favorite',
-                'userFolderPermissions', // Menambahkan relasi untuk mengambil shared users
-                'subfolders.user:id,name,email,photo_profile_url', // Ambil data user yang terkait dengan folder
-                'subfolders.tags:id,name', // Ambil tags folder
-                'subfolders.instances:id,name,address', // Ambil instances folder
-                'subfolders.userFolderPermissions',
-                'subfolders.favorite', // Relasi favorite untuk subfolders
-                'files.user:id,name,email,photo_profile_url', // Ambil data user yang terkait dengan file
-                'files.favorite',
-                'files.folder:id',
-                'files.tags:id,name', // Ambil tags file
-                'files.instances:id,name,address', // Ambil instances file
-                'files.userPermissions'
-            ])->where('id', $id)->first();
+            $folder = Folder::with(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite'])->where('id', $id)->first();
 
             if (!$folder) {
                 Log::warning('Attempt to get folder on non-existence folder id: ' . $id);
@@ -344,144 +243,29 @@ class FolderController extends Controller
                 ], 200);
             }
 
-            $favorite = $folder->favorite()->where('user_id', $user->id)->first();
-            $isFavorite = !is_null($favorite);
-            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-            // Persiapkan respon untuk folder
-            $folderResponse = [
-                'folder_id' => $folder->id,
-                'name' => $folder->name,
-                'public_path' => $folder->public_path,
-                'total_subfolder' => $folder->calculateTotalSubfolder(),
-                'total_file' => $folder->calculateTotalFile(),
-                'total_size' => $folder->calculateTotalSize(),
-                'type' => $folder->type,
-                'parent_id' => $folder->parent_id ? $folder->parentFolder->id ?? null : null,
-            ];
-
-            // Tambahkan created_at dan updated_at di posisi tertentu jika folder bukan root
-            if ($folder->parent_id !== null) {
-                $folderResponse['created_at'] = $folder->created_at;
-                $folderResponse['updated_at'] = $folder->updated_at;
-            }
-
-            // Lanjutkan menambahkan atribut lainnya
-            $folderResponse += [
-                'is_favorited' => $isFavorite, // Tambahkan atribut is_favorited
-                'favorited_at' => $favoritedAt,
-                'user' => $folder->user,
-                'tags' => $folder->tags,
-                'instances' => $folder->instances,
-                // Map shared users untuk folder
-                'shared_with' => $folder->userFolderPermissions->map(function ($permission) {
-                    return [
-                        'id' => $permission->id,
-                        'folder_id' => $permission->folder_id,
-                        'permissions' => $permission->permissions,
-                        'created_at' => $permission->created_at,
-                        'user' => [
-                            'id' => $permission->user->id,
-                            'name' => $permission->user->name,
-                            'email' => $permission->user->email,
-                            'photo_profile_url' => $permission->user->photo_profile_url,
-                        ],
-                    ];
-                }),
-            ];
-
-            // Ambil subfolder dan buat hidden beberapa atribut yang tidak diperlukan
-            $subfolders = $folder->subfolders->map(function ($subfolder) use ($user) {
-
-                $favorite = $subfolder->favorite()->where('user_id', $user->id)->first();
-                $isFavorite = !is_null($favorite);
-                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-                return [
-                    'id' => $subfolder->id,
-                    'name' => $subfolder->name,
-                    'public_path' => $subfolder->public_path,
-                    'total_subfolder' => $subfolder->calculateTotalSubfolder(),
-                    'total_file' => $subfolder->calculateTotalFile(),
-                    'total_size' => $subfolder->calculateTotalSize(),
-                    'type' => $subfolder->type,
-                    'created_at' => $subfolder->created_at,
-                    'updated_at' => $subfolder->updated_at,
-                    'is_favorited' => $isFavorite,
-                    'favorited_at' => $favoritedAt,
-                    'user' => $subfolder->user,
-                    'tags' => $subfolder->tags,
-                    'instances' => $subfolder->instances,
-                    // Map shared users untuk subfolder
-                    'shared_with' => $subfolder->userFolderPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->id,
-                            'folder_id' => $permission->folder_id,
-                            'permissions' => $permission->permissions,
-                            'created_at' => $permission->created_at,
-                            'user' => [
-                                'id' => $permission->user->id,
-                                'name' => $permission->user->name,
-                                'email' => $permission->user->email,
-                                'photo_profile_url' => $permission->user->photo_profile_url,
-                            ]
-                        ];
-                    })
-                ];
-            });
-
-            // Ambil files dan buat hidden beberapa atribut yang tidak diperlukan
-            $files = $folder->files->map(function ($file) use ($user) {
-                $favorite = $file->favorite()->where('user_id', $user->id)->first();
-                $isFavorite = !is_null($favorite);
-                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-                $fileData = [
-                    'id' => $file->id,
-                    'name' => $file->name,
-                    'public_path' => $file->public_path,
-                    'size' => $file->size,
-                    'type' => $file->type,
-                    'file_url' => $file->file_url,
-                    'folder_id' => $file->folder->id,
-                    'created_at' => $file->created_at,
-                    'updated_at' => $file->updated_at,
-                    'is_favorite' => $isFavorite,
-                    'favorited_at' => $favoritedAt,
-                    'user' => $file->user,
-                    'tags' => $file->tags,
-                    'instances' => $file->instances,
-                    // Map shared users untuk file
-                    'shared_with' => $file->userPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->id,
-                            'file_id' => $permission->file_id,
-                            'permissions' => $permission->permissions,
-                            'created_at' => $permission->created_at,
-                            'user' => [
-                                'id' => $permission->user->id,
-                                'name' => $permission->user->name,
-                                'email' => $permission->user->email,
-                                'photo_profile_url' => $permission->user->photo_profile_url,
-                            ]
-                        ];
-                    })
-                ];
-
-                // Tambahkan video_url hanya jika file adalah video
-                if (Str::startsWith(Storage::mimeType($file->path), 'video')) {
-                    $fileResponse['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
-                }
-
-                return $fileData;
-            });
+            $subfolders = $folder->subfolders()->with(['user', 'user.instances', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite'])->paginate(10);
+            $files = $folder->files()->with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])->paginate(10);
 
             return response()->json([
                 'data' => [
-                    'folder_info' => $folderResponse,
-                    'subfolders' => $subfolders,
-                    'files' => $files,
+                    'folder_info' => new FolderResource($folder, $user->id),
+                    'subfolders' => new FolderCollection($subfolders),
+                    'files' => new FileCollection($files),
                 ],
+                'pagination' => [
+                    'subfolders' => [
+                        'current_page' => $subfolders->currentPage(),
+                        'last_page' => $subfolders->lastPage(),
+                        'per_page' => $subfolders->perPage(),
+                        'total' => $subfolders->total(),
+                    ],
+                    'files' => [
+                        'current_page' => $files->currentPage(),
+                        'last_page' => $files->lastPage(),
+                        'per_page' => $files->perPage(),
+                        'total' => $files->total(),
+                    ]
+                ]
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred on getting folder info: ' . $e->getMessage(), [
@@ -608,12 +392,7 @@ class FolderController extends Controller
             Storage::makeDirectory($fullPath);
 
             // Load instances and tags for the response
-            $newFolder->load('user:id,name,email,photo_profile_url', 'parentFolder:id', 'instances:id,name,address', 'tags:id,name');
-
-            $newFolder->parent_id = $newFolder->parentFolder->id ?? null;
-
-            // Hide the nanoid from the response
-            $newFolder->makeHidden(['nanoid', 'user_id', 'parent_folder', 'parentFolder']);
+            $newFolder->load(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite']);
 
             // Commit the transaction if no errors
             DB::commit();
@@ -621,7 +400,7 @@ class FolderController extends Controller
             return response()->json([
                 'message' => ($newFolder->parent_id === $folderRootUser->id) ? 'Folder created successfully' : 'Subfolder created successfully',
                 'data' => [
-                    'folder' => $newFolder
+                    'folder' => new FolderResource($newFolder, $userLogin->id)
                 ]
             ], 201);
         } catch (Exception $e) {
@@ -680,7 +459,7 @@ class FolderController extends Controller
             $folder = Folder::where('id', $request->folder_id)->first();
             $tag = Tags::where('id', $request->tag_id)->first();
 
-            if($folder->parent_id === null){
+            if ($folder->parent_id === null) {
                 Log::warning('Attempt to adding tag to root folder', [
                     'user_id' => $userLogin->id,
                     'folder_id' => $folder->id,
@@ -709,42 +488,13 @@ class FolderController extends Controller
             // Menambahkan tag ke folder (tabel pivot folder_has_tags)
             $folder->tags()->attach($tag->id);
 
-            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
-
-            // Ubah response parent_id menjadi id dari parent folder
-            $folder->parent_id = $folder->parentFolder->id ?? null;
-
-            $favorite = $folder->favorite()->where('user_id', $userLogin->id)->first();
-            $isFavorite = !is_null($favorite);
-            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-            $folder['is_favorite'] = $isFavorite;
-            $folder['favorited_at'] = $favoritedAt;
-
-            $folder['shared_with'] = $folder->userFolderPermissions->map(function ($permission) {
-                return [
-                    'id' => $permission->id,
-                    'folder_id' => $permission->folder_id,
-                    'permissions' => $permission->permissions,
-                    'created_at' => $permission->created_at,
-                    'updated_at' => $permission->updated_at,
-                    'user' => [
-                        'id' => $permission->user->id,
-                        'name' => $permission->user->name,
-                        'email' => $permission->user->email,
-                        'photo_profile_url' => $permission->user->photo_profile_url,
-                    ]
-                ];
-            });
-
-            // Sembunyikan relasi parent folder pada response
-            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder', 'favorite', 'userFolderPermissions']);
+            $folder->load(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite']);
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Successfully added tag to folder.',
-                'folder' => $folder
+                'folder' => new FolderResource($folder, $userLogin->id)
             ], 200);
         } catch (ModelNotFoundException $e) {
 
@@ -829,40 +579,13 @@ class FolderController extends Controller
             // Menghapus tag dari folder (tabel pivot folder_has_tags)
             $folder->tags()->detach($tag->id);
 
-            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
-
-            $folder->parent_id = $folder->parentFolder->id ?? null;
-
-            $favorite = $folder->favorite()->where('user_id', $userLogin->id)->first();
-            $isFavorite = !is_null($favorite);
-            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-            $folder['is_favorite'] = $isFavorite;
-            $folder['favorited_at'] = $favoritedAt;
-
-            $folder['shared_with'] = $folder->userFolderPermissions->map(function ($permission) {
-                return [
-                    'id' => $permission->id,
-                    'folder_id' => $permission->folder_id,
-                    'permissions' => $permission->permissions,
-                    'created_at' => $permission->created_at,
-                    'updated_at' => $permission->updated_at,
-                    'user' => [
-                        'id' => $permission->user->id,
-                        'name' => $permission->user->name,
-                        'email' => $permission->user->email,
-                        'photo_profile_url' => $permission->user->photo_profile_url,
-                    ]
-                ];
-            });
-
-            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder', 'favorite', 'userFolderPermissions']);
+            $folder->load(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite']);
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Successfully removed tag from folder.',
-                'folder' => $folder
+                'folder' => new FolderResource($folder, $userLogin->id)
             ], 200);
         } catch (ModelNotFoundException $e) {
 
@@ -957,41 +680,14 @@ class FolderController extends Controller
                 Storage::move($oldFullPath, $newFullPath);
             }
 
-            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name,address', 'favorite', 'userFolderPermissions']);
-
-            $folder->parent_id = $folder->parentFolder->id ?? null;
-
-            $favorite = $folder->favorite->where('user_id', $user->id)->first();
-            $isFavorite = !is_null($favorite);
-            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-            $folder['is_favorite'] = $isFavorite;
-            $folder['favorited_at'] = $favoritedAt;
-
-            $folder['shared_with'] = $folder->userFolderPermissions->map(function ($permission) {
-                return [
-                    'id' => $permission->id,
-                    'folder_id' => $permission->folder_id,
-                    'permissions' => $permission->permissions,
-                    'created_at' => $permission->created_at,
-                    'updated_at' => $permission->updated_at,
-                    'user' => [
-                        'id' => $permission->user->id,
-                        'name' => $permission->user->name,
-                        'email' => $permission->user->email,
-                        'photo_profile_url' => $permission->user->photo_profile_url,
-                    ]
-                ];
-            });
-
-            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder', 'folder', 'userFolderPermissions']);
+            $folder->load(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite']);
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Folder name updated successfully.',
                 'data' => [
-                    'folder' => $folder
+                    'folder' => new FolderResource($folder, $user->id)
                 ]
             ], 200);
         } catch (ModelNotFoundException $e) {
@@ -1204,42 +900,14 @@ class FolderController extends Controller
                 Storage::move($oldFullPath, $newFullPath);
             }
 
-            $folder->load(['user:id,name,email,photo_profile_url', 'parentFolder:id', 'tags:id,name', 'instances:id,name', 'favorite', 'userFolderPermissions']);
-
-            $folder->parent_id = $folder->parentFolder;
-
-
-            $favorite = $folder->favorite->where('user_id', $user->id)->first();
-            $isFavorite = !is_null($favorite);
-            $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-            $folder['is_favorite'] = $isFavorite;
-            $folder['favorited_at'] = $favoritedAt;
-
-            $folder['shared_with'] = $folder->userFolderPermissions->map(function ($permission) {
-                return [
-                    'id' => $permission->id,
-                    'folder_id' => $permission->folder_id,
-                    'permissions' => $permission->permissions,
-                    'created_at' => $permission->created_at,
-                    'updated_at' => $permission->updated_at,
-                    'user' => [
-                        'id' => $permission->user->id,
-                        'name' => $permission->user->name,
-                        'email' => $permission->user->email,
-                        'photo_profile_url' => $permission->user->photo_profile_url,
-                    ]
-                ];
-            });
-
-            $folder->makeHidden(['nanoid', 'user_id', 'parentFolder', 'favorite', 'userFolderPermissions']);
+            $folder->load(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite']);
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Folder moved successfully.',
                 'data' => [
-                    'folder' => $folder
+                    'folder' => new FolderResource($folder, $user->id)
                 ]
             ], 200);
         } catch (ModelNotFoundException $e) {

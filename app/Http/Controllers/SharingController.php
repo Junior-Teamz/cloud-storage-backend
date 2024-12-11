@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\File\FileCollection;
+use App\Http\Resources\Folder\FolderCollection;
 use App\Models\File;
 use Exception;
 use App\Models\Folder;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\UserFolderPermission;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use App\Services\CheckFolderPermissionService;
 use App\Services\GenerateURLService;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -130,7 +130,7 @@ class SharingController extends Controller
             // Query untuk mengambil semua folder yang dibagikan ke user
             $sharedFoldersQuery = Folder::whereHas('userFolderPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address', 'favorite', 'subfolders']);
+            })->with(['user', 'user.instances', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite', 'subfolders']);
 
             // Jika ada filter berdasarkan nama instansi, tambahkan ke query
             if ($instanceNameFilter) {
@@ -162,7 +162,7 @@ class SharingController extends Controller
             // Query untuk mengambil file yang dibagikan ke user dengan pagination
             $sharedFilesQuery = File::whereHas('userPermissions', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })->with(['user:id,name,email,photo_profile_url', 'tags:id,name', 'instances:id,name,address']);
+            })->with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
 
             if ($instanceNameFilter) {
                 $sharedFilesQuery->whereHas('instances', function ($query) use ($instanceNameFilter) {
@@ -173,100 +173,26 @@ class SharingController extends Controller
             // Ambil file setelah filtering instansi
             $sharedFiles = $sharedFilesQuery->paginate($perPage, ['*'], 'file_page', $filePage);
 
-            // Format response untuk folder
-            $formattedFolders = $paginatedFolders->map(function ($folder) use ($user) {
-                $favorite = $folder->favorite->where('user_id', $user->id)->first();
-                $isFavorite = !is_null($favorite);
-                $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
-
-                return [
-                    'id' => $folder->id,
-                    'name' => $folder->name,
-                    'public_path' => $folder->public_path,
-                    'type' => $folder->type,
-                    'user' => $folder->user,
-                    'is_favorite' => $isFavorite,
-                    'favorited_at' => $favoritedAt,
-                    'created_at' => $folder->created_at,
-                    'updated_at' => $folder->updated_at,
-                    'tags' => $folder->tags,
-                    'instances' => $folder->instances,
-                    'shared_with' => $folder->userFolderPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->id,
-                            'file_id' => $permission->file_id,
-                            'permissions' => $permission->permissions,
-                            'created_at' => $permission->created_at,
-                            'user' => [
-                                'id' => $permission->user->id,
-                                'name' => $permission->user->name,
-                                'email' => $permission->user->email,
-                                'photo_profile_url' => $permission->user->photo_profile_url,
-                            ]
-                        ];
-                    })
-                ];
-            })->values(); // Tambahkan ->values() di sini untuk menghilangkan indeks numerik
-
-            // Format response untuk file
-            $formattedFiles = $sharedFiles->map(function ($file) {
-                $fileData = [
-                    'id' => $file->id,
-                    'name' => $file->name,
-                    'public_path' => $file->public_path,
-                    'size' => $file->size,
-                    'type' => $file->type,
-                    'file_url' => $file->file_url,
-                    'user' => $file->user,
-                    'created_at' => $file->created_at,
-                    'updated_at' => $file->updated_at,
-                    'tags' => $file->tags,
-                    'instances' => $file->instances,
-                    'shared_with' => $file->userPermissions->map(function ($permission) {
-                        return [
-                            'id' => $permission->id,
-                            'file_id' => $permission->file_id,
-                            'permissions' => $permission->permissions,
-                            'created_at' => $permission->created_at,
-                            'user' => [
-                                'id' => $permission->user->id,
-                                'name' => $permission->user->name,
-                                'email' => $permission->user->email,
-                                'photo_profile_url' => $permission->user->photo_profile_url,
-                            ]
-                        ];
-                    })
-                ];
-
-                // Jika file adalah gambar, tambahkan URL gambar
-                $mimeType = Storage::mimeType($file->path);
-                if (Str::startsWith($mimeType, 'video')) {
-                    $fileData['video_url'] = $this->GenerateURLService->generateUrlForVideo($file->id);
-                }
-
-                return $fileData;
-            })->values(); // Tambahkan ->values() di sini untuk menghilangkan indeks numerik
-
             // Return response dengan folder dan file terpisah
             return response()->json([
-                'folders' => [
-                    'data' => $formattedFolders,
-                    'pagination' => [
+                'data' => [
+                    'folders' => new FolderCollection($paginatedFolders),
+                    'files' => new FileCollection($sharedFiles)
+                ],
+                'pagination' => [
+                    'folders' => [
                         'current_page' => $paginatedFolders->currentPage(),
                         'last_page' => $paginatedFolders->lastPage(),
                         'per_page' => $paginatedFolders->perPage(),
                         'total' => $paginatedFolders->total(),
-                    ]
-                ],
-                'files' => [
-                    'data' => $formattedFiles,
-                    'pagination' => [
+                    ],
+                    'files' => [
                         'current_page' => $sharedFiles->currentPage(),
                         'last_page' => $sharedFiles->lastPage(),
                         'per_page' => $sharedFiles->perPage(),
                         'total' => $sharedFiles->total(),
                     ]
-                ],
+                ]
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred on getting shared folders and files: ' . $e->getMessage(), [

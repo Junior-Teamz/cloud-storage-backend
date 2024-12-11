@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\Permission\File\UserFilePermissionResource;
+use App\Http\Resources\Permission\User\UserListPermissionCollection;
 use App\Models\File;
 use App\Models\User;
 use App\Models\UserFilePermission;
@@ -81,21 +83,9 @@ class PermissionFileController extends Controller
                 ], 200);
             }
 
-            // Siapkan data untuk response
-            $responseData = [];
-            foreach ($userFilePermissions as $permission) {
-                $responseData[] = [
-                    'user_id' => $permission->user->id,
-                    'user_name' => $permission->user->name,
-                    'user_email' => $permission->user->email,
-                    'photo_profile_url' => $permission->user->photo_profile_url,
-                    'permissions' => $permission->permissions
-                ];
-            }
-
             return response()->json([
                 'message' => 'List of user with permissions on file successfully retrieved.',
-                'data' => $responseData
+                'data' => new UserListPermissionCollection($userFilePermissions)
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred while retrieving user with permissions for file: ' . $e->getMessage(), [
@@ -158,7 +148,7 @@ class PermissionFileController extends Controller
         }
 
         try {
-            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->with(['user', 'file'])->first();
+            $userFilePermission = UserFilePermission::with(['user', 'user.instances', 'file', 'file.tags', 'file.instances'])->where('user_id', $userId)->where('file_id', $fileId)->first();
 
             if ($userFilePermission == null) {
                 return response()->json([
@@ -167,15 +157,9 @@ class PermissionFileController extends Controller
                 ], 200);
             }
 
-            $userFilePermission->makeHidden(['user_id', 'file_id']);
-
-            $userFilePermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
-
-            $userFilePermission->file->makeHidden(['nanoid', 'path']);
-
             return response()->json([
                 'message' => 'User ' . $userFilePermission->user->name . ' has get some permission to file: ' . $userFilePermission->file->name,
-                'data' => $userFilePermission
+                'data' => new UserFilePermissionResource($userFilePermission)
             ]);
         } catch (Exception $e) {
             Log::error('Error occured while retrieving user permission: ' . $e->getMessage(), [
@@ -235,7 +219,7 @@ class PermissionFileController extends Controller
                 ], 403);
             }
 
-            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->with(['user', 'file'])->first();
+            $userFilePermission = UserFilePermission::where('user_id', $userId)->where('file_id', $fileId)->first();
 
             if ($userFilePermission) {
                 return response()->json([
@@ -251,17 +235,13 @@ class PermissionFileController extends Controller
                 'permissions' => $request->permissions
             ]);
 
+            $createNewUserFilePermission->load(['user', 'user.instances', 'file', 'file.tags', 'file.instances']);
+
             DB::commit();
-
-            $createNewUserFilePermission->makeHidden(['user_id', 'file_id']);
-
-            $createNewUserFilePermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
-
-            $createNewUserFilePermission->file->makeHidden(['nanoid', 'path']);
 
             return response()->json([
                 'message' => 'User ' . $createNewUserFilePermission->user->name . ' has been granted permission ' . $createNewUserFilePermission->permissions . ' to file: ' . $createNewUserFilePermission->file->name,
-                'data' => $createNewUserFilePermission
+                'data' => new UserFilePermissionResource($createNewUserFilePermission)
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
@@ -339,11 +319,13 @@ class PermissionFileController extends Controller
             $userFilePermission->permissions = $request->permissions;
             $userFilePermission->save();
 
+            $userFilePermission->load(['user', 'user.instances', 'file', 'file.tags', 'file.instances']);
+
             DB::commit();
 
             return response()->json([
                 'message' => 'User' . $userFilePermission->user->name . ' has been successfully changed permissions on file: ' . $userFilePermission->file->name,
-                'data' => $userFilePermission
+                'data' => new UserFilePermissionResource($userFilePermission)
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();

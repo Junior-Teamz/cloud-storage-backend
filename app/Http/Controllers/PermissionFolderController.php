@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\Permission\User\UserListPermissionCollection;
+use App\Http\Resources\Permission\Folder\UserFolderPermissionResource;
 use App\Models\Folder;
 use App\Models\User;
 use App\Models\UserFilePermission;
@@ -78,21 +80,9 @@ class PermissionFolderController extends Controller
                 ], 200);
             }
 
-            // Siapkan data untuk response
-            $responseData = [];
-            foreach ($userFolderPermissions as $permission) {
-                $responseData[] = [
-                    'user_id' => $permission->user->id,
-                    'user_name' => $permission->user->name,
-                    'user_email' => $permission->user->email,
-                    'photo_profile_url' => $permission->user->photo_profile_url,
-                    'permissions' => $permission->permissions
-                ];
-            }
-
             return response()->json([
                 'message' => 'List of users with permissions on folder successfully retrieved.',
-                'data' => $responseData
+                'data' => new UserListPermissionCollection($userFolderPermissions)
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred while retrieving users with permissions for folder: ' . $e->getMessage(), [
@@ -155,9 +145,7 @@ class PermissionFolderController extends Controller
 
         try {
             // Cek apakah userFolderPermission ada
-            $userFolderPermission = UserFolderPermission::where('user_id', $request->user_id)
-                ->where('folder_id', $request->folder_id)->with(['user', 'folder'])
-                ->first();
+            $userFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
 
             if (!$userFolderPermission) {
                 return response()->json([
@@ -166,15 +154,9 @@ class PermissionFolderController extends Controller
                 ], 200);
             }
 
-            $userFolderPermission->makeHidden(['user_id', 'folder_id']);
-
-            $userFolderPermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
-
-            $userFolderPermission->file->makeHidden(['nanoid']);
-
             return response()->json([
                 'message' => 'User ' . $userFolderPermission->user->name . ' has permission for folder: ' . $userFolderPermission->folder->name,
-                'data' => $userFolderPermission
+                'data' => new UserFolderPermissionResource($userFolderPermission)
             ]);
         } catch (Exception $e) {
             Log::error('Error occured while retrieving user permission: ' . $e->getMessage(), [
@@ -244,7 +226,7 @@ class PermissionFolderController extends Controller
                 ], 403);
             }
 
-            $checkUserFolderPermission = UserFolderPermission::where('user_id', $userInfo->id)->where('folder_id', $folder->id)->with(['user', 'folder'])->first();
+            $checkUserFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $userInfo->id)->where('folder_id', $folder->id)->first();
 
             if ($checkUserFolderPermission) {
                 return response()->json([
@@ -264,17 +246,13 @@ class PermissionFolderController extends Controller
             // Terapkan izin pada subfolder dan file (kecuali file yang sudah ada izin)
             $this->applyPermissionToSubfoldersAndFiles($folder, $userInfo->id, $request->permissions);
 
+            $createNewUserFolderPermission->load(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances']);
+
             DB::commit();
-
-            $createNewUserFolderPermission->makeHidden(['user_id']);
-
-            $createNewUserFolderPermission->user->makeHidden(['email_verified_at', 'is_superadmin', 'created_at', 'updated_at']);
-
-            $createNewUserFolderPermission->folder->makeHidden(['nanoid']);
 
             return response()->json([
                 'message' => 'User ' . $createNewUserFolderPermission->user->name . ' has been granted permission ' . $createNewUserFolderPermission->permissions . ' to folder: ' . $createNewUserFolderPermission->folder->name,
-                'data' => $createNewUserFolderPermission
+                'data' => new UserFolderPermissionResource($createNewUserFolderPermission)
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
@@ -378,7 +356,7 @@ class PermissionFolderController extends Controller
                 ], 403);
             }
 
-            $userFolderPermission = UserFolderPermission::where('user_id', $userId)->where('folder_id', $folderId)->first();
+            $userFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if (!$userFolderPermission) {
                 return response()->json([
@@ -394,11 +372,13 @@ class PermissionFolderController extends Controller
             // Terapkan perubahan izin pada subfolder dan file (kecuali file yang sudah ada izin)
             $this->applyPermissionToSubfoldersAndFiles($folder, $request->user_id, $request->permissions);
 
+            $userFolderPermission->load(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances']);
+
             DB::commit();
 
             return response()->json([
                 'message' => 'Successfully change permission for user ' . $userFolderPermission->user->name . ' to ' . $userFolderPermission->permissions . ' on folder: ' . $userFolderPermission->folder->name,
-                'data' => $userFolderPermission
+                'data' => new UserFolderPermissionResource($userFolderPermission)
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
