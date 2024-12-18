@@ -52,7 +52,7 @@ class FolderResource extends JsonResource
                     'name' => $this->user->name,
                     'email' => $this->user->email,
                     'photo_profile_url' => $this->user->photo_profile_url,
-                    'roles' => $this->user->roles,
+                    'roles' => $this->user->roles->pluck('name'),
                     'instances' => $this->user->instances->map(function ($userFolderInstance) {
                         return [
                             'id' => $userFolderInstance->id,
@@ -75,7 +75,7 @@ class FolderResource extends JsonResource
                         'name' => $permission->user->name,
                         'email' => $permission->user->email,
                         'photo_profile_url' => $permission->user->photo_profile_url,
-                        'roles' => $permission->user->roles,
+                        'roles' => $permission->user->roles->pluck('name'),
                         'instance' => $permission->user->instances->map(function ($userInstance) {
                             return [
                                 'id' => $userInstance->id,

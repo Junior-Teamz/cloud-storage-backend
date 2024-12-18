@@ -30,7 +30,7 @@ class ValidateAdmin
 
         $userData = User::where('id', $user->id)->first();
 
-        if($userData->hasRole('admin') && $userData->is_superadmin == 1){
+        if($userData->hasRole('admin') && $userData->hasRole('superadmin')){
             return $next($request);
         } elseif( $userData->hasRole('admin') && $userData->is_superadmin == 0){
             return $next($request);

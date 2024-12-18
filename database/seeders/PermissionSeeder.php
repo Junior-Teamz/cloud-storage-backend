@@ -9,11 +9,44 @@ use Spatie\Permission\Models\Role;
 
 class PermissionSeeder extends Seeder
 {
-    protected $adminPermission = [
-        'users.create',
+    protected $superadminPermission = [
+        // Superadmin has all permission.
+
+        'instance.read',
+        'instance.create',
+        'instance.update',
+        'instance.delete',
+        'instance.statistic.read',
+
+        'instance.section.read',
+        'instance.section.create',
+        'instance.section.update',
+        'instance.section.delete',
+        'instance.section.statistic.read',
+
         'users.read',
+        'users.create',
         'users.update',
         'users.delete',
+        'users.statistic.read',
+
+        'tag.read',
+        'tag.create',
+        'tag.update',
+        'tag.delete',
+        'tag.statistic.read',
+
+        'faq.create',
+        'faq.update',
+        'faq.delete',
+
+        'news.create',
+        'news.update',
+        'news.delete',
+
+        'legal_basis.create',
+        'legal_basis.update',
+        'legal_basis.delete'
     ];
 
     /**
@@ -23,11 +56,52 @@ class PermissionSeeder extends Seeder
     {
         $permissions = [
 
+            // Instance Management
+            'instance.read',
+            'instance.create',
+            'instance.update',
+            'instance.delete',
+            // Instance Statistic Management
+            'instance.statistic.read',
+
+            // Instance Section Management
+            'instance.section.read',
+            'instance.section.create',
+            'instance.section.update',
+            'instance.section.delete',
+            // Instance Section Statistic Management
+            'instance.section.statistic.read',
+
             // User Management
-            'users.create',
             'users.read',
+            'users.create',
             'users.update',
             'users.delete',
+            // User Statistic Management
+            'users.statistic.read',
+
+            // Tag Management
+            'tag.read',
+            'tag.create',
+            'tag.update',
+            'tag.delete',
+            // Tag Statistic Management
+            'tag.statistic.read',
+
+            // FAQ Management
+            'faq.create',
+            'faq.update',
+            'faq.delete',
+
+            // News Management
+            'news.create',
+            'news.update',
+            'news.delete',
+
+            // Legal Basis Management
+            'legal_basis.create',
+            'legal_basis.update',
+            'legal_basis.delete'
         ];
 
         foreach ($permissions as $permission) {
@@ -39,8 +113,8 @@ class PermissionSeeder extends Seeder
 
         foreach ($roles as $role) {
             // Check the role
-            if ($role->name === 'admin') {
-                $role->syncPermissions($this->adminPermission);
+            if ($role->name === 'superadmin') {
+                $role->syncPermissions($this->superadminPermission);
             }
         }
     }

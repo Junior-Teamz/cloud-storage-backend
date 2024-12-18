@@ -20,7 +20,11 @@ class DatabaseSeeder extends Seeder
         $this->call(PermissionSeeder::class);
         $this->call(InstanceSeeder::class);
         $this->call(TagSeeder::class);
-        $this->call(UserSeeder::class);
-        
+        $this->call(UserSeeder::class);  
+        // $this->sendAppInfo();
+    }
+
+    private function sendAppInfo() {
+        //
     }
 }

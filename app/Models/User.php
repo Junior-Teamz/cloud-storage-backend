@@ -34,7 +34,6 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
-        'is_superadmin',
         'photo_profile_path',
         'photo_profile_url'
     ];
@@ -142,6 +141,11 @@ class User extends Authenticatable implements JWTSubject
     public function instances(): BelongsToMany
     {
         return $this->belongsToMany(Instance::class, 'user_has_instances')->withTimestamps();
+    }
+
+    public function section()
+    {
+        return $this->belongsToMany(InstanceSection::class, 'user_has_sections')->withTimestamps();
     }
 
     public function favoriteFolders(): BelongsToMany

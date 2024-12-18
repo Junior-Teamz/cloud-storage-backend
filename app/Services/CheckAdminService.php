@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\Auth;
+use Spatie\Permission\Models\Permission;
 
 /**
  * This class is used to check if the authenticated user is an admin or a superadmin, 
@@ -23,7 +25,26 @@ class CheckAdminService
     {
         $user = Auth::user();
 
-        if ((($user->hasRole('admin') && $user->is_superadmin == 0)) || ($user->hasRole('admin') && $user->is_superadmin == 1)) {
+        if ($user->hasRole('admin') || $user->hasRole('superadmin')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if authenticated user is admin and has a permission given in parameter. if user has superadmin, user get access too.
+     */
+    public function checkAdminWithPermission(string $permission)
+    {
+        $user = Auth::user();
+
+        // periksa apakah permission valid dan terdapat pada database
+        if(!Permission::where('name', $permission)->exists()) {
+            throw new Exception('Invalid permission given.');
+        }
+
+        if(($user->hasRole('admin') && $user->hasPermission($permission)) || $user->hasRole('superadmin')){
             return true;
         }
 
@@ -42,7 +63,7 @@ class CheckAdminService
     {
         $user = Auth::user();
 
-        if ($user->hasRole('admin') && $user->is_superadmin == 1) {
+        if ($user->hasRole('superadmin')) {
             return true;
         }
 
@@ -65,7 +86,7 @@ class CheckAdminService
 
         $userInstance = $user->instance->pluck('name');
 
-        if ((($user->hasRole('admin') && $user->is_superadmin == 0)) || ($user->hasRole('admin') && $user->is_superadmin == 1))
+        if ($user->hasRole('admin') || $user->hasRole('superadmin'))
         {
             if ($userInstance === "KemenkopUKM") 
             {

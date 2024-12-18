@@ -94,7 +94,7 @@ class AuthController extends Controller
             ];
 
             // Jika user adalah is_superadmin, tambahkan is_superadmin ke dalam respons JSON
-            if ($user->is_superadmin == 1) {
+            if ($user->hasRole('superadmin')) {
                 $responseData['is_superadmin'] = true;
             }
 
