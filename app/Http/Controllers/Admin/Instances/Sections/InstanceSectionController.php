@@ -9,6 +9,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class InstanceSectionController extends Controller
 {
@@ -101,6 +102,29 @@ class InstanceSectionController extends Controller
             Log::error('Error while getting instance section by id: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
+        }
+    }
+
+    public function createNewInstanceSection(Request $request)
+    {
+        $userLogin = Auth::user();
+
+        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.create');
+
+        if(!$checkPermission){
+            return response()->json([
+                'errors' => 'Instance Section not found.'
+            ], 404);
+        }
+
+        $validator = Validator::make([
+            'name' => 'string|max:255|unique:instance_sections,'
+        ]);
+
+        try {
+
+        } catch (Exception $e) {
+            Log::error();
         }
     }
 }
