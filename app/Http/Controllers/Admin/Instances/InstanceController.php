@@ -26,7 +26,15 @@ class InstanceController extends Controller
     }
 
     /**
-     * Retrieving information about instances registered under the admin.
+     * Get the instance information associated with the authenticated admin user.
+     *
+     * This method checks if the authenticated user has the necessary permissions
+     * ('instance.read') to view an instance. If the user does not have the required permissions,
+     * a 403 Forbidden response is returned. If the user has the required permissions,
+     * the method attempts to fetch the instance associated with the user.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response containing the instance information.
+     * @throws \Exception If an error occurs during the fetch process.
      */
     public function index()
     {
@@ -61,7 +69,16 @@ class InstanceController extends Controller
     }
 
     /**
-     * Update current admin registered instance.
+     * Update the instance information associated with the authenticated admin user.
+     *
+     * This method checks if the authenticated user has the necessary permissions
+     * ('instance.update') to update an instance. If the user does not have the required permissions,
+     * a 403 Forbidden response is returned. If the user has the required permissions,
+     * the method attempts to update the instance associated with the user.
+     *
+     * @param \Illuminate\Http\Request $request The request object containing the new instance information.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing a success message if the instance is updated successfully.
+     * @throws \Exception If an error occurs during the update process.
      */
     public function updateInstance(Request $request)
     {
@@ -133,6 +150,72 @@ class InstanceController extends Controller
 
             return response()->json([
                 'errors' => 'An error occurred while updating instance.'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Delete an instance associated with the authenticated admin user.
+     *
+     * This method checks if the authenticated user has the necessary permissions
+     * ('instance.delete') to delete an instance. If the user does not have the required permissions,
+     * a 403 Forbidden response is returned. If the user has the required permissions,
+     * the method attempts to delete the instance associated with the user.
+     *
+     * **WARNING**: This action is dangerous and destructive. Deleting an instance is irreversible.
+     *
+     * @return \Illuminate\Http\JsonResponse A JSON response containing a success message if the instance is deleted successfully.
+     * @throws \Exception If an error occurs during the deletion process.
+     */
+    public function deleteInstance()
+    {
+        $user = Auth::user();
+
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.delete');
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        try {
+            $userData = User::where('id', $user->id)->first();
+
+            $userInstance = $userData->instances()->first();
+
+            if (!$userInstance) {
+                return response()->json([
+                    'errors' => 'Instance not found.'
+                ], 404);
+            }
+
+            // Periksa apakah instansi masih memiliki relasi, jika ya, instansi tidak boleh dihapus sampai data relasi sudah dihapus terlebih dahulu.
+            if ($userInstance->users()->exists() || $userInstance->folders()->exists() || $userInstance->files()->exists()) {
+                return response()->json([
+                    'errors' => 'Instance cannot be deleted because it still has related users, folders, or files.'
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
+            $userInstance->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Instance deleted successfully.'
+            ], 200);
+        } catch (Exception $e) {
+
+            DB::rollBack();
+
+            Log::error('Error occurred while deleting instance from admin: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while deleting instance.'
             ], 500);
         }
     }

@@ -16,11 +16,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(RoleSeeder::class);
-        $this->call(PermissionSeeder::class);
-        $this->call(InstanceSeeder::class);
-        $this->call(TagSeeder::class);
-        $this->call(UserSeeder::class);  
+        $seeders = [
+            RoleSeeder::class,
+            PermissionSeeder::class,
+            InstanceSeeder::class,
+            InstanceSectionSeeder::class,
+            TagSeeder::class,
+            UserSeeder::class,
+        ];
+
+        foreach ($seeders as $seeder) {
+            $this->call($seeder);
+        }
+
         // $this->sendAppInfo();
     }
 

@@ -149,7 +149,7 @@ class PermissionFileController extends Controller
         }
 
         try {
-            $userFilePermission = UserFilePermission::with(['user', 'user.instances', 'file', 'file.tags', 'file.instances'])->where('user_id', $userId)->where('file_id', $fileId)->first();
+            $userFilePermission = UserFilePermission::with(['user', 'user.instances', 'user.instances.sections', 'file', 'file.tags', 'file.instances'])->where('user_id', $userId)->where('file_id', $fileId)->first();
 
             if ($userFilePermission == null) {
                 return response()->json([
@@ -236,7 +236,7 @@ class PermissionFileController extends Controller
                 'permissions' => $request->permissions
             ]);
 
-            $createNewUserFilePermission->load(['user', 'user.instances', 'file', 'file.tags', 'file.instances']);
+            $createNewUserFilePermission->load(['user', 'user.instances', 'user.instances.sections', 'file', 'file.tags', 'file.instances']);
 
             DB::commit();
 
@@ -320,7 +320,7 @@ class PermissionFileController extends Controller
             $userFilePermission->permissions = $request->permissions;
             $userFilePermission->save();
 
-            $userFilePermission->load(['user', 'user.instances', 'file', 'file.tags', 'file.instances']);
+            $userFilePermission->load(['user', 'user.instances', 'user.instances.sections', 'file', 'file.tags', 'file.instances']);
 
             DB::commit();
 

@@ -35,7 +35,7 @@ class CheckAdminService
     /**
      * Check if authenticated user is admin and has a permission given in parameter. if user has superadmin, user get access too.
      */
-    public function checkAdminWithPermission(string $permission)
+    public function checkAdminWithPermissionOrSuperadmin(string $permission)
     {
         $user = Auth::user();
 
@@ -45,6 +45,25 @@ class CheckAdminService
         }
 
         if(($user->hasRole('admin') && $user->hasPermission($permission)) || $user->hasRole('superadmin')){
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if authenticated user is admin and has a permission given in parameter.
+     */
+    public function checkAdminWithPermission(string $permission)
+    {
+        $user = Auth::user();
+
+        // periksa apakah permission valid dan terdapat pada database
+        if(!Permission::where('name', $permission)->exists()) {
+            throw new Exception('Invalid permission given.');
+        }
+
+        if($user->hasRole('admin') && $user->hasPermission($permission)){
             return true;
         }
 

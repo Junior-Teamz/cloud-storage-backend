@@ -150,13 +150,13 @@ class TagController extends Controller
      * It first checks if the authenticated user is an admin. If not, it returns an error message.
      * If the user is an admin, it counts the tags and returns the count in a JSON response.
      * 
-     * Requires admin authentication.
+     * Requires superadmin authentication.
      *
      * @return \Illuminate\Http\JsonResponse A JSON response containing the tag count or an error message.
      */
     public function countAllTags()
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
 
         if (!$checkAdmin) {
             return response()->json([
@@ -189,73 +189,6 @@ class TagController extends Controller
     }
 
     /**
-     * Get tag usage statistics.
-     * 
-     * This method retrieves tag usage statistics, including the number of times each tag is used in folders, files, and news.
-     * It supports pagination and filtering by tag name.
-     *
-     * @param  \Illuminate\Http\Request  $request The incoming HTTP request containing optional query parameters.
-     * @return \Illuminate\Http\JsonResponse A JSON response containing the paginated list of tags with usage statistics or an error message.
-     */
-    public function getTagUsageStatistics(Request $request)
-    {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
-
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
-
-        try {
-            $name = $request->query('name');
-            // Ambil jumlah item per halaman dari request, default ke 10 jika tidak ada
-            $perPage = $request->query('per_page', 10);
-
-            // Query untuk mendapatkan tag beserta statistik penggunaan di folder, file, dan news
-            $tagsQuery = Tags::select('tags.*')
-                ->selectRaw('
-            (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id) as folder_usage_count,
-            (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) as file_usage_count,
-            (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tags_id = tags.id) as news_usage_count,
-            (
-                (SELECT COUNT(*) FROM file_has_tags WHERE file_has_tags.tags_id = tags.id) +
-                (SELECT COUNT(*) FROM folder_has_tags WHERE folder_has_tags.tags_id = tags.id) +
-                (SELECT COUNT(*) FROM news_has_tags WHERE news_has_tags.tags_id = tags.id)
-            ) as total_usage_count
-        ')
-                ->orderByDesc('total_usage_count'); // Urutkan berdasarkan total penggunaan
-
-            // Jika query name diberikan, tambahkan kondisi pencarian berdasarkan nama
-            if ($name) {
-                $tagsQuery->where('tags.name', 'like', '%' . $name . '%');
-            }
-
-            // Paginasi hasil
-            $tags = $tagsQuery->paginate($perPage);
-
-            // Menampilkan hasil dalam format JSON
-            return response()->json([
-                'data' => $tags->items(), // Isi data tag
-                'pagination' => [
-                    'current_page' => $tags->currentPage(),
-                    'per_page' => $tags->perPage(),
-                    'total' => $tags->total(),
-                    'last_page' => $tags->lastPage(),
-                ]
-            ], 200);
-        } catch (Exception $e) {
-            Log::error('Error occurred while fetching tag usage statistics: ' . $e->getMessage(), [
-                'trace' => $e->getTrace()
-            ]);
-
-            return response()->json([
-                'errors' => 'An error occurred while fetching tag usage statistics.'
-            ], 500);
-        }
-    }
-
-    /**
      * Create a new tag.
      *
      * This method handles the creation of a new tag. It first checks if the authenticated user
@@ -270,7 +203,7 @@ class TagController extends Controller
      */
     public function store(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.create');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -341,7 +274,7 @@ class TagController extends Controller
     public function exampleImportDownload()
     {
         // Mengecek apakah pengguna adalah admin
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.create');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -391,7 +324,7 @@ class TagController extends Controller
      */
     public function import(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.create');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -485,7 +418,7 @@ class TagController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.update');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -574,7 +507,7 @@ class TagController extends Controller
      */
     public function destroy(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.delete');
 
         if (!$checkAdmin) {
             return response()->json([

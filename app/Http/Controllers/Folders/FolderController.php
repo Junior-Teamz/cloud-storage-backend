@@ -171,8 +171,8 @@ class FolderController extends Controller
                 ], 500);
             }
 
-            $subfolders = $parentFolder->subfolders()->with(['user', 'user.instances', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite'])->paginate(10);
-            $files = $parentFolder->files()->with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])->paginate(10);
+            $subfolders = $parentFolder->subfolders()->with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'userFolderPermissions.user.instances.sections', 'favorite'])->paginate(10);
+            $files = $parentFolder->files()->with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite'])->paginate(10);
 
             return response()->json([
                 'data' => [
@@ -244,8 +244,8 @@ class FolderController extends Controller
                 ], 200);
             }
 
-            $subfolders = $folder->subfolders()->with(['user', 'user.instances', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite'])->paginate(10);
-            $files = $folder->files()->with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])->paginate(10);
+            $subfolders = $folder->subfolders()->with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'userFolderPermissions.user.instances.sections', 'favorite'])->paginate(10);
+            $files = $folder->files()->with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite'])->paginate(10);
 
             return response()->json([
                 'data' => [

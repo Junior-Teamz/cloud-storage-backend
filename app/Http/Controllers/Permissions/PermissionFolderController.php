@@ -146,7 +146,7 @@ class PermissionFolderController extends Controller
 
         try {
             // Cek apakah userFolderPermission ada
-            $userFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
+            $userFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'user.instances.sections', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $request->user_id)->where('folder_id', $request->folder_id)->first();
 
             if (!$userFolderPermission) {
                 return response()->json([
@@ -227,7 +227,7 @@ class PermissionFolderController extends Controller
                 ], 403);
             }
 
-            $checkUserFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $userInfo->id)->where('folder_id', $folder->id)->first();
+            $checkUserFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'user.instances.sections', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $userInfo->id)->where('folder_id', $folder->id)->first();
 
             if ($checkUserFolderPermission) {
                 return response()->json([
@@ -247,7 +247,7 @@ class PermissionFolderController extends Controller
             // Terapkan izin pada subfolder dan file (kecuali file yang sudah ada izin)
             $this->applyPermissionToSubfoldersAndFiles($folder, $userInfo->id, $request->permissions);
 
-            $createNewUserFolderPermission->load(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances']);
+            $createNewUserFolderPermission->load(['user', 'user.instances', 'user.instances.sections', 'folder', 'folder.tags', 'folder.instances']);
 
             DB::commit();
 
@@ -357,7 +357,7 @@ class PermissionFolderController extends Controller
                 ], 403);
             }
 
-            $userFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $userId)->where('folder_id', $folderId)->first();
+            $userFolderPermission = UserFolderPermission::with(['user', 'user.instances', 'user.instances.sections', 'folder', 'folder.tags', 'folder.instances'])->where('user_id', $userId)->where('folder_id', $folderId)->first();
 
             if (!$userFolderPermission) {
                 return response()->json([
@@ -373,7 +373,7 @@ class PermissionFolderController extends Controller
             // Terapkan perubahan izin pada subfolder dan file (kecuali file yang sudah ada izin)
             $this->applyPermissionToSubfoldersAndFiles($folder, $request->user_id, $request->permissions);
 
-            $userFolderPermission->load(['user', 'user.instances', 'folder', 'folder.tags', 'folder.instances']);
+            $userFolderPermission->load(['user', 'user.instances', 'user.instances.sections', 'folder', 'folder.tags', 'folder.instances']);
 
             DB::commit();
 

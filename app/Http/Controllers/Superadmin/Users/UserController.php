@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Superadmin\User;
+namespace App\Http\Controllers\Superadmin\Users;
 
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
@@ -244,6 +244,7 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', 'exists:roles,name'],
             'instance_id' => ['required', 'string', 'exists:instances,id'],
+            'instance_section_id' => ['required', 'string', 'exists:instance_sections,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
@@ -255,6 +256,13 @@ class UserController extends Controller
 
         try {
             $instance = Instance::where('id', $request->instance_id)->first();
+            $section = $instance->sections()->where('id', $request->instance_section_id)->first();
+
+            if (!$section) {
+                return response()->json([
+                    'errors' => 'Section does not belong to the specified instance.'
+                ], 422);
+            }
 
             DB::beginTransaction();
 
@@ -267,6 +275,7 @@ class UserController extends Controller
             $newUser->assignRole($request->role);
 
             $newUser->instances()->sync($instance->id);
+            $newUser->section()->sync($section->id);
 
             if ($request->has('photo_profile')) {
 
@@ -283,7 +292,7 @@ class UserController extends Controller
                 $photoProfile = $photoFile->store($photoProfilePath, 'public');
 
                 // Buat URL publik untuk thumbnail
-                $photoProfileUrl = Storage::disk('public')->url($photoProfile);
+                $photoProfileUrl = Storage::url($photoProfile);
 
                 $newUser->photo_profile_path = $photoProfile;
                 $newUser->photo_profile_url = $photoProfileUrl;
@@ -346,7 +355,7 @@ class UserController extends Controller
             'email' => [
                 'nullable',
                 'email',
-                function ($attribute, $value, $fail) use ($request) {
+                function ($attribute, $value, $fail) {
                     // Validasi format email menggunakan Laravel's 'email' rule
                     if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
                         $fail('Invalid email format.');
@@ -381,6 +390,7 @@ class UserController extends Controller
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['nullable', 'string', 'exists:roles,name'],
             'instance_id' => ['nullable', 'string', 'exists:instances,id'],
+            'instance_section_id' => ['nullable', 'string', 'exists:instance_sections,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
@@ -424,12 +434,22 @@ class UserController extends Controller
                 $userToBeUpdated->assignRole($request->role);
             }
 
-            if ($request->instance_id) {
+            $currentInstance = $userToBeUpdated->instances()->first();
+            $currentSection = $userToBeUpdated->section()->first();
 
+            if ($request->instance_id && $request->instance_id != $currentInstance->id) {
                 $instance = Instance::where('id', $request->instance_id)->first();
+                $section = $instance->sections()->where('id', $request->instance_section_id)->first();
 
-                // Perbarui instance user
+                if (!$section) {
+                    return response()->json([
+                        'errors' => 'Section does not belong to the specified instance.'
+                    ], 422);
+                }
+
+                // Perbarui instance dan section user
                 $userToBeUpdated->instances()->sync($instance->id);
+                $userToBeUpdated->section()->sync($section->id);
 
                 // Cari folder yang terkait dengan user
                 $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
@@ -438,6 +458,17 @@ class UserController extends Controller
                     // Perbarui relasi instance pada setiap folder terkait
                     $folder->instances()->sync($instance->id);
                 }
+            } elseif ($request->instance_section_id && $request->instance_section_id != $currentSection->id) {
+                $section = $currentInstance->sections()->where('id', $request->instance_section_id)->first();
+
+                if (!$section) {
+                    return response()->json([
+                        'errors' => 'Section does not belong to the specified instance.'
+                    ], 422);
+                }
+
+                // Perbarui section user
+                $userToBeUpdated->section()->sync($section->id);
             }
 
             if ($request->has('photo_profile')) {

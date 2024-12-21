@@ -72,6 +72,7 @@ class Kernel extends HttpKernel
         'protectRootTag' => \App\Http\Middleware\Custom\PreventRootTagModification::class,
         'check_admin' => \App\Http\Middleware\Custom\CheckAdmin::class,
         'validate_admin' => \App\Http\Middleware\Custom\ValidateAdmin::class,
+        'validate_superadmin' => \App\Http\Middleware\Custom\ValidateSuperadmin::class,
         'hide_superadmin_flag' => \App\Http\Middleware\Custom\HideSuperadminFlag::class,
         'check_storage_limit' => \App\Http\Middleware\Custom\CheckStorageLimit::class
     ];

@@ -42,8 +42,14 @@ class UserFilePermissionResource extends JsonResource
                     return [
                         'id' => $userFolderInstance->id,
                         'name' => $userFolderInstance->name,
-                        'address' => $userFolderInstance->address
-                        // TODO: Tambahkan unit kerja disini
+                        'address' => $userFolderInstance->address,
+                        'sections' => $userFolderInstance->sections->map(function ($section) {
+                            return [
+                                'id' => $section->id,
+                                'instance_id' => $section->instance_id,
+                                'name' => $section->name,
+                            ];
+                        })
                     ];
                 })
             ],

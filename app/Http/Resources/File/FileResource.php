@@ -60,12 +60,18 @@ class FileResource extends JsonResource
                 'email' => $this->user->email,
                 'photo_profile_url' => $this->user->photo_profile_url,
                 'roles' => $this->user->roles->pluck('name'),
-                'instances' => $this->user->instances->map(function ($userFolderInstance) {
+                'instances' => $this->user->instances->map(function ($userFileInstance) {
                     return [
-                        'id' => $userFolderInstance->id,
-                        'name' => $userFolderInstance->name,
-                        'address' => $userFolderInstance->address
-                        // TODO: Tambahkan unit kerja disini
+                        'id' => $userFileInstance->id,
+                        'name' => $userFileInstance->name,
+                        'address' => $userFileInstance->address,
+                        'sections' => $userFileInstance->sections->map(function ($section) {
+                            return [
+                                'id' => $section->id,
+                                'instance_id' => $section->instance_id,
+                                'name' => $section->name,
+                            ];
+                        })
                     ];
                 })
             ],
@@ -88,7 +94,13 @@ class FileResource extends JsonResource
                                 'id' => $userInstance->id,
                                 'name' => $userInstance->name,
                                 'address' => $userInstance->address,
-                                // tambahkan unit kerja disini
+                                'sections' => $userInstance->sections->map(function ($section) {
+                                    return [
+                                        'id' => $section->id,
+                                        'instance_id' => $section->instance_id,
+                                        'name' => $section->name,
+                                    ];
+                                }),
                             ];
                         })
                     ]

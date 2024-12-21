@@ -8,6 +8,7 @@ use App\Services\CheckAdminService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -118,13 +119,160 @@ class InstanceSectionController extends Controller
         }
 
         $validator = Validator::make([
-            'name' => 'string|max:255|unique:instance_sections,'
+            'name' => 'string|max:255'
         ]);
 
+        if($validator->fails()){
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 400);
+        }
+    
         try {
+            // validate if instance section name is already exists with the same instance
+            $instance = $userLogin->instances()->first();
+
+            $existingSection = $instance->sections()->whereRaw('LOWER(name) = ?', [strtolower($request->name)])->first();
+
+            if ($existingSection) {
+                return response()->json([
+                    'errors' => 'Instance section with the same name already exists.'
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
+            $newSection = InstanceSection::create([
+                'name' => $request->name,
+                'instance_id' => $instance->id
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Instance section created successfully.',
+                'data' => $newSection
+            ], 201);
 
         } catch (Exception $e) {
-            Log::error();
+            DB::rollBack();
+            Log::error('Error while creating instance section: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while creating the instance section.'
+            ], 500);
+        }
+    }
+
+    public function updateInstanceSection(Request $request, $instanceSectionId)
+    {
+        $userLogin = Auth::user();
+
+        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.update');
+
+        if (!$checkPermission) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'string|max:255'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 400);
+        }
+
+        try {
+            $userLoginInstance = $userLogin->instances()->first();
+            $instanceSection = InstanceSection::with('instance')->where('id', $instanceSectionId)->first();
+
+            if (!$instanceSection) {
+                return response()->json([
+                    'errors' => 'Instance Section not found.'
+                ], 404);
+            }
+
+            if ($instanceSection->instance->id !== $userLoginInstance->id) {
+                return response()->json([
+                    'errors' => 'You are not allowed to update other instance section data.'
+                ], 403);
+            }
+
+            DB::beginTransaction();
+
+            $instanceSection->name = $request->name;
+            $instanceSection->save();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Instance section updated successfully.',
+                'data' => $instanceSection
+            ], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error while updating instance section: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while updating the instance section.'
+            ], 500);
+        }
+    }
+
+    public function deleteInstanceSection($instanceSectionId)
+    {
+        $userLogin = Auth::user();
+
+        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.delete');
+
+        if (!$checkPermission) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        try {
+            $userLoginInstance = $userLogin->instances()->first();
+            $instanceSection = InstanceSection::with('instance')->where('id', $instanceSectionId)->first();
+
+            if (!$instanceSection) {
+                return response()->json([
+                    'errors' => 'Instance Section not found.'
+                ], 404);
+            }
+
+            if ($instanceSection->instance->id !== $userLoginInstance->id) {
+                return response()->json([
+                    'errors' => 'You are not allowed to delete other instance section data.'
+                ], 403);
+            }
+
+            DB::beginTransaction();
+
+            $instanceSection->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Instance section deleted successfully.'
+            ], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error while deleting instance section: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred while deleting the instance section.'
+            ], 500);
         }
     }
 }

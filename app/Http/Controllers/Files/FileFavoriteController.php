@@ -96,7 +96,7 @@ class FileFavoriteController extends Controller
             $perPage = $request->input('per_page', 10); // Default 10 items per page
 
             // Query file favorit user dengan pivot data
-            $favoriteFilesQuery = $user->favoriteFiles()->with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+            $favoriteFilesQuery = $user->favoriteFiles()->with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
             // Filter berdasarkan nama file jika ada parameter 'search'
             if ($search) {
@@ -164,7 +164,7 @@ class FileFavoriteController extends Controller
             $user = User::find($userLogin->id);
 
             // Ambil file yang akan difavoritkan beserta relasi tags, instances, dan favorite status
-            $file = File::with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])->where('id', $request->file_id)->first();
+            $file = File::with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite'])->where('id', $request->file_id)->first();
 
             // Cek apakah user memiliki izin untuk memfavoritkan file
             $checkPermission = $this->checkPermissionFileService->checkPermissionFile($file->id, ['read', 'write']);
@@ -191,7 +191,7 @@ class FileFavoriteController extends Controller
             $user->favoriteFiles()->attach($file->id);
 
             // Ambil ulang file setelah ditambahkan ke favorit
-            $file->load(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+            $file->load(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
             DB::commit();
 
@@ -232,7 +232,7 @@ class FileFavoriteController extends Controller
             // Ambil data user
             $user = User::with('favoriteFiles')->find($userLogin->id);
 
-            $file = File::with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])->where('id', $fileId)->first();
+            $file = File::with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite'])->where('id', $fileId)->first();
 
             if (!$file) {
                 Log::warning('Attempt to delete non-existence file delete favorite endpoint.');
@@ -256,7 +256,7 @@ class FileFavoriteController extends Controller
             // Hapus file dari daftar favorit
             $user->favoriteFiles()->detach($file->id);
 
-            $file->load(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+            $file->load(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
             DB::commit();
 

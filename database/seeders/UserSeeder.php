@@ -24,7 +24,6 @@ class UserSeeder extends Seeder
             'name' => 'Administrator',
             'email' => 'administrator@gmail.com',
             'password' => bcrypt('administrator!@123'),
-            'is_superadmin' => true
         ]);
 
         $instance = Instance::where('name', 'KemenkopUKM')->first();
@@ -35,7 +34,7 @@ class UserSeeder extends Seeder
 
         $folderUser->instances()->attach($instance->id);
 
-        $adminRole = Role::where('name', 'admin')->first();
+        $adminRole = Role::where('name', 'superadmin')->first();
         
         // Assign role with permissions to admin user
         $adminSeeder->assignRole($adminRole);

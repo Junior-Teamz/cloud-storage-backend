@@ -5,24 +5,15 @@ namespace App\Http\Middleware\Custom;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
-/**
- * This middleware validates if the authenticated user has the 'admin' role.
- * 
- * It checks if the user has the 'admin' role, regardless of their 'is_superadmin' status.
- * If the user is an admin, the request is allowed to proceed.
- * Otherwise, a 403 Forbidden response is returned.
- */
-class ValidateAdmin
+class ValidateSuperadmin
 {
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -30,7 +21,7 @@ class ValidateAdmin
 
         $userData = User::where('id', $user->id)->first();
 
-        if($userData->hasRole('admin')){
+        if ($userData->hasRole('superadmin')) {
             return $next($request);
         }
 

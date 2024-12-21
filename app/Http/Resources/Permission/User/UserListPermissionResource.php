@@ -40,12 +40,18 @@ class UserListPermissionResource extends JsonResource
                 'email' => $this->user->email,
                 'photo_profile_url' => $this->user->photo_profile_url,
                 'roles' => $this->user->roles->pluck('name'),
-                'instances' => $this->user->instances->map(function ($userFolderInstance) {
+                'instances' => $this->user->instances->map(function ($userInstance) {
                     return [
-                        'id' => $userFolderInstance->id,
-                        'name' => $userFolderInstance->name,
-                        'address' => $userFolderInstance->address
-                        // Tambahkan unit kerja disini
+                        'id' => $userInstance->id,
+                        'name' => $userInstance->name,
+                        'address' => $userInstance->address,
+                        'sections' => $userInstance->sections->map(function ($section) {
+                            return [
+                                'id' => $section->id,
+                                'instance_id' => $section->instance_id,
+                                'name' => $section->name,
+                            ];
+                        })
                     ];
                 }),
             ]

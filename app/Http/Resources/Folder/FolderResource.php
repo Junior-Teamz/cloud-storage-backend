@@ -4,6 +4,7 @@ namespace App\Http\Resources\Folder;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Auth;
 
 class FolderResource extends JsonResource
 {
@@ -29,7 +30,7 @@ class FolderResource extends JsonResource
     public function toArray(Request $request): array
     {
         // Gunakan user ID yang diberikan atau fallback ke user yang sedang login
-        $currentUserId = $this->userId ?? $request->user()?->id;
+        $currentUserId = $this->userId ?? Auth::user()->id;
 
         // Cek apakah folder ini difavoritkan oleh user yang relevan
         $favorite = $this->favorite()->where('user_id', $currentUserId)->first();
@@ -48,20 +49,26 @@ class FolderResource extends JsonResource
             'is_favorite' => $isFavorite,
             'favorited_at' => $favoritedAt,
             'user' => [
-                    'id' => $this->user->id,
-                    'name' => $this->user->name,
-                    'email' => $this->user->email,
-                    'photo_profile_url' => $this->user->photo_profile_url,
-                    'roles' => $this->user->roles->pluck('name'),
-                    'instances' => $this->user->instances->map(function ($userFolderInstance) {
-                        return [
-                            'id' => $userFolderInstance->id,
-                            'name' => $userFolderInstance->name,
-                            'address' => $userFolderInstance->address
-                            // TODO: Tambahkan unit kerja disini
-                        ];
-                    })
-                ],
+                'id' => $this->user->id,
+                'name' => $this->user->name,
+                'email' => $this->user->email,
+                'photo_profile_url' => $this->user->photo_profile_url,
+                'roles' => $this->user->roles->pluck('name'),
+                'instances' => $this->user->instances->map(function ($userFolderInstance) {
+                    return [
+                        'id' => $userFolderInstance->id,
+                        'name' => $userFolderInstance->name,
+                        'address' => $userFolderInstance->address,
+                        'sections' => $userFolderInstance->sections->map(function ($section) {
+                            return [
+                                'id' => $section->id,
+                                'instance_id' => $section->instance_id,
+                                'name' => $section->name,
+                            ];
+                        })
+                    ];
+                })
+            ],
             'tags' => $this->tags->map(fn($tag) => $tag->only(['id', 'name'])),
             'instances' => $this->instances->map(fn($instance) => $instance->only(['id', 'name', 'address'])),
             'shared_with' => $this->userFolderPermissions->map(function ($permission) {
@@ -81,7 +88,13 @@ class FolderResource extends JsonResource
                                 'id' => $userInstance->id,
                                 'name' => $userInstance->name,
                                 'address' => $userInstance->address,
-                                // Tambahkan unit kerja disini
+                                'sections' => $userInstance->sections->map(function ($section) {
+                                    return [
+                                        'id' => $section->id,
+                                        'instance_id' => $section->instance_id,
+                                        'name' => $section->name,
+                                    ];
+                                })
                             ];
                         })
                     ]

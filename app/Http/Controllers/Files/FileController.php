@@ -63,7 +63,7 @@ class FileController extends Controller
         }
 
         try {
-            $file = File::with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])->where('id', $id)->first();
+            $file = File::with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite'])->where('id', $id)->first();
 
             if (!$file) {
                 Log::warning('Attempt to get file on non-existence folder id: ' . $id);
@@ -113,7 +113,7 @@ class FileController extends Controller
 
             // Ambil semua file dari database dengan paginasi, termasuk user, tags, dan instances
             $filesQuery = File::where('user_id', $user->id)
-                ->with(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite'])
+                ->with(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite'])
                 ->orderBy('size', $sortOrder); // Urutkan berdasarkan ukuran file (size)
 
             // Hitung total ukuran file langsung dari query sebelum paginasi
@@ -274,7 +274,7 @@ class FileController extends Controller
 
                 $file->instances()->sync($userInstances);
 
-                $file->load(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+                $file->load(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
                 // Tambahkan file ke dalam array yang akan dikembalikan
                 $filesData[] = $file;
@@ -481,7 +481,7 @@ class FileController extends Controller
             // Menambahkan tag ke file (tabel pivot file_has_tags)
             $file->tags()->attach($tag->id);
 
-            $file->load(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+            $file->load(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
             DB::commit();
 
@@ -555,7 +555,7 @@ class FileController extends Controller
             // Menghapus tag dari file (tabel pivot file_has_tags)
             $file->tags()->detach($tag->id);
 
-            $file->load(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+            $file->load(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
             DB::commit();
 
@@ -661,7 +661,7 @@ class FileController extends Controller
                 'public_path' => $publicPath,
             ]);
 
-            $file->load(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+            $file->load(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
             DB::commit();
 
@@ -765,7 +765,7 @@ class FileController extends Controller
                 'public_path' => $newPublicPath,
             ]);
 
-            $file->load(['user', 'user.instances', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'favorite']);
+            $file->load(['user', 'user.instances', 'user.instances.sections', 'tags', 'instances', 'userPermissions', 'userPermissions.user', 'userPermissions.user.instances', 'userPermissions.user.instances.sections', 'favorite']);
 
             DB::commit();
 

@@ -286,6 +286,7 @@ class UserController extends Controller
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', 'exists:roles,name'],
+            'instance_section_id' => ['required', 'string', 'exists:instance_sections,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
@@ -299,6 +300,13 @@ class UserController extends Controller
             $userAdminData = User::where('id', $user->id)->first();
             $adminInstance = $userAdminData->instances()->first();
             $instance = Instance::where('id', $adminInstance->id)->first();
+            $section = $instance->sections()->where('id', $request->instance_section_id)->first();
+
+            if (!$section) {
+                return response()->json([
+                    'errors' => 'Section does not belong to the specified instance.'
+                ], 422);
+            }
 
             DB::beginTransaction();
 
@@ -311,6 +319,7 @@ class UserController extends Controller
             $newUser->assignRole($request->role);
 
             $newUser->instances()->sync($instance->id);
+            $newUser->section()->sync($section->id);
 
             if ($request->has('photo_profile')) {
 
@@ -426,6 +435,7 @@ class UserController extends Controller
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['nullable', 'string', 'exists:roles,name'],
+            'instance_section_id' => ['nullable', 'string', 'exists:instance_sections,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
 
@@ -479,20 +489,18 @@ class UserController extends Controller
                 $userToBeUpdated->assignRole($request->role);
             }
 
-            if ($request->instance_id) {
+            $userInstanceSectionOld = $userToBeUpdated->section()->first();
 
-                $instance = Instance::where('id', $request->instance_id)->first();
+            if ($request->instance_section_id && $userInstanceSectionOld->id !== $request->instance_section_id) {
+                $currentSection = $userInstance->sections()->where('id', $request->instance_section_id)->first();
 
-                // Perbarui instance user
-                $userToBeUpdated->instances()->sync($instance->id);
-
-                // Cari folder yang terkait dengan user
-                $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
-
-                foreach ($userFolders as $folder) {
-                    // Perbarui relasi instance pada setiap folder terkait
-                    $folder->instances()->sync($instance->id);
+                if (!$currentSection) {
+                    return response()->json([
+                        'errors' => 'Section does not belong to the specified instance.'
+                    ], 422);
                 }
+
+                $userToBeUpdated->section()->sync($request->instance_section_id);
             }
 
             if ($request->has('photo_profile')) {
