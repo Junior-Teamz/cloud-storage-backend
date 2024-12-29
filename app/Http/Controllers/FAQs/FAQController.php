@@ -118,7 +118,7 @@ class FAQController extends Controller
      */
     public function store(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('faq.create');
+        $checkAdmin = $this->checkAdminService->checkSuperadmin();
 
         if (!$checkAdmin) {
             return response()->json([
@@ -180,7 +180,7 @@ class FAQController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('faq.update');
+        $checkAdmin = $this->checkAdminService->checkSuperadmin();
 
         if (!$checkAdmin) {
             return response()->json([
@@ -248,7 +248,7 @@ class FAQController extends Controller
      */
     public function destroy($id)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('faq.delete');
+        $checkAdmin = $this->checkAdminService->checkSuperadmin();
 
         if (!$checkAdmin) {
             return response()->json([

@@ -24,7 +24,7 @@ class InstanceController extends Controller
         $perPagePaginate = $validateQueryParam['per_page'] ?? 10;
 
         try {
-            $instanceData = Instance::paginate($perPagePaginate);
+            $instanceData = Instance::with('sections')->paginate($perPagePaginate);
 
             return response()->json([
                 'data' => new InstanceCollection($instanceData),
@@ -56,7 +56,7 @@ class InstanceController extends Controller
             $keywordName = $request->query('name');
 
             // Ambil hanya kolom 'id' tanpa pagination
-            $instanceData = Instance::where('name', 'like', '%' . $keywordName . '%')
+            $instanceData = Instance::with('sections')->where('name', 'like', '%' . $keywordName . '%')
                 ->paginate($perPagePaginate);
 
             if (!$instanceData) {
@@ -89,7 +89,7 @@ class InstanceController extends Controller
     public function getInstanceDetailFromId($instanceId)
     {
         try {
-            $instance = Instance::where('id', $instanceId)->first();
+            $instance = Instance::with('sections')->where('id', $instanceId)->first();
 
             if(!$instance){
                 return response()->json([

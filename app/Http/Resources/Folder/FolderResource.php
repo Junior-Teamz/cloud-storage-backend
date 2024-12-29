@@ -54,12 +54,12 @@ class FolderResource extends JsonResource
                 'email' => $this->user->email,
                 'photo_profile_url' => $this->user->photo_profile_url,
                 'roles' => $this->user->roles->pluck('name'),
-                'instances' => $this->user->instances->map(function ($userFolderInstance) {
+                'instances' => $this->user->instances?->map(function ($userFolderInstance) {
                     return [
                         'id' => $userFolderInstance->id,
                         'name' => $userFolderInstance->name,
                         'address' => $userFolderInstance->address,
-                        'sections' => $userFolderInstance->sections->map(function ($section) {
+                        'sections' => $userFolderInstance->sections?->map(function ($section) {
                             return [
                                 'id' => $section->id,
                                 'instance_id' => $section->instance_id,
@@ -70,7 +70,7 @@ class FolderResource extends JsonResource
                 })
             ],
             'tags' => $this->tags->map(fn($tag) => $tag->only(['id', 'name'])),
-            'instances' => $this->instances->map(fn($instance) => $instance->only(['id', 'name', 'address'])),
+            'instances' => $this->instances?->map(fn($instance) => $instance->only(['id', 'name', 'address'])),
             'shared_with' => $this->userFolderPermissions->map(function ($permission) {
                 return [
                     'id' => $permission->id,
@@ -83,12 +83,12 @@ class FolderResource extends JsonResource
                         'email' => $permission->user->email,
                         'photo_profile_url' => $permission->user->photo_profile_url,
                         'roles' => $permission->user->roles->pluck('name'),
-                        'instance' => $permission->user->instances->map(function ($userInstance) {
+                        'instance' => $permission->user->instances?->map(function ($userInstance) {
                             return [
                                 'id' => $userInstance->id,
                                 'name' => $userInstance->name,
                                 'address' => $userInstance->address,
-                                'sections' => $userInstance->sections->map(function ($section) {
+                                'sections' => $userInstance->sections?->map(function ($section) {
                                     return [
                                         'id' => $section->id,
                                         'instance_id' => $section->instance_id,

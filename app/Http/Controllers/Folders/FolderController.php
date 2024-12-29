@@ -301,6 +301,7 @@ class FolderController extends Controller
                 'name' => 'required|string',
                 'parent_id' => 'nullable|exists:folders,id',
                 'tag_ids' => 'required|array',
+                'tag_ids.*' => 'exists:tags,id',
             ],
         );
 

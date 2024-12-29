@@ -36,17 +36,11 @@ class PermissionSeeder extends Seeder
         'tag.delete',
         'tag.statistic.read',
 
-        'faq.create',
-        'faq.update',
-        'faq.delete',
-
+        'news.read',
         'news.create',
         'news.update',
         'news.delete',
-
-        'legal_basis.create',
-        'legal_basis.update',
-        'legal_basis.delete'
+        'news.status.update',
     ];
 
     /**
@@ -88,20 +82,13 @@ class PermissionSeeder extends Seeder
             // Tag Statistic Management
             'tag.statistic.read',
 
-            // FAQ Management
-            'faq.create',
-            'faq.update',
-            'faq.delete',
-
             // News Management
+            'news.read',
             'news.create',
             'news.update',
             'news.delete',
-
-            // Legal Basis Management
-            'legal_basis.create',
-            'legal_basis.update',
-            'legal_basis.delete'
+            // News Status Management
+            'news.status.update',
         ];
 
         foreach ($permissions as $permission) {

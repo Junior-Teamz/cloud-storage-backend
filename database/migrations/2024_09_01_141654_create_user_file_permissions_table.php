@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('user_file_permissions', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreignUuid('file_id')->references('id')->on('files')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignUuid('file_id')->index()->references('id')->on('files')->cascadeOnDelete();
             $table->enum('permissions', ['read', 'write']);
             $table->timestamps();
         });

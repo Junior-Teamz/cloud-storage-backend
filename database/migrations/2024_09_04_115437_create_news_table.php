@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('news', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('created_by')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignUuid('created_by')->index()->references('id')->on('users')->cascadeOnDelete();
             $table->string('thumbnail_path')->nullable();
             $table->string('thumbnail_url');
             $table->string('slug');

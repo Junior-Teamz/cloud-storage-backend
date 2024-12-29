@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignUuid('file_id')->references('id')->on('files')->cascadeOnDelete();
             $table->foreignUuid('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->timestamps();
+
+            $table->index(['file_id', 'user_id']);
         });
     }
 

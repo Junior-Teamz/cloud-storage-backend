@@ -51,7 +51,7 @@ class InstanceController extends Controller
 
                 $keywordName = $request->query('name');
 
-                $allInstance = Instance::where('name', 'like', '%' . $keywordName . '%')->paginate(10);
+                $allInstance = Instance::with('sections')->where('name', 'like', '%' . $keywordName . '%')->paginate(10);
 
                 if (!$allInstance) {
                     return response()->json([
@@ -62,7 +62,7 @@ class InstanceController extends Controller
                 return response()->json($allInstance, 200);  // Kembalikan isi pagination tanpa membungkus lagi
             } else {
 
-                $allInstance = Instance::paginate(10);
+                $allInstance = Instance::with('sections')->paginate(10);
 
                 return response()->json($allInstance, 200);
             }
@@ -103,7 +103,7 @@ class InstanceController extends Controller
             $keywordName = $request->query('name');
 
             // Ambil hanya kolom 'id' tanpa pagination
-            $instanceId = Instance::where('name', 'like', '%' . $keywordName . '%')
+            $instanceId = Instance::with('sections')->where('name', 'like', '%' . $keywordName . '%')
                 ->get(['id', 'name']);
 
             if (!$instanceId) {
@@ -182,7 +182,7 @@ class InstanceController extends Controller
 
             $uppercasedInstanceName = ucwords($request->name);
 
-            $instance = Instance::create([
+            $instance = Instance::with('sections')->create([
                 'name' => $uppercasedInstanceName,
                 'address' => $request->address,
             ]);
@@ -390,7 +390,7 @@ class InstanceController extends Controller
         try {
             DB::beginTransaction();
 
-            $instance = Instance::where('id', $id)->first();
+            $instance = Instance::with('sections')->where('id', $id)->first();
 
             if (!$instance) {
                 return response()->json([

@@ -14,8 +14,8 @@ return new class extends Migration
     {
         Schema::create('folder_has_instances', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('(UUID())'));
-            $table->foreignUuid('folder_id')->nullable()->references('id')->on('folders')->cascadeOnDelete();
-            $table->foreignUuid('instance_id')->nullable()->references('id')->on('instances')->cascadeOnDelete();
+            $table->foreignUuid('folder_id')->index()->references('id')->on('folders')->cascadeOnDelete();
+            $table->foreignUuid('instance_id')->index()->references('id')->on('instances')->cascadeOnDelete();
             $table->timestamps();
         });
     }

@@ -13,8 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('instance_sections', function (Blueprint $table) {
-            $table->uuid()->primary()->default(DB::raw('(UUID())'));
-            $table->foreignUuid('instance_id')->references('id')->on('instances')->cascadeOnDelete();
+            $table->uuid('id')->primary()->default(DB::raw('(UUID())'));
+            $table->foreignUuid('instance_id')->index()->references('id')->on('instances')->cascadeOnDelete();
             $table->string('name');
             $table->timestamps();
         });

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('path');
             $table->string('public_path');
             $table->string('file_url')->nullable();
-            $table->unsignedBigInteger('size');
+            $table->unsignedBigInteger('size')->index();
             $table->string('type');
             $table->foreignUuid('user_id')->index()->references('id')->on('users')->cascadeOnDelete();
             $table->foreignUuid('folder_id')->index()->nullable()->references('id')->on('folders')->cascadeOnDelete();

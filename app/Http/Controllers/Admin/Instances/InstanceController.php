@@ -51,7 +51,7 @@ class InstanceController extends Controller
         try {
             $userData = User::where('id', $user->id)->first();
 
-            $instanceData = $userData->instances()->first();
+            $instanceData = $userData->instances()->with('sections')->first();
 
             return response()->json([
                 'data' => new InstanceResource($instanceData)
@@ -123,7 +123,7 @@ class InstanceController extends Controller
         try {
             $userData = User::where('id', $user->id)->first();
 
-            $userInstance = $userData->instances()->first();
+            $userInstance = $userData->instances()->with('sections')->first();
 
             $uppercasedInstanceName = ucwords($request->name);
 

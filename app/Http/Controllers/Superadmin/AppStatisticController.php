@@ -261,7 +261,7 @@ class AppStatisticController extends Controller
                 $tagsUsedByInstance[] = [
                     'tag_id' => $tag->id,
                     'tag_name' => $tag->name,
-                    'instances' => $instances->map(function ($instance) use ($tag) {
+                    'instances' => $instances?->map(function ($instance) use ($tag) {
                         $folderUsage = $tag->folders()->whereHas('instances', function ($query) use ($instance) {
                             $query->where('instances.id', $instance->id); // Tambahkan prefix tabel
                         })->count();

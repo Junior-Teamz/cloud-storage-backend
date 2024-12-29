@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignUuid('folder_id')->references('id')->on('folders')->cascadeOnDelete();
             $table->foreignUuid('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->timestamps();
+
+            $table->index(['folder_id', 'user_id']);
         });
     }
 

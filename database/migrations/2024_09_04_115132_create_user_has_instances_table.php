@@ -14,9 +14,11 @@ return new class extends Migration
     {
         Schema::create('user_has_instances', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('(UUID())'));
-            $table->foreignUuid('user_id')->nullable()->references('id')->on('users')->cascadeOnDelete();
-            $table->foreignUuid('instance_id')->nullable()->references('id')->on('instances')->cascadeOnDelete();
+            $table->foreignUuid('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignUuid('instance_id')->references('id')->on('instances')->cascadeOnDelete();
             $table->timestamps();
+
+            $table->index(['user_id', 'instance_id']);
         });
     }
 

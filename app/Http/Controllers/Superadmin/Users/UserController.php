@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -186,6 +187,50 @@ class UserController extends Controller
     }
 
     /**
+     * Get all permissions for admin.
+     *
+     * This function retrieves all permissions assigned to the admin role.
+     * 
+     * Requires admin authentication.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAdminPermissions()
+    {
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        try {
+            $adminRole = Role::where('name', 'admin')->first();
+
+            if (!$adminRole) {
+                return response()->json([
+                    'errors' => 'Admin role not found.'
+                ], 404);
+            }
+
+            $permissions = $adminRole->permissions;
+
+            return response()->json([
+                'permissions' => $permissions
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error occurred on getting admin permissions: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+
+            return response()->json([
+                'errors' => 'An error occurred on getting admin permissions.',
+            ], 500);
+        }
+    }
+
+    /**
      * Create a new user by admin.
      *
      * This function allows an administrator to create a new user account.  It validates the input data,
@@ -210,14 +255,12 @@ class UserController extends Controller
             'email' => [
                 'required',
                 'email',
-                'unique:users,email', // Menentukan kolom yang dicek di tabel users
+                'unique:users,email',
                 function ($attribute, $value, $fail) {
-                    // Validasi format email menggunakan Laravel's 'email' rule
                     if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
                         $fail('Invalid email format.');
                     }
 
-                    // Daftar domain yang valid
                     $allowedDomains = [
                         'outlook.com',
                         'yahoo.com',
@@ -232,20 +275,22 @@ class UserController extends Controller
                         'gmail.com'
                     ];
 
-                    // Ambil domain dari alamat email
                     $domain = strtolower(substr(strrchr($value, '@'), 1));
 
-                    // Periksa apakah domain email diizinkan
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('Invalid email domain.');
                     }
                 },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', 'exists:roles,name'],
+            'role' => ['required', 'string', 'exists:roles,name', 'not_in:superadmin'],
             'instance_id' => ['required', 'string', 'exists:instances,id'],
-            'instance_section_id' => ['required', 'string', 'exists:instance_sections,id'],
+            'instance_section_id' => ['nullable', 'string', 'exists:instance_sections,id'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
+        ], [
+            'role.not_in' => "Creating new user with role 'superadmin' is not allowed."
         ]);
 
         if ($validator->fails()) {
@@ -254,11 +299,35 @@ class UserController extends Controller
             ], 422);
         }
 
+        if ($request->role === 'admin' && !$request->has('permissions')) {
+            return response()->json([
+                'errors' => 'Permissions are required for admin role.'
+            ], 422);
+        }
+
+        if ($request->role === 'admin' && $request->has('instance_section_id')) {
+            return response()->json([
+                'errors' => 'Instance section ID should not be provided for admin role.'
+            ], 422);
+        }
+
+        if ($request->role === 'user' && !$request->has('instance_section_id')) {
+            return response()->json([
+                'errors' => 'Instance section ID is required for user role.'
+            ], 422);
+        }
+
+        if ($request->role === 'user' && $request->has('permissions')) {
+            return response()->json([
+                'errors' => 'Permissions should not be provided for user role.'
+            ], 422);
+        }
+
         try {
             $instance = Instance::where('id', $request->instance_id)->first();
             $section = $instance->sections()->where('id', $request->instance_section_id)->first();
 
-            if (!$section) {
+            if ($request->role === 'user' && !$section) {
                 return response()->json([
                     'errors' => 'Section does not belong to the specified instance.'
                 ], 422);
@@ -275,23 +344,24 @@ class UserController extends Controller
             $newUser->assignRole($request->role);
 
             $newUser->instances()->sync($instance->id);
-            $newUser->section()->sync($section->id);
+
+            if ($request->role === 'user') {
+                $newUser->section()->sync($section->id);
+            }
+
+            if ($request->role === 'admin' && $request->has('permissions')) {
+                $newUser->syncPermissions($request->permissions);
+            }
 
             if ($request->has('photo_profile')) {
-
                 $photoFile = $request->file('photo_profile');
-
                 $photoProfilePath = 'users_photo_profile';
 
-                // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
                 if (!Storage::disk('public')->exists($photoProfilePath)) {
                     Storage::disk('public')->makeDirectory($photoProfilePath);
                 }
 
-                // Simpan file thumbnail ke storage/app/public/news_thumbnail
                 $photoProfile = $photoFile->store($photoProfilePath, 'public');
-
-                // Buat URL publik untuk thumbnail
                 $photoProfileUrl = Storage::url($photoProfile);
 
                 $newUser->photo_profile_path = $photoProfile;
@@ -300,14 +370,6 @@ class UserController extends Controller
             }
 
             $newUser->load('instances:id,name,address');
-
-            // Cari folder yang terkait dengan user yang baru dibuat
-            $userFolders = Folder::where('user_id', $newUser->id)->get();
-
-            foreach ($userFolders as $folder) {
-                // Perbarui relasi instance pada setiap folder terkait
-                $folder->instances()->sync($instance->id);
-            }
 
             DB::commit();
 
@@ -328,11 +390,11 @@ class UserController extends Controller
     }
 
     /**
-     * Update existing user by admin.
+     * Update existing user with role "user" by superadmin.
      *
-     * This function allows an administrator to update an existing user account. It validates the input data,
-     * updates the user information, updates the user's instance association, updates associated folder instances,
-     * and handles potential errors.  It prevents the update of superadmin users.
+     * This function allows an administrator to update an existing user account with 'user' role.
+     * It validates the input data, updates the user information, updates the user's instance association,
+     * updates associated folder instances, and handles potential errors.
      *
      * Requires admin authentication.
      *
@@ -340,7 +402,7 @@ class UserController extends Controller
      * @param  string  $userIdToBeUpdated The UUID of the user to be updated.
      * @return \Illuminate\Http\JsonResponse
      */
-    public function updateUserFromAdmin(Request $request, $userIdToBeUpdated)
+    public function updateUserRoleUser(Request $request, $userIdToBeUpdated)
     {
         $checkAdmin = $this->checkAdminService->checkSuperAdmin();
 
@@ -356,12 +418,10 @@ class UserController extends Controller
                 'nullable',
                 'email',
                 function ($attribute, $value, $fail) {
-                    // Validasi format email menggunakan Laravel's 'email' rule
                     if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
                         $fail('Invalid email format.');
                     }
 
-                    // Daftar domain yang valid
                     $allowedDomains = [
                         'outlook.com',
                         'yahoo.com',
@@ -376,19 +436,15 @@ class UserController extends Controller
                         'gmail.com'
                     ];
 
-                    // Ambil domain dari alamat email
                     $domain = strtolower(substr(strrchr($value, '@'), 1));
 
-                    // Periksa apakah domain email diizinkan
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('Invalid email domain.');
                     }
                 },
-                // Validasi unique email kecuali email yang sudah ada (email saat ini)
                 Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['nullable', 'string', 'exists:roles,name'],
             'instance_id' => ['nullable', 'string', 'exists:instances,id'],
             'instance_section_id' => ['nullable', 'string', 'exists:instance_sections,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
@@ -410,29 +466,20 @@ class UserController extends Controller
             }
 
             if ($userToBeUpdated->hasRole('superadmin')) {
-                if (!Auth::user()->id === $userToBeUpdated->id) {
-                    return response()->json([
-                        'errors' => 'You are not allowed to update superadmin user.',
-                    ], 403);
-                }
+                return response()->json([
+                    'errors' => 'You are not allowed to update superadmin user.',
+                ], 403);
             }
 
             DB::beginTransaction();
 
-            // Cek dan update data berdasarkan input request
             $dataToUpdate = $request->only(['name', 'email', 'password']);
 
-            // Cek jika password ada dan hash password baru
             if (isset($dataToUpdate['password'])) {
                 $dataToUpdate['password'] = bcrypt($dataToUpdate['password']);
             }
 
-            // Perbarui user hanya dengan data yang ada dalam request
             $userToBeUpdated->update(array_filter($dataToUpdate));
-
-            if ($request->role) {
-                $userToBeUpdated->assignRole($request->role);
-            }
 
             $currentInstance = $userToBeUpdated->instances()->first();
             $currentSection = $userToBeUpdated->section()->first();
@@ -447,15 +494,12 @@ class UserController extends Controller
                     ], 422);
                 }
 
-                // Perbarui instance dan section user
                 $userToBeUpdated->instances()->sync($instance->id);
                 $userToBeUpdated->section()->sync($section->id);
 
-                // Cari folder yang terkait dengan user
                 $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
 
                 foreach ($userFolders as $folder) {
-                    // Perbarui relasi instance pada setiap folder terkait
                     $folder->instances()->sync($instance->id);
                 }
             } elseif ($request->instance_section_id && $request->instance_section_id != $currentSection->id) {
@@ -467,7 +511,6 @@ class UserController extends Controller
                     ], 422);
                 }
 
-                // Perbarui section user
                 $userToBeUpdated->section()->sync($section->id);
             }
 
@@ -476,20 +519,15 @@ class UserController extends Controller
 
                 $photoProfilePath = 'users_photo_profile';
 
-                // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
                 if (!Storage::disk('public')->exists($photoProfilePath)) {
                     Storage::disk('public')->makeDirectory($photoProfilePath);
                 }
 
-                // Cek apakah ada foto profil lama dan hapus jika ada
                 if ($userToBeUpdated->photo_profile_path && Storage::disk('public')->exists($userToBeUpdated->photo_profile_path)) {
                     Storage::disk('public')->delete($userToBeUpdated->photo_profile_path);
                 }
 
-                // Simpan file foto profil ke storage/app/public/news_foto profil
                 $photoProfile = $photoFile->store($photoProfilePath, 'public');
-
-                // Buat URL publik untuk foto profil
                 $photoProfileUrl = Storage::disk('public')->url($photoProfile);
 
                 $userToBeUpdated->photo_profile_path = $photoProfile;
@@ -516,6 +554,363 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Update existing user role "admin" by superadmin
+     *
+     * This function allows an administrator to update an existing user account with 'admin' role.
+     * It validates the input data, updates the user information, updates the user's instance association,
+     * updates associated folder instances, and handles potential errors.
+     *
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $userIdToBeUpdated The UUID of the user to be updated.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateUserRoleAdmin(Request $request, $userIdToBeUpdated)
+    {
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => ['nullable', 'string', 'max:255'],
+            'email' => [
+                'nullable',
+                'email',
+                function ($attribute, $value, $fail) {
+                    if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
+                        $fail('Invalid email format.');
+                    }
+
+                    $allowedDomains = [
+                        'outlook.com',
+                        'yahoo.com',
+                        'aol.com',
+                        'lycos.com',
+                        'mail.com',
+                        'icloud.com',
+                        'yandex.com',
+                        'protonmail.com',
+                        'tutanota.com',
+                        'zoho.com',
+                        'gmail.com'
+                    ];
+
+                    $domain = strtolower(substr(strrchr($value, '@'), 1));
+
+                    if (!in_array($domain, $allowedDomains)) {
+                        $fail('Invalid email domain.');
+                    }
+                },
+                Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
+            ],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'instance_id' => ['nullable', 'string', 'exists:instances,id'],
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+            'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        if (!$request->has('permissions')) {
+            return response()->json([
+                'errors' => 'Permissions are required for admin role.'
+            ], 422);
+        }
+
+        try {
+            $userToBeUpdated = User::where('id', $userIdToBeUpdated)->first();
+
+            if (!$userToBeUpdated) {
+                return response()->json([
+                    'errors' => 'User not found.'
+                ], 404);
+            }
+
+            if ($userToBeUpdated->hasRole('superadmin')) {
+                return response()->json([
+                    'errors' => 'You cannot update superadmin in this endpoint. Please use /api/superadmin/user/update/update_superadmin instead.',
+                ], 403);
+            }
+
+            DB::beginTransaction();
+
+            $dataToUpdate = $request->only(['name', 'email', 'password']);
+
+            if (isset($dataToUpdate['password'])) {
+                $dataToUpdate['password'] = bcrypt($dataToUpdate['password']);
+            }
+
+            $userToBeUpdated->update(array_filter($dataToUpdate));
+
+            $currentInstance = $userToBeUpdated->instances()->first();
+
+            if ($request->instance_id && $request->instance_id != $currentInstance->id) {
+                $instance = Instance::where('id', $request->instance_id)->first();
+                $userToBeUpdated->instances()->sync($instance->id);
+
+                $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
+
+                foreach ($userFolders as $folder) {
+                    $folder->instances()->sync($instance->id);
+                }
+            }
+
+            $userToBeUpdated->syncPermissions($request->permissions);
+
+            if ($request->has('photo_profile')) {
+                $photoFile = $request->file('photo_profile');
+
+                $photoProfilePath = 'users_photo_profile';
+
+                if (!Storage::disk('public')->exists($photoProfilePath)) {
+                    Storage::disk('public')->makeDirectory($photoProfilePath);
+                }
+
+                if ($userToBeUpdated->photo_profile_path && Storage::disk('public')->exists($userToBeUpdated->photo_profile_path)) {
+                    Storage::disk('public')->delete($userToBeUpdated->photo_profile_path);
+                }
+
+                $photoProfile = $photoFile->store($photoProfilePath, 'public');
+                $photoProfileUrl = Storage::disk('public')->url($photoProfile);
+
+                $userToBeUpdated->photo_profile_path = $photoProfile;
+                $userToBeUpdated->photo_profile_url = $photoProfileUrl;
+                $userToBeUpdated->save();
+            }
+
+            DB::commit();
+
+            $userToBeUpdated->load('instances:id,name,address');
+
+            return response()->json([
+                'message' => 'User updated successfully.',
+                'data' => $userToBeUpdated
+            ], 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            Log::error('Error occurred on updating user: ' . $e->getMessage(), [
+                'trace' => $e->getTrace()
+            ]);
+            return response()->json([
+                'errors' => 'An error occured on updating user.',
+            ], 500);
+        }
+    }
+
+    /**
+     * NOTE: This function is currently disabled.
+     * Update existing user by admin.
+     *
+     * This function allows an administrator to update an existing user account. It validates the input data,
+     * updates the user information, updates the user's instance association, updates associated folder instances,
+     * and handles potential errors.  It prevents the update of superadmin users.
+     *
+     * Requires admin authentication.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $userIdToBeUpdated The UUID of the user to be updated.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    // public function updateUserFromAdmin(Request $request, $userIdToBeUpdated)
+    // {
+    //     $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+    //     if (!$checkAdmin) {
+    //         return response()->json([
+    //             'errors' => 'You are not allowed to perform this action.'
+    //         ], 403);
+    //     }
+
+    //     $validator = Validator::make($request->all(), [
+    //         'name' => ['nullable', 'string', 'max:255'],
+    //         'email' => [
+    //             'nullable',
+    //             'email',
+    //             function ($attribute, $value, $fail) {
+    //                 if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
+    //                     $fail('Invalid email format.');
+    //                 }
+
+    //                 $allowedDomains = [
+    //                     'outlook.com',
+    //                     'yahoo.com',
+    //                     'aol.com',
+    //                     'lycos.com',
+    //                     'mail.com',
+    //                     'icloud.com',
+    //                     'yandex.com',
+    //                     'protonmail.com',
+    //                     'tutanota.com',
+    //                     'zoho.com',
+    //                     'gmail.com'
+    //                 ];
+
+    //                 $domain = strtolower(substr(strrchr($value, '@'), 1));
+
+    //                 if (!in_array($domain, $allowedDomains)) {
+    //                     $fail('Invalid email domain.');
+    //                 }
+    //             },
+    //             Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
+    //         ],
+    //         'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+    //         'role' => ['nullable', 'string', 'exists:roles,name', 'not_in:superadmin'],
+    //         'instance_id' => ['nullable', 'string', 'exists:instances,id'],
+    //         'instance_section_id' => ['nullable', 'string', 'exists:instance_sections,id'],
+    //         'permissions' => ['nullable', 'array'],
+    //         'permissions.*' => ['string', 'exists:permissions,name'],
+    //         'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json([
+    //             'errors' => $validator->errors()
+    //         ], 422);
+    //     }
+
+    //     try {
+    //         $userToBeUpdated = User::where('id', $userIdToBeUpdated)->first();
+
+    //         if (!$userToBeUpdated) {
+    //             return response()->json([
+    //                 'errors' => 'User not found.'
+    //             ], 404);
+    //         }
+
+    //         if ($userToBeUpdated->hasRole('superadmin')) {
+    //             return response()->json([
+    //                 'errors' => 'You are not allowed to update superadmin user.',
+    //             ], 403);
+    //         }
+
+    //         DB::beginTransaction();
+
+    //         $dataToUpdate = $request->only(['name', 'email', 'password']);
+
+    //         if (isset($dataToUpdate['password'])) {
+    //             $dataToUpdate['password'] = bcrypt($dataToUpdate['password']);
+    //         }
+
+    //         $userToBeUpdated->update(array_filter($dataToUpdate));
+
+    //         if ($request->role) {
+    //             if ($request->role === 'admin') {
+    //                 if (!$request->has('permissions')) {
+    //                     return response()->json([
+    //                         'errors' => 'Permissions are required for admin role.'
+    //                     ], 422);
+    //                 }
+    //                 $userToBeUpdated->syncPermissions($request->permissions);
+    //             } elseif ($request->role === 'user') {
+    //                 if ($request->has('permissions')) {
+    //                     return response()->json([
+    //                         'errors' => 'Permissions should not be provided for user role.'
+    //                     ], 422);
+    //                 }
+    //                 $userToBeUpdated->revokePermissionTo($userToBeUpdated->permissions);
+    //             }
+    //             $userToBeUpdated->assignRole($request->role);
+    //         }
+
+    //         $currentInstance = $userToBeUpdated->instances()->first();
+    //         $currentSection = $userToBeUpdated->section()->first();
+
+    //         if ($request->role === 'admin') {
+    //             if ($request->instance_id && $request->instance_id != $currentInstance->id) {
+    //                 $instance = Instance::where('id', $request->instance_id)->first();
+    //                 $userToBeUpdated->instances()->sync($instance->id);
+
+    //                 $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
+
+    //                 foreach ($userFolders as $folder) {
+    //                     $folder->instances()->sync($instance->id);
+    //                 }
+    //             }
+    //         } else {
+    //             if ($request->instance_id && $request->instance_id != $currentInstance->id) {
+    //                 $instance = Instance::where('id', $request->instance_id)->first();
+    //                 $section = $instance->sections()->where('id', $request->instance_section_id)->first();
+
+    //                 if (!$section) {
+    //                     return response()->json([
+    //                         'errors' => 'Section does not belong to the specified instance.'
+    //                     ], 422);
+    //                 }
+
+    //                 $userToBeUpdated->instances()->sync($instance->id);
+    //                 $userToBeUpdated->section()->sync($section->id);
+
+    //                 $userFolders = Folder::where('user_id', $userToBeUpdated->id)->get();
+
+    //                 foreach ($userFolders as $folder) {
+    //                     $folder->instances()->sync($instance->id);
+    //                 }
+    //             } elseif ($request->instance_section_id && $request->instance_section_id != $currentSection->id) {
+    //                 $section = $currentInstance->sections()->where('id', $request->instance_section_id)->first();
+
+    //                 if (!$section) {
+    //                     return response()->json([
+    //                         'errors' => 'Section does not belong to the specified instance.'
+    //                     ], 422);
+    //                 }
+
+    //                 $userToBeUpdated->section()->sync($section->id);
+    //             }
+    //         }
+
+    //         if ($request->has('photo_profile')) {
+    //             $photoFile = $request->file('photo_profile');
+
+    //             $photoProfilePath = 'users_photo_profile';
+
+    //             if (!Storage::disk('public')->exists($photoProfilePath)) {
+    //                 Storage::disk('public')->makeDirectory($photoProfilePath);
+    //             }
+
+    //             if ($userToBeUpdated->photo_profile_path && Storage::disk('public')->exists($userToBeUpdated->photo_profile_path)) {
+    //                 Storage::disk('public')->delete($userToBeUpdated->photo_profile_path);
+    //             }
+
+    //             $photoProfile = $photoFile->store($photoProfilePath, 'public');
+    //             $photoProfileUrl = Storage::disk('public')->url($photoProfile);
+
+    //             $userToBeUpdated->photo_profile_path = $photoProfile;
+    //             $userToBeUpdated->photo_profile_url = $photoProfileUrl;
+    //             $userToBeUpdated->save();
+    //         }
+
+    //         DB::commit();
+
+    //         $userToBeUpdated->load('instances:id,name,address');
+
+    //         return response()->json([
+    //             'message' => 'User updated successfully.',
+    //             'data' => $userToBeUpdated
+    //         ], 200);
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+
+    //         Log::error('Error occurred on updating user: ' . $e->getMessage(), [
+    //             'trace' => $e->getTrace()
+    //         ]);
+    //         return response()->json([
+    //             'errors' => 'An error occured on updating user.',
+    //         ], 500);
+    //     }
+    // }
 
     /**
      * Update a user's password.

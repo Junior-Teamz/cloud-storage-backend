@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Superadmin\Instance\Section;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Instance\Section\InstanceSectionCollection;
+use App\Http\Resources\Instance\Section\InstanceSectionResource;
 use Illuminate\Http\Request;
 use App\Models\InstanceSection;
 use App\Models\Instance;
+use App\Services\CheckAdminService;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -13,21 +16,34 @@ use Illuminate\Support\Facades\Validator;
 
 class InstanceSectionController extends Controller
 {
-    public function getAllSections($instanceId)
+    protected $checkAdminService;
+
+    public function __construct(CheckAdminService $checkAdminService)
     {
+        $this->checkAdminService = $checkAdminService;
+    }
+
+    public function getAllSections()
+    {
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
         try {
-            $instance = Instance::with('instance')->find($instanceId);
-
-            if (!$instance) {
-                return response()->json([
-                    'errors' => 'Instance not found.'
-                ], 404);
-            }
-
-            $sections = $instance->sections;
+            $instanceSection = InstanceSection::with('instance')->paginate(10);
 
             return response()->json([
-                'sections' => $sections
+                'data' => new InstanceSectionCollection($instanceSection),
+                'pagination' => [
+                    'current_page' => $instanceSection->currentPage(),
+                    'last_page' => $instanceSection->lastPage(),
+                    'per_page' => $instanceSection->perPage(),
+                    'total' => $instanceSection->total(),
+                ]
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred while fetching sections: ' . $e->getMessage(), [
@@ -40,8 +56,16 @@ class InstanceSectionController extends Controller
         }
     }
 
-    public function getInstanceSection($instanceSectionId)
+    public function getInstanceSectionDetail($instanceSectionId)
     {
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
         try {
             $instanceSection = InstanceSection::with('instance')->find($instanceSectionId);
 
@@ -52,7 +76,7 @@ class InstanceSectionController extends Controller
             }
 
             return response()->json([
-                'data' => $instanceSection
+                'data' => new InstanceSectionResource($instanceSection)
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occurred while fetching instance section: ' . $e->getMessage(), [
@@ -67,6 +91,14 @@ class InstanceSectionController extends Controller
 
     public function createNewInstanceSection(Request $request)
     {
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'instance_id' => 'required|string|max:255|exists:instances,id',
             'name' => 'string|max:255'
@@ -104,9 +136,11 @@ class InstanceSectionController extends Controller
 
             DB::commit();
 
+            $newSection->load('instance');
+
             return response()->json([
                 'message' => 'Instance section created successfully.',
-                'data' => $newSection
+                'data' => new InstanceSectionResource($newSection)
             ], 201);
         } catch (Exception $e) {
             DB::rollBack();
@@ -120,12 +154,18 @@ class InstanceSectionController extends Controller
         }
     }
 
-    public function updateInstanceSection(Request $request)
+    public function updateInstanceSection(Request $request, $instanceSectionId)
     {
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
-            'instance_id' => 'required|string|max:255|exists:instances,id',
-            'instance_section_id' => 'required|string|max:255|exists:instance_sections,id',
-            'name' => 'string|max:255'
+            'new_name' => 'string|max:255'
         ]);
 
         if ($validator->fails()) {
@@ -135,9 +175,7 @@ class InstanceSectionController extends Controller
         }
 
         try {
-            $instanceSection = InstanceSection::where('id', $request->instance_section_id)
-                ->where('instance_id', $request->instance_id)
-                ->first();
+            $instanceSection = InstanceSection::where('id', $instanceSectionId)->first();
 
             if (!$instanceSection) {
                 return response()->json([
@@ -152,9 +190,11 @@ class InstanceSectionController extends Controller
 
             DB::commit();
 
+            $instanceSection->load('instance');
+
             return response()->json([
                 'message' => 'Instance section updated successfully.',
-                'data' => $instanceSection
+                'data' => new InstanceSectionResource($instanceSection)
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
@@ -168,12 +208,18 @@ class InstanceSectionController extends Controller
         }
     }
 
-    public function deleteInstanceSection($instanceId, $instanceSectionId)
+    public function deleteInstanceSection($instanceSectionId)
     {
+        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
         try {
-            $instanceSection = InstanceSection::where('id', $instanceSectionId)
-                ->where('instance_id', $instanceId)
-                ->first();
+            $instanceSection = InstanceSection::where('id', $instanceSectionId)->first();
 
             if (!$instanceSection) {
                 return response()->json([

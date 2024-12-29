@@ -1,410 +1,314 @@
 <?php
 
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\FolderController;
+// Superadmin code import from namespace 'Superadmin'
+use App\Http\Controllers\Superadmin\Users\UserController as UserSuperadminController;
+use App\Http\Controllers\Superadmin\AppStatisticController;
+use App\Http\Controllers\Superadmin\Instance\InstanceController as InstanceSuperadminController;
+use App\Http\Controllers\Superadmin\Instance\Section\InstanceSectionController as InstanceSectionSuperadminController;
+use App\Http\Controllers\Superadmin\Instance\Statistic\InstanceStatisticController as InstanceStatisticSuperadminController;
+
+
+// Admin code import from namespace 'Admin'
+use App\Http\Controllers\Admin\Users\UserController as UserAdminController;
+use App\Http\Controllers\Admin\Instances\InstanceController as InstanceAdminController;
+use App\Http\Controllers\Admin\Instances\Sections\InstanceSectionController;
+use App\Http\Controllers\Admin\Instances\Statistics\InstanceStatisticController;
+
+
+// Public/Other code import
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\FAQController;
+use App\Http\Controllers\FAQs\FAQController;
 use App\Http\Controllers\Files\FileController;
-use App\Http\Controllers\FileFavoriteController;
-use App\Http\Controllers\FolderFavoriteController;
-use App\Http\Controllers\Instance\InstanceController;
-use App\Http\Controllers\LegalBasisController;
-use App\Http\Controllers\NewsController;
-use App\Http\Controllers\PermissionFileController;
-use App\Http\Controllers\PermissionFolderController;
-use App\Http\Controllers\SearchController;
+use App\Http\Controllers\Files\FileFavoriteController;
+use App\Http\Controllers\Folders\FolderController;
+use App\Http\Controllers\Folders\FolderFavoriteController;
+use App\Http\Controllers\Instances\InstanceController;
+use App\Http\Controllers\LegalBasis\LegalBasisController;
+use App\Http\Controllers\News\NewsController;
+use App\Http\Controllers\Permissions\PermissionFileController;
+use App\Http\Controllers\Permissions\PermissionFolderController;
+use App\Http\Controllers\Search\SearchController;
 use App\Http\Controllers\SharingController;
-use App\Http\Controllers\TagController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\Tags\TagController;
+use App\Http\Controllers\Users\UserController;
 use App\Http\Controllers\VerificationAndForgetPasswordController;
-use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\Webhook\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 
-Route::post('/storeImageTesting', [NewsController::class, 'storeImage']); // ENDPOINT TESTING IMAGE
+// Public Auth Routes
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/refresh_token', [AuthController::class, 'refresh']);
+Route::post('/check_access_token_valid', [AuthController::class, 'checkAccessTokenValid']);
+Route::post('/check_refresh_token_valid', [AuthController::class, 'checkRefreshTokenValid']);
+Route::post('/send_link_reset_password', [VerificationAndForgetPasswordController::class, 'sendPasswordResetLink']);
+Route::post('/reset_password', [VerificationAndForgetPasswordController::class, 'resetPassword']);
 
+// Public File Routes
+Route::post('/store_image_testing', [NewsController::class, 'storeImage']);
+Route::get('/file/preview/{id}', [FileController::class, 'serveFileById'])->name('file.url');
+Route::get('/file/video_stream/{id}', [FileController::class, 'serveFileVideoById'])->name('video.stream');
+
+// Github Webhook Route
 Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
-Route::post('/sendLinkResetPassword', [VerificationAndForgetPasswordController::class, 'sendPasswordResetLink']); // Send link for reset password.
-
-Route::post('/resetPassword', [VerificationAndForgetPasswordController::class, 'resetPassword']);
-
-// Route::post('/register', [UserController::class, 'register']); // Register user baru (bukan melalui admin)
-
-Route::post('/login', [AuthController::class, 'login']); // login users
-
-Route::post('/refreshToken', [AuthController::class, 'refresh']); // refresh token
-
-Route::post('/checkAccessTokenValid', [AuthController::class, 'checkAccessTokenValid']); //periksa apakah token jwt access token masih valid atau tidak
-
-Route::post('/checkRefreshTokenValid', [AuthController::class, 'checkRefreshTokenValid']); //periksa apakah token jwt refresh token masih valid atau tidak
-
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');  // logout user
-
-Route::get('/file/preview/{id}', [FileController::class, 'serveFileById'])->name('file.url');
-
-Route::get('/file/videoStream/{id}', [FileController::class, 'serveFileVideoById'])->name('video.stream');
-
-Route::get('/index', [UserController::class, 'index'])->middleware(['auth:api', 'hide_superadmin_flag']);
-
+// Public Legal Basis Routes
 Route::prefix('/legal_basis')->group(function () {
-    Route::get('/getAllLegalBasis', [LegalBasisController::class, 'getAll']);
+    Route::get('/get_all', [LegalBasisController::class, 'getAll']);
+    Route::get('/detail/{id}', [LegalBasisController::class, 'getSpesificLegalBasis']);
 });
 
+// Public News Routes
 Route::prefix('news')->group(function () {
-    Route::get('/getAllNews', [NewsController::class, 'getAllNewsForPublic']); // Mendapatkan semua berita untuk publik
-
-    Route::get('/detail/id/{id}', [NewsController::class, 'getNewsById']); // lihat detail berita
-
+    Route::get('/get_all_news', [NewsController::class, 'getAllNewsForPublic']);
+    Route::get('/detail/id/{id}', [NewsController::class, 'getNewsById']);
     Route::get('/detail/slug/{newsSlug}', [NewsController::class, 'getNewsBySlug']);
-
 });
 
-Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag', 'check_admin', 'hide_superadmin_flag'])->group(function () {
+// Authenticated User Routes (All role can access this routes)
+Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag'])->group(function () {
+    // Auth Logout Routes
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Route::get('/emailVerification', [VerificationAndForgetPasswordController::class, 'sendVerificationEmail']); // Endpoint untuk mengirim link URL verifikasi email
+    // Search Routes
+    Route::prefix('search')->group(function () {
+        Route::get('/user', [SearchController::class, 'searchUser']);
+        Route::get('/folder_or_file', [SearchController::class, 'searchFoldersAndFiles']);
+    });
 
-    // Route::get('/email/verify/{id}', [VerificationAndForgetPasswordController::class, 'verify'])
-    // ->middleware(['signed'])
-    // ->name('verification.verify');
+    // Sharing Route
+    Route::get('/get_shared_folder_and_file', [SharingController::class, 'getSharedFolderAndFile']);
 
-    Route::get('/searchUser', [SearchController::class, 'searchUser']); // Mencari user dengan name atau email
+    // Storage Usage Route
+    Route::get('/storage_usage', [FolderController::class, 'storageSizeUsage']);
 
-    Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
-
-    // Route::put('/update', [UserController::class, 'update']); // Update user
-
-    // Route::delete('/delete', [UserController::class, 'delete']); // Menghapus user
-
-    Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
-
-    Route::get('/getSharedFolderAndFile', [SharingController::class, 'getSharedFolderAndFile']); // Mendapatkan semua folder dan file yang dibagikan kepada user
-
-    Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
-    
+    // User Routes
     Route::prefix('user')->group(function () {
-
-        Route::get('/userInfo/{id}', [UserController::class, 'userInfo']); // Mendapatkan informasi user tertentu
-
+        Route::get('/user_info/{id}', [UserController::class, 'userInfo']);
         Route::get('/index', [UserController::class, 'index']);
-
         Route::put('/update', [UserController::class, 'update']);
-        
-        Route::put('/updatePassword', [UserController::class, 'updatePassword']);
-
+        Route::put('/update_password', [UserController::class, 'updatePassword']);
         Route::delete('/delete', [UserController::class, 'delete']);
-
     });
 
-    Route::prefix('folder')->group(function () {
-        Route::get('/', [FolderController::class, 'index']); // dapatkan list folder dan file yang ada pada user yang login saat ini pada folder rootnya.
+    // Folder Routes
+    Route::prefix('folders')->group(function () {
+        Route::get('/all', [FolderController::class, 'index']);
+        Route::get('/detail/{id}', [FolderController::class, 'info']);
+        Route::get('/count_all', [FolderController::class, 'countTotalFolderUser']);
+        Route::get('/generate_share_link/{folderId}', [SharingController::class, 'generateShareableFolderLink']);
+        Route::post('/create', [FolderController::class, 'create']);
+        Route::put('/update/{id}', [FolderController::class, 'update']);
+        Route::post('/delete', [FolderController::class, 'delete']);
+        Route::put('/move', [FolderController::class, 'move']);
+        Route::get('/path/{id}', [FolderController::class, 'getFullPath']);
 
-        Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
-
-        Route::get('/countAllFolder', [FolderController::class, 'countTotalFolderUser']); // mendapatkan count semua folder user yang sedang login saat ini.
-
-        Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteItems']); // Mendapatkan semua folder yang di favoritkan
-
-        Route::get('/countFavorite', [FolderFavoriteController::class, 'countAllFavoriteFolders']); // Mendapatkan informasi total folder yang di favoritkan
-
-        Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
-
-        Route::delete('/deleteFavorite/{id}', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
-
-        Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
-
-        Route::get('/generateShareLink/{folderId}', [SharingController::class, 'generateShareableFolderLink']);
-
-        Route::post('/create', [FolderController::class, 'create']);  // Membuat folder baru
-
-        Route::put('/update/{id}', [FolderController::class, 'update']); // Memperbarui folder
-
-        Route::post('/delete', [FolderController::class, 'delete']); // Menghapus folder. (NOTE: HARUS MENGGUNAKAN ARRAY BERISI ID FOLDER!)
-
-        Route::post('/addTag', [FolderController::class, 'addTagToFolder']); // Tambahkan tag ke folder
-
-        Route::post('/removeTag', [FolderController::class, 'removeTagFromFolder']); // hapus tag dari folder
-
-        Route::put('/move', [FolderController::class, 'move']); // Memindahkan folder ke folder lain menggunakan metode parent_id yang baru
-
-        Route::get('/path/{id}', [FolderController::class, 'getFullPath']); // Mendapatkan full path dari folder
-    });
-
-    Route::prefix('file')->group(function () {
-
-        Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua informasi file user, tidak peduli dari folder apapun.
-
-        Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFile']); // Mendapatkan semua file yang di favoritkan
-
-        Route::get('/countFavorite', [FileFavoriteController::class, 'countAllFavoriteFiles']); // Mendapatkan informasi total file yang di favoritkan
-
-        Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
-
-        Route::delete('/deleteFavorite/{id}', [FileFavoriteController::class, 'deleteFavoriteFile']);
-
-        Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFileLink']);
-
-        Route::get('/info/{id}', [FileController::class, 'info']); // Mendapatkan informasi file
-
-        Route::post('/upload', [FileController::class, 'upload']); // Mengunggah file
-
-        Route::post('/download', [FileController::class, 'downloadFile']); // Mendownload File
-
-        Route::post('/addTag', [FileController::class, 'addTagToFile']); // Tambahkan tag ke file
-
-        Route::post('/removeTag', [FileController::class, 'removeTagFromFile']); // hapus tag dari file
-
-        Route::put('/change_name/{id}', [FileController::class, 'updateFileName']); // Memperbarui nama file
-
-        Route::post('/delete', [FileController::class, 'delete']); // Menghapus file
-
-        Route::put('/move/{id}', [FileController::class, 'move']); // Memindahkan file ke folder lain atau ke root
-    });
-
-    Route::prefix('tag')->group(function () {
-        Route::get('/index', [TagController::class, 'index']); // dapatkan semua list tag yang ada
-
-        Route::get('/getTagsInfo/{tagId}', [TagController::class, 'getTagsInformation']); // informasi tag spesifik
-    });
-
-    Route::prefix('permission')->group(function () {
-
-        Route::prefix('folder')->group(function () {
-
-            Route::get('/getAllPermission/{folderId}', [PermissionFolderController::class, 'getAllPermissionOnFolder']); // Get all user permission on folder
-
-            Route::post('/getPermission', [PermissionFolderController::class, 'getPermission']); // Get spesific user permission on folder
-
-            Route::post('/grantPermission', [PermissionFolderController::class, 'grantFolderPermission']); // Grant user permission on folder
-
-            Route::put('/changePermission', [PermissionFolderController::class, 'changeFolderPermission']); // Change user permission on folder
-
-            Route::post('/revokePermission', [PermissionFolderController::class, 'revokeFolderPermission']);
+        // Subgroup for tag in folder
+        Route::prefix('tag')->group(function () {
+            Route::post('/add', [FolderController::class, 'addTagToFolder']);
+            Route::post('/remove', [FolderController::class, 'removeTagFromFolder']);
         });
 
-        Route::prefix('file')->group(function () {
+        // Subgroup for favorite folders
+        Route::prefix('favorite')->group(function () {
+            Route::get('/all', [FolderFavoriteController::class, 'getAllFavoriteItems']);
+            Route::get('/count_all', [FolderFavoriteController::class, 'countAllFavoriteFolders']);
+            Route::post('/add', [FolderFavoriteController::class, 'addNewFavorite']);
+            Route::delete('/delete/{id}', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
+        });
+    });
 
-            Route::get('/getAllPermission/{folderId}', [PermissionFileController::class, 'getAllPermissionOnFile']);
+    // File Routes
+    Route::prefix('files')->group(function () {
+        Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']);
+        Route::get('/generate_share_link/{fileId}', [SharingController::class, 'generateShareableFileLink']);
+        Route::get('/detail/{id}', [FileController::class, 'info']);
+        Route::post('/upload', [FileController::class, 'upload']);
+        Route::post('/download', [FileController::class, 'downloadFile']);
+        Route::put('/change_name/{id}', [FileController::class, 'updateFileName']);
+        Route::post('/delete', [FileController::class, 'delete']);
+        Route::put('/move/{id}', [FileController::class, 'move']);
 
-            Route::post('/getPermission', [PermissionFileController::class, 'getPermission']);
+        // Subgroup for tag in file
+        Route::prefix('tag')->group(function () {
+            Route::post('/add', [FileController::class, 'addTagToFile']);
+            Route::post('/remove', [FileController::class, 'removeTagFromFile']);
+        });
 
-            Route::post('/grantPermission', [PermissionFileController::class, 'grantFilePermission']);
+        // Subgroup for favorite files
+        Route::prefix('favorite')->group(function () {
+            Route::get('/all', [FileFavoriteController::class, 'getAllFavoriteFile']);
+            Route::get('/count_all', [FileFavoriteController::class, 'countAllFavoriteFiles']);
+            Route::post('/add', [FileFavoriteController::class, 'addNewFavorite']);
+            Route::delete('/delete/{id}', [FileFavoriteController::class, 'deleteFavoriteFile']);
+        });
+    });
 
-            Route::put('/changePermission', [PermissionFileController::class, 'changeFilePermission']);
+    // Instance Routes
+    Route::prefix('instances')->group(function () {
+        Route::get('/all', [InstanceController::class, 'getAllInstanceData']);
+        Route::get('/search', [InstanceController::class, 'getInstanceWithName']);
+        Route::get('/detail/{id}', [InstanceController::class, 'getInstanceDetailFromId']);
+    });
 
-            Route::post('/revokePermission', [PermissionFileController::class, 'revokeFilePermission']);
+    // Tag Routes
+    Route::prefix('tags')->group(function () {
+        Route::get('/index', [TagController::class, 'index']);
+        Route::get('/detail/{tagId}', [TagController::class, 'getTagsInformation']);
+    });
+
+    // FAQ Routes
+    Route::prefix('faqs')->group(function () {
+        Route::get('/index', [FAQController::class, 'index']);
+        Route::get('/detail/{id}', [FAQController::class, 'showSpesificFAQ']);
+    });
+
+    // Permission Routes
+    Route::prefix('permissions')->group(function () {
+        Route::prefix('folders')->group(function () {
+            Route::get('/get_all_permission/{folderId}', [PermissionFolderController::class, 'getAllPermissionOnFolder']);
+            Route::post('/get_spesific_permission', [PermissionFolderController::class, 'getPermission']);
+            Route::post('/grant_permission', [PermissionFolderController::class, 'grantFolderPermission']);
+            Route::put('/change_permission', [PermissionFolderController::class, 'changeFolderPermission']);
+            Route::post('/revoke_permission', [PermissionFolderController::class, 'revokeFolderPermission']);
+        });
+
+        Route::prefix('files')->group(function () {
+            Route::get('/get_all_permission/{folderId}', [PermissionFileController::class, 'getAllPermissionOnFile']);
+            Route::post('/get_spesific_permission', [PermissionFileController::class, 'getPermission']);
+            Route::post('/grant_permission', [PermissionFileController::class, 'grantFilePermission']);
+            Route::put('/change_permission', [PermissionFileController::class, 'changeFilePermission']);
+            Route::post('/revoke_permission', [PermissionFileController::class, 'revokeFilePermission']);
         });
     });
 });
 
-
-// ROUTE KHUSUS UNTUK ADMIN
+// Admin Routes
 Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group(function () {
+    Route::prefix('statistics')->group(function () {
+        Route::prefix('instances')->group(function () {
+            Route::get('/usage', [InstanceStatisticController::class, 'getCurrentInstanceUsageStatistics']);
+        });
 
-    Route::get('/searchUser', [SearchController::class, 'searchUser']); // Mencari user dengan name atau email
-
-    Route::get('/searchFolderOrFile', [SearchController::class, 'searchFoldersAndFiles']); // Search Folder or File by name
-
-    Route::get('/getSharedFolderAndFile', [SharingController::class, 'getSharedFolderAndFile']); // Mendapatkan semua folder dan file yang dibagikan kepada user
-
-    Route::prefix('statistic_superadmin')->group(function () {
-        Route::get('/getStorageUsageTotal', [AdminController::class, 'storageUsage']); // Mendapatkan informasi total penyimpanan digunakan
-
-        Route::get('/storageUsagePerInstance', [AdminController::class, 'storageUsagePerInstance']); // Mendapatkan informasi penggunaan penyimpanan per instansi
-
-        Route::get('/tagUsedByInstance', [AdminController::class, 'tagsUsedByInstance']); // Mendapatkan informasi tag digunakan oleh instansi.
-
-        Route::get('/getFolderCreated', [AdminController::class, 'allFolderCount']); // Mendapatkan informasi total folder dibuat
-
-        Route::get('/getFiles', [AdminController::class, 'allFileCount']); // Mendapatkan informasi total file
+        Route::prefix('users')->group(function () {
+            Route::get('/count_all', [UserAdminController::class, 'countAllUserSameInstance']);
+        });
     });
 
     Route::prefix('users')->group(function () {
-        Route::get('/list', [AdminController::class, 'listUser']); // dapatkan list user (bisa juga menggunakan query seperti ini: /list?name=namauseryangingindicari)
-
-        Route::get('/countTotalUser', [AdminController::class, 'countAllUser']); // dapatkan informasi total user dengan role yang terdaftar.
-
-        Route::get('/info/{userId}', [AdminController::class, 'user_info']); // dapatkan informasi tentang user
-
-        Route::post('/create_user', [AdminController::class, 'createUserFromAdmin']); // route untuk membuat user baru melalui admin.
-
-        Route::put('/update_user/{userIdToBeUpdated}', [AdminController::class, 'updateUserFromAdmin']); // route untuk mengupdate user yang sudah ada melalui admin.
-
-        Route::put('/update_user_password/{userId}', [AdminController::class, 'updateUserPassword']);
-
-        Route::delete('/delete_user/{userIdToBeDeleted}', [AdminController::class, 'deleteUserFromAdmin']); // route untuk menghapus user yang sudah ada melalui admin. (DANGEROUS!)
+        Route::get('/list', [UserAdminController::class, 'listUser']);
+        Route::get('/detail/{id}', [UserAdminController::class, 'user_info']);
+        Route::post('/create', [UserAdminController::class, 'createUserFromAdmin']);
+        Route::put('/update/{id}', [UserAdminController::class, 'updateUserFromAdmin']);
+        Route::put('/update_user_password/{id}', [UserAdminController::class, 'updateUserPassword']);
+        Route::delete('/delete/{id}', [UserAdminController::class, 'deleteUserFromAdmin']);
     });
 
-    Route::prefix('folder')->group(function () {
-        Route::get('/', [FolderController::class, 'index']); // dapatkan list folder dan file yang ada pada user yang login saat ini pada folder rootnya.
-
-        Route::get('/countAllFolder', [FolderController::class, 'countTotalFolderUser']); // mendapatkan count semua folder user yang sedang login saat ini.
-
-        Route::get('/storageSizeUsage', [FolderController::class, 'storageSizeUsage']); // Informasi total penyimpanan yang digunakan
-
-        Route::get('/getUserSharedFolder/{id}', [SharingController::class, 'getListUserSharedFolder']); // Mendapatkan semua list user yang dibagian dari suatu folder
-
-        Route::get('/generateShareLink/{folderId}', [SharingController::class, 'generateShareableFolderLink']);
-
-        Route::get('/info/{id}', [FolderController::class, 'info']); // Mendapatkan informasi lengkap isi folder tertentu, termasuk file dan subfolder
-
-        Route::get('/favorite', [FolderFavoriteController::class, 'getAllFavoriteItems']); // Mendapatkan semua folder yang di favoritkan
-
-        Route::post('/addToFavorite', [FolderFavoriteController::class, 'addNewFavorite']);
-
-        Route::delete('/deleteFavorite/{id}', [FolderFavoriteController::class, 'deleteFavoriteFolder']);
-
-        Route::post('/addTag', [FolderController::class, 'addTagToFolder']); // Tambahkan tag ke folder
-
-        Route::post('/removeTag', [FolderController::class, 'removeTagFromFolder']); // hapus tag dari folder
-
-        Route::post('/create', [FolderController::class, 'create']);  // Membuat folder baru
-
-        Route::put('/update/{id}', [FolderController::class, 'update']); // Memperbarui folder
-
-        Route::post('/delete', [FolderController::class, 'delete']); // Menghapus folder
-
-        Route::put('/move', [FolderController::class, 'move']); // Memindahkan folder ke folder lain menggunakan metode parent_id yang baru
-
-        Route::get('/path/{id}', [FolderController::class, 'getFullPath']); // Mendapatkan full path dari folder
-    });
-
-    Route::prefix('file')->group(function () {
-
-        Route::get('/all', [FileController::class, 'getAllFilesAndTotalSize']); // Mendapatkan semua file dan total ukurannya.
-
-        Route::get('/info/{id}',  [FileController::class, 'info']); // Mendapatkan informasi file
-
-        Route::get('/generateShareLink/{fileId}', [SharingController::class, 'generateShareableFileLink']);
-
-        Route::get('/favorite', [FileFavoriteController::class, 'getAllFavoriteFile']); // Mendapatkan semua file yang di favoritkan
-
-        Route::post('/addToFavorite', [FileFavoriteController::class, 'addNewFavorite']);
-
-        Route::delete('/deleteFavorite/{id}', [FileFavoriteController::class, 'deleteFavoriteFile']);
-
-        // Route::post('/create', [FileController::class, 'create']); // Membuat file baru
-
-        Route::post('/upload', [FileController::class, 'upload']); // Mengunggah file
-
-        Route::post('/download', [FileController::class, 'downloadFile']); // Mendownload File
-
-        Route::post('/addTag', [FileController::class, 'addTagToFile']); // Tambahkan tag ke file
-
-        Route::post('/removeTag', [FileController::class, 'removeTagFromFile']); // hapus tag dari file
-
-        Route::put('/change_name/{id}', [FileController::class, 'updateFileName']); // Memperbarui nama file
-
-        Route::post('/delete', [FileController::class, 'delete']); // Menghapus file
-
-        Route::put('/move/{id}', [FileController::class, 'move']); // Memindahkan file ke folder lain atau ke root
-    });
-
-    Route::prefix('tag')->group(function () {
-        Route::get('/index', [TagController::class, 'index']); // dapatkan semua list tag yang ada
-
-        Route::get('/getTagsInfo/{tagId}', [TagController::class, 'getTagsInformation']); // informasi tag spesifik
-
-        Route::get('/getTagUsageStatistic', [TagController::class, 'getTagUsageStatistics']); // Mendapatkan statistik tag
-
-        Route::get('/countAll', [TagController::class, 'countAllTags']); // Mendapatkan total tag
-
-        Route::post('/create', [TagController::class, 'store']); // Buat tag baru
-
-        Route::get('/importExampleDownload', [TagController::class, 'exampleImportDownload']); // untuk mendownload contoh file import tag.
-
-        Route::post('/import', [TagController::class, 'import']); // Mengimpor tag
-
-        Route::put('/update/{tagId}', [TagController::class, 'update']); // Update tag yang ada sebelumnya
-
-        Route::post('/delete', [TagController::class, 'destroy']); // Hapus tag yang ada sebelumnya dengan array request body
-    });
-
-    Route::prefix('instance')->group(function () {
-        Route::get('/index', [InstanceController::class, 'index']); // dapatkan semua list instansi yang ada
-
-        Route::get('/search', [InstanceController::class, 'getInstanceWithName']); // Mendapatkan daftar ID instansi berdasarkan nama (contoh: /instance?name=instansi)
-
-        Route::get('/getInstanceUsageStatistic', [InstanceController::class, 'getInstanceUsageStatistics']); // Mendapatkan statistik instansi
-
-        Route::get('/countAll', [InstanceController::class, 'countAllInstance']); // Mendapatkan total instansi
-
-        Route::post('/create', [InstanceController::class, 'store']); // Membuat instansi baru
-
-        Route::get('/importExampleDownload', [InstanceController::class, 'exampleImportDownload']); // untuk mendownload contoh file import instansi.
-
-        Route::post('/import', [InstanceController::class, 'import']); // Mengimpor instansi
-
-        Route::put('/update/{id}', [InstanceController::class, 'update']); // Update instansi yang ada sebelumnya
-
-        Route::delete('/delete/{instanceId}', [InstanceController::class, 'destroy']); // Hapus instansi
-    });
-
-    Route::prefix('faq')->group(function () {
-        Route::get('/index', [FAQController::class, 'index']); // dapatkan semua list FAQ yang ada
-
-        Route::get('/info/{id}', [FAQController::class, 'showSpesificFAQ']); // Mendapatkan informasi lengkap FAQ
-
-        Route::post('/create', [FAQController::class, 'store']); // Buat FAQ baru
-
-        Route::put('/update/{id}', [FAQController::class, 'update']); // Update FAQ yang ada sebelumnya
-
-        Route::delete('/delete/{id}', [FAQController::class, 'destroy']); // Hapus FAQ yang ada sebelumnya
-    });
-
-    Route::prefix('news')->group(function () {
-        Route::get('/getAllNews', [NewsController::class, 'getAllNews']);
-
-        Route::get('/getNewsDetailFromId/{newsId}', [NewsController::class, 'getNewsDetailForAdmin']);
-
-        Route::post('/create', [NewsController::class, 'createNews']); // Membuat berita baru
-
-        Route::put('/update/{newsId}', [NewsController::class, 'updateNews']); // Update berita yang ada sebelumnya
-
-        Route::put('/changeStatus/{newsId}', [NewsController::class, 'changeStatus']);
-
-        Route::delete('/delete/{newsId}', [NewsController::class, 'deleteNews']); // Hapus berita
-    });
-
-    Route::prefix('legal_basis')->group(function () {
-
-        // Catatan: untuk mendapatkan semua dasar hukum, gunakan route publik /api/legal_basis/all .
-
-        Route::get('/info/{id}', [LegalBasisController::class, 'getSpesificLegalBasis']); // Mendapatkan dasar hukum berdasarkan id
-
-        Route::post('/save', [LegalBasisController::class, 'save']);
-
-        Route::put('/update/{id}', [LegalBasisController::class, 'update']);
-
-        Route::delete('/delete/{id}', [LegalBasisController::class, 'delete']);
-    });
-
-    Route::prefix('permission')->group(function () {
-
-        Route::prefix('folder')->group(function () {
-
-            Route::get('/getAllPermission/{folderId}', [PermissionFolderController::class, 'getAllPermissionOnFolder']); // Get all user permission on folder
-
-            Route::post('/getPermission', [PermissionFolderController::class, 'getPermission']); // Get spesific user permission on folder
-
-            Route::post('/grantPermission', [PermissionFolderController::class, 'grantFolderPermission']); // Grant user permission on folder
-
-            Route::put('/changePermission', [PermissionFolderController::class, 'changeFolderPermission']); // Change user permission on folder
-
-            Route::post('/revokePermission', [PermissionFolderController::class, 'revokeFolderPermission']);
-        });
-
-        Route::prefix('file')->group(function () {
-
-            Route::get('/getAllPermission/{folderId}', [PermissionFileController::class, 'getAllPermissionOnFile']);
-
-            Route::post('/getPermission', [PermissionFileController::class, 'getPermission']);
-
-            Route::post('/grantPermission', [PermissionFileController::class, 'grantFilePermission']);
-
-            Route::put('/changePermission', [PermissionFileController::class, 'changeFilePermission']);
-
-            Route::post('/revokePermission', [PermissionFileController::class, 'revokeFilePermission']);
+    Route::prefix('instances')->group(function () {
+        Route::get('/index', [InstanceAdminController::class, 'index']);
+        Route::put('/update', [InstanceAdminController::class, 'updateInstance']);
+        Route::delete('/delete', [InstanceAdminController::class, 'deleteInstance']);
+
+        // Subgroup for instance sections in admin routes
+        Route::prefix('sections')->group(function () {
+            Route::get('/all', [InstanceSectionController::class, 'getAllSections']);
+            Route::get('/detail/{id}', [InstanceSectionController::class, 'getInstanceSectionById']);
+            Route::post('/create', [InstanceSectionController::class, 'createNewInstanceSection']);
+            Route::put('/update/{id}', [InstanceSectionController::class, 'updateInstanceSection']);
+            Route::delete('/delete/{id}', [InstanceSectionController::class, 'deleteInstanceSection']);
         });
     });
 });
+
+// Superadmin Routes
+Route::prefix('superadmin')->middleware(['auth:api', 'validate_superadmin'])->group(function () {
+    Route::prefix('statistics')->group(function () {
+        Route::get('/storage_usage', [AppStatisticController::class, 'storageUsage']);
+        Route::get('/all_folder_count', [AppStatisticController::class, 'allFolderCount']);
+        Route::get('/all_file_count', [AppStatisticController::class, 'allFileCount']);
+        
+        Route::prefix('tags')->group(function () {
+            Route::get('/all_tag_usage', [AppStatisticController::class, 'getTagUsageStatistics']);
+            Route::get('/count_all_tags', [TagController::class, 'countAllTags']);
+        });
+
+        // Subgroup for instance statistics in superadmin routes
+        Route::prefix('instances')->group(function () {
+            Route::get('/usage', [InstanceStatisticSuperadminController::class, 'getInstanceUsageStatistics']);
+            Route::get('/count_all_instance', [InstanceStatisticSuperadminController::class, 'countAllInstance']);
+            Route::get('/storage_usage_per_instance', [AppStatisticController::class, 'storageUsagePerInstance']);
+            Route::get('/tags_used_by_instance', [AppStatisticController::class, 'tagsUsedByInstance']);
+        });
+    });
+
+    Route::prefix('users')->group(function () {
+        Route::get('/count_total', [UserSuperadminController::class, 'countAllUser']);
+        Route::get('/list', [UserSuperadminController::class, 'listUser']);
+        Route::get('/detail/{id}', [UserSuperadminController::class, 'user_info']);
+        Route::post('/create', [UserSuperadminController::class, 'createUserFromAdmin']);
+        Route::prefix('update')->group(function () {
+            Route::put('/role_user/{id}', [UserSuperadminController::class, 'updateUserRoleUser']);
+            Route::put('/role_admin/{id}', [UserSuperadminController::class, 'updateUserRoleAdmin']);
+            Route::put('/password/{id}', [UserSuperadminController::class, 'updateUserPassword']);
+        });
+        Route::delete('/delete/{id}', [UserSuperadminController::class, 'deleteUserFromAdmin']);
+    });
+
+    Route::prefix('instances')->group(function () {
+        Route::get('/index', [InstanceSuperadminController::class, 'index']);
+        Route::get('/search', [InstanceSuperadminController::class, 'getInstanceWithName']);
+        Route::post('/create', [InstanceSuperadminController::class, 'store']);
+        Route::put('/update/{id}', [InstanceSuperadminController::class, 'update']);
+        Route::delete('/delete/{id}', [InstanceSuperadminController::class, 'destroy']);
+        Route::get('/example_import_download', [InstanceSuperadminController::class, 'exampleImportDownload']);
+        Route::post('/import', [InstanceSuperadminController::class, 'import']);
+
+        // Subgroup for instance sections in superadmin routes
+        Route::prefix('sections')->group(function () {
+            Route::get('/all', [InstanceSectionSuperadminController::class, 'getAllSections']);
+            Route::get('/detail/{instanceSectionId}', [InstanceSectionSuperadminController::class, 'getInstanceSectionDetail']);
+            Route::post('/create', [InstanceSectionSuperadminController::class, 'createNewInstanceSection']);
+            Route::put('/update/{instanceSectionId}', [InstanceSectionSuperadminController::class, 'updateInstanceSection']);
+            Route::delete('/delete/{instanceSectionId}', [InstanceSectionSuperadminController::class, 'deleteInstanceSection']);
+        });
+    });
+
+    Route::prefix('legal_basis')->group(function () {
+        Route::post('/save', [LegalBasisController::class, 'save']);
+        Route::put('/update/{id}', [LegalBasisController::class, 'update']);
+        Route::delete('/delete/{id}', [LegalBasisController::class, 'delete']);
+    });
+
+    Route::prefix('faqs')->group(function () {
+        Route::post('/create', [FAQController::class, 'store']);
+        Route::put('/update/{id}', [FAQController::class, 'update']);
+        Route::delete('/delete/{id}', [FAQController::class, 'destroy']);
+    });
+});
+
+
+
+// Dibawah ini adalah route untuk tag yang dapat diakses oleh superadmin dan admin (menghindari duplikasi kode route).
+$routesForAdminAndSuperadmin = function () {
+    Route::prefix('tags')->group(function () {
+        Route::get('/index', [TagController::class, 'index']);
+        Route::get('/detail/{tagId}', [TagController::class, 'getTagsInformation']);
+        Route::post('/create', [TagController::class, 'store']);
+        Route::put('/update/{id}', [TagController::class, 'update']);
+        Route::post('/delete', [TagController::class, 'destroy']);
+        Route::get('/example_import_download', [TagController::class, 'exampleImportDownload']);
+        Route::post('/import', [TagController::class, 'import']);
+    });
+
+    Route::prefix('news')->group(function () {
+        Route::get('/all', [NewsController::class, 'getAllNews']);
+        Route::get('/detail/{id}', [NewsController::class, 'getNewsDetailForAdmin']);
+        Route::post('/create', [NewsController::class, 'createNews']);
+        Route::put('/update/{id}', [NewsController::class, 'updateNews']);
+        Route::delete('/delete/{id}', [NewsController::class, 'deleteNews']);
+        Route::put('/change_status/{id}', [NewsController::class, 'changeStatus']);
+    });
+};
+// Tag Routes for Admin and Superadmin from $routesForAdminAndSuperadmin
+Route::prefix('admin')->middleware(['auth:api', 'validate_admin'])->group($routesForAdminAndSuperadmin);
+Route::prefix('superadmin')->middleware(['auth:api', 'validate_superadmin'])->group($routesForAdminAndSuperadmin);

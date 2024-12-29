@@ -45,7 +45,7 @@ class NewsController extends Controller
     public function getAllNews(Request $request)
     {
         // Cek apakah user adalah admin
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.read');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -308,6 +308,14 @@ class NewsController extends Controller
      */
     public function getNewsDetailForAdmin($newsId)
     {
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.read');
+
+        if (!$checkAdmin) {
+            return response()->json([
+                'errors' => 'You are not allowed to perform this action.'
+            ], 403);
+        }
+
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
@@ -355,7 +363,7 @@ class NewsController extends Controller
     {
         // Cek apakah user yang login adalah admin
         $userLogin = Auth::user();
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.create');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -368,7 +376,7 @@ class NewsController extends Controller
             'title' => 'required|string|max:100',
             'content' => 'required|string',
             'status' => 'nullable|in:published,archived',
-            'thumbnail' => 'required',
+            'thumbnail' => 'required|file|max:2048|mimes:jpeg,jpg,png',  // Thumbnail wajib, maksimal 2MB
             'news_tag_ids' => 'required|array',
         ], [
             'title.max' => 'News title cannot exceed more than 100 characters.',
@@ -515,7 +523,7 @@ class NewsController extends Controller
     public function updateNews(Request $request, $id)
     {
         // Cek apakah user adalah admin
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.update');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -528,8 +536,8 @@ class NewsController extends Controller
             'title' => 'nullable|string|max:100',
             'content' => 'nullable|string',
             'status' => 'nullable|in:published,archived',
-            'thumbnail' => 'nullable', // Thumbnail tidak wajib
-            'news_tag_id' => 'nullable' // Tag opsional, tapi harus valid
+            'thumbnail' => 'nullable|file|max:2048|mimes:jpeg,jpg,png', // Thumbnail opsional
+            'news_tag_id' => 'nullable|array', // Tag opsional, tapi harus valid
         ], [
             'title.max' => 'News title cannot exceed more than 100 characters.',
             'status.in' => 'Status must be either published or archived.'
@@ -692,7 +700,7 @@ class NewsController extends Controller
      */
     public function deleteNews($id)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.delete');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -758,7 +766,7 @@ class NewsController extends Controller
      */
     public function changeStatus(Request $request, $newsId)
     {
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.status.update');
 
         if (!$checkAdmin) {
             return response()->json([

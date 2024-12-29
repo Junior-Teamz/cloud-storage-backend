@@ -101,7 +101,7 @@ class UserController extends Controller
         $user = Auth::user();
 
         // Check if the user is an admin
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.read');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -253,14 +253,12 @@ class UserController extends Controller
             'email' => [
                 'required',
                 'email',
-                'unique:users,email', // Menentukan kolom yang dicek di tabel users
+                'unique:users,email',
                 function ($attribute, $value, $fail) {
-                    // Validasi format email menggunakan Laravel's 'email' rule
                     if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
                         $fail('Invalid email format.');
                     }
 
-                    // Daftar domain yang valid
                     $allowedDomains = [
                         'outlook.com',
                         'yahoo.com',
@@ -275,17 +273,14 @@ class UserController extends Controller
                         'gmail.com'
                     ];
 
-                    // Ambil domain dari alamat email
                     $domain = strtolower(substr(strrchr($value, '@'), 1));
 
-                    // Periksa apakah domain email diizinkan
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('Invalid email domain.');
                     }
                 },
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', 'exists:roles,name'],
             'instance_section_id' => ['required', 'string', 'exists:instance_sections,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
@@ -316,26 +311,20 @@ class UserController extends Controller
                 'password' => bcrypt($request->password),
             ]);
 
-            $newUser->assignRole($request->role);
+            $newUser->assignRole('user');
 
             $newUser->instances()->sync($instance->id);
             $newUser->section()->sync($section->id);
 
             if ($request->has('photo_profile')) {
-
                 $photoFile = $request->file('photo_profile');
-
                 $photoProfilePath = 'users_photo_profile';
 
-                // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
                 if (!Storage::disk('public')->exists($photoProfilePath)) {
                     Storage::disk('public')->makeDirectory($photoProfilePath);
                 }
 
-                // Simpan file thumbnail ke storage/app/public/news_thumbnail
                 $photoProfile = $photoFile->store($photoProfilePath, 'public');
-
-                // Buat URL publik untuk thumbnail
                 $photoProfileUrl = Storage::disk('public')->url($photoProfile);
 
                 $newUser->photo_profile_path = $photoProfile;
@@ -345,11 +334,9 @@ class UserController extends Controller
 
             $newUser->load('instances:id,name,address');
 
-            // Cari folder yang terkait dengan user yang baru dibuat
             $userFolders = Folder::where('user_id', $newUser->id)->get();
 
             foreach ($userFolders as $folder) {
-                // Perbarui relasi instance pada setiap folder terkait
                 $folder->instances()->sync($instance->id);
             }
 
@@ -388,7 +375,7 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.update');
 
         if (!$checkAdmin) {
             return response()->json([
@@ -402,12 +389,10 @@ class UserController extends Controller
                 'nullable',
                 'email',
                 function ($attribute, $value, $fail) use ($request) {
-                    // Validasi format email menggunakan Laravel's 'email' rule
                     if (!preg_match('/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/', $value)) {
                         $fail('Invalid email format.');
                     }
 
-                    // Daftar domain yang valid
                     $allowedDomains = [
                         'outlook.com',
                         'yahoo.com',
@@ -422,19 +407,15 @@ class UserController extends Controller
                         'gmail.com'
                     ];
 
-                    // Ambil domain dari alamat email
                     $domain = strtolower(substr(strrchr($value, '@'), 1));
 
-                    // Periksa apakah domain email diizinkan
                     if (!in_array($domain, $allowedDomains)) {
                         $fail('Invalid email domain.');
                     }
                 },
-                // Validasi unique email kecuali email yang sudah ada (email saat ini)
                 Rule::unique('users', 'email')->ignore($userIdToBeUpdated)
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['nullable', 'string', 'exists:roles,name'],
             'instance_section_id' => ['nullable', 'string', 'exists:instance_sections,id'],
             'photo_profile' => ['nullable', 'file', 'max:3000', 'mimes:jpg,jpeg,png']
         ]);
@@ -464,25 +445,20 @@ class UserController extends Controller
                 ], 404);
             }
 
-            if ($userToBeUpdated->hasRole('superadmin')) {
-                if (!Auth::user()->id === $userToBeUpdated->id) {
-                    return response()->json([
-                        'errors' => 'You are not allowed to update superadmin user.',
-                    ], 403);
-                }
+            if ($userToBeUpdated->hasRole('superadmin') || ($userToBeUpdated->hasRole('admin') && $user->id !== $userToBeUpdated->id)) {
+                return response()->json([
+                    'errors' => 'You are not allowed to update superadmin or other admin users.',
+                ], 403);
             }
 
             DB::beginTransaction();
 
-            // Cek dan update data berdasarkan input request
             $dataToUpdate = $request->only(['name', 'email', 'password']);
 
-            // Cek jika password ada dan hash password baru
             if (isset($dataToUpdate['password'])) {
                 $dataToUpdate['password'] = bcrypt($dataToUpdate['password']);
             }
 
-            // Perbarui user hanya dengan data yang ada dalam request
             $userToBeUpdated->update(array_filter($dataToUpdate));
 
             if ($request->role) {
@@ -492,7 +468,7 @@ class UserController extends Controller
             $userInstanceSectionOld = $userToBeUpdated->section()->first();
 
             if ($request->instance_section_id && $userInstanceSectionOld->id !== $request->instance_section_id) {
-                $currentSection = $userInstance->sections()->where('id', $request->instance_section_id)->first();
+                $currentSection = $adminInstance->sections()->where('id', $request->instance_section_id)->first();
 
                 if (!$currentSection) {
                     return response()->json([
@@ -508,20 +484,16 @@ class UserController extends Controller
 
                 $photoProfilePath = 'users_photo_profile';
 
-                // Cek apakah folder users_photo_profile ada di disk public, jika tidak, buat folder tersebut
                 if (!Storage::disk('public')->exists($photoProfilePath)) {
                     Storage::disk('public')->makeDirectory($photoProfilePath);
                 }
 
-                // Cek apakah ada foto profil lama dan hapus jika ada
                 if ($userToBeUpdated->photo_profile_path && Storage::disk('public')->exists($userToBeUpdated->photo_profile_path)) {
                     Storage::disk('public')->delete($userToBeUpdated->photo_profile_path);
                 }
 
-                // Simpan file foto profil ke storage/app/public/news_foto profil
                 $photoProfile = $photoFile->store($photoProfilePath, 'public');
 
-                // Buat URL publik untuk foto profil
                 $photoProfileUrl = Storage::disk('public')->url($photoProfile);
 
                 $userToBeUpdated->photo_profile_path = $photoProfile;
@@ -596,14 +568,20 @@ class UserController extends Controller
                 ], 403);
             }
 
-            if (!$user) {
+            if (!$userData) {
                 return response()->json([
                     'errors' => 'User not found.'
                 ], 404);
             }
 
+            if ($userData->hasRole('superadmin') || ($userData->hasRole('admin') && $user->id !== $userData->id)) {
+                return response()->json([
+                    'errors' => 'You are not allowed to update the password of superadmin or other admin users.'
+                ], 403);
+            }
+
             // Check if the current password matches with old password
-            if (password_verify($request->password, $user->password)) {
+            if (password_verify($request->password, $userData->password)) {
                 return response()->json([
                     'errors' => 'New password cannot be the same as the old password.'
                 ], 422); // Return a 422 Unprocessable Entity status code
@@ -611,7 +589,7 @@ class UserController extends Controller
 
             DB::beginTransaction();
 
-            $user->update([
+            $userData->update([
                 'password' => bcrypt($request->password),
             ]);
 
@@ -627,7 +605,7 @@ class UserController extends Controller
             ]);
 
             return response()->json([
-                'errors' => 'An error occurred while updating your password.'
+                'errors' => 'An error occurred while updating the password.'
             ], 500);
         }
     }
@@ -656,12 +634,6 @@ class UserController extends Controller
             ], 403);
         }
 
-        // if ($user->id == $userIdToBeDeleted) {
-        //     return response()->json([
-        //         'errors' => 'Anda tidak diizinkan untuk menghapus diri sendiri.',
-        //     ], 403);
-        // }
-
         try {
             $userAdminData = User::where('id', $user->id)->first();
             $adminInstance = $userAdminData->instances()->first();
@@ -682,9 +654,9 @@ class UserController extends Controller
                 ], 404);
             }
 
-            if ($userData->hasRole('superadmin')) {
+            if ($userData->hasRole('superadmin') || ($userData->hasRole('admin') && $user->id !== $userData->id)) {
                 return response()->json([
-                    'errors' => 'You are not allowed to delete superadmin user.',
+                    'errors' => 'You are not allowed to delete superadmin or other admin users.',
                 ], 403);
             }
 

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin\Instances\Sections;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Instance\Section\InstanceSectionCollection;
+use App\Http\Resources\Instance\Section\InstanceSectionResource;
 use App\Models\InstanceSection;
 use App\Services\CheckAdminService;
 use Exception;
@@ -48,15 +50,13 @@ class InstanceSectionController extends Controller
                 ], 404);
             }
 
-            // Ambil semua section dari instansi tersebut
-            $sections = $instance->sections; // Relasi sections di model Instance
+            // Ambil semua section dari instansi tersebut dengan eager loading relasi instance
+            $sections = $instance->sections()->with('instance')->get(); // Relasi sections di model Instance
 
-            return response()->json([
-                'sections' => $sections
-            ], 200);
+            return new InstanceSectionCollection($sections);
         } catch (Exception $e) {
             // Log error dan kembalikan response error
-            Log::error('Error occured while fetching sections: ' . $e->getMessage(), [
+            Log::error('Error occurred while fetching sections: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
 
@@ -94,10 +94,8 @@ class InstanceSectionController extends Controller
                 ], 403);
             }
 
-            $instanceSectionData->makeHidden('instance');
-
             return response()->json([
-                'data' => $instanceSectionData
+                'data' => new InstanceSectionResource($instanceSectionData)
             ], 200);
         } catch (Exception $e){
             Log::error('Error while getting instance section by id: ' . $e->getMessage(), [
@@ -151,7 +149,7 @@ class InstanceSectionController extends Controller
 
             return response()->json([
                 'message' => 'Instance section created successfully.',
-                'data' => $newSection
+                'data' => new InstanceSectionResource($newSection)
             ], 201);
 
         } catch (Exception $e) {
@@ -213,7 +211,7 @@ class InstanceSectionController extends Controller
 
             return response()->json([
                 'message' => 'Instance section updated successfully.',
-                'data' => $instanceSection
+                'data' => new InstanceSectionResource($instanceSection)
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();

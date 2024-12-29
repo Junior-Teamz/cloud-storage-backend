@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignUuid('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->foreignUuid('section_id')->references('id')->on('instance_sections')->cascadeOnDelete();
             $table->timestamps();
+
+            $table->index(['user_id', 'section_id']);
         });
     }
 

@@ -14,8 +14,8 @@ return new class extends Migration
     {
         Schema::create('file_has_instances', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('(UUID())'));
-            $table->foreignUuid('file_id')->references('id')->on('files')->cascadeOnDelete();
-            $table->foreignUuid('instance_id')->references('id')->on('instances')->cascadeOnDelete();
+            $table->foreignUuid('file_id')->index()->references('id')->on('files')->cascadeOnDelete();
+            $table->foreignUuid('instance_id')->index()->references('id')->on('instances')->cascadeOnDelete();
             $table->timestamps();
         });
     }

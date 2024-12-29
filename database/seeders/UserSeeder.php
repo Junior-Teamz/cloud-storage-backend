@@ -26,14 +26,6 @@ class UserSeeder extends Seeder
             'password' => bcrypt('administrator!@123'),
         ]);
 
-        $instance = Instance::where('name', 'KemenkopUKM')->first();
-
-        $folderUser = Folder::where('user_id', $adminSeeder->id)->whereNull('parent_id')->first();
-
-        $adminSeeder->instances()->attach($instance->id);
-
-        $folderUser->instances()->attach($instance->id);
-
         $adminRole = Role::where('name', 'superadmin')->first();
         
         // Assign role with permissions to admin user

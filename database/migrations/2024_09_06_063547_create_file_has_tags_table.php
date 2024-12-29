@@ -14,8 +14,8 @@ return new class extends Migration
     {
         Schema::create('file_has_tags', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('(UUID())'));
-            $table->foreignUuid('file_id')->references('id')->on('files')->cascadeOnDelete();
-            $table->foreignUuid('tags_id')->references('id')->on('tags')->cascadeOnDelete();
+            $table->foreignUuid('file_id')->index()->references('id')->on('files')->cascadeOnDelete();
+            $table->foreignUuid('tags_id')->index()->references('id')->on('tags')->cascadeOnDelete();
             $table->timestamps();
         });
     }

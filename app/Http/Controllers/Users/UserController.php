@@ -177,6 +177,7 @@ class UserController extends Controller
             }
 
             return response()->json([
+                'message' => 'Your account information',
                 'data' => $userInfo
             ]);
         } catch (Exception $e) {

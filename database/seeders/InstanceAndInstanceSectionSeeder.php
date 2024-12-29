@@ -2,20 +2,26 @@
 
 namespace Database\Seeders;
 
+use App\Models\Instance;
 use App\Models\InstanceSection;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class InstanceSectionSeeder extends Seeder
+class InstanceAndInstanceSectionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
+        $instance = Instance::updateOrCreate([
+            'name' => 'PT. Example',
+            'address' => 'Jl. Contoh No. 1',
+        ]);
+
         InstanceSection::updateOrCreate([
-            'name' => '',
-            'instance_id' => 1, // First created instance from InstanceSeeder.
+            'name' => 'Direktur',
+            'instance_id' => $instance->id,
         ]);
     }
 }

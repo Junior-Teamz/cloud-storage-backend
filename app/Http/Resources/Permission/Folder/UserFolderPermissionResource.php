@@ -32,12 +32,12 @@ class UserFolderPermissionResource extends JsonResource
                 'email' => $this->user->email,
                 'photo_profile_url' => $this->user->photo_profile_url,
                 'roles' => $this->user->roles->pluck('name'),
-                'instances' => $this->user->instances->map(function ($userFolderInstance) {
+                'instances' => $this->user->instances?->map(function ($userFolderInstance) {
                     return [
                         'id' => $userFolderInstance->id,
                         'name' => $userFolderInstance->name,
                         'address' => $userFolderInstance->address,
-                        'sections' => $userFolderInstance->sections->map(function ($section) {
+                        'sections' => $userFolderInstance->sections?->map(function ($section) {
                             return [
                                 'id' => $section->id,
                                 'instance_id' => $section->instance_id,
@@ -57,7 +57,7 @@ class UserFolderPermissionResource extends JsonResource
                 'total_size' => $this->folder->calculateTotalSize(),
                 'type' => $this->folder->type,
                 'tags' => $this->folder->tags->map(fn($tag) => $tag->only(['id', 'name'])),
-                'instances' => $this->folder->instances->map(fn($instance) => $instance->only(['id', 'name', 'address'])),
+                'instances' => $this->folder->instances?->map(fn($instance) => $instance->only(['id', 'name', 'address'])),
                 'created_at' => $this->folder->created_at,
                 'updated_at' => $this->folder->updated_at
             ],
