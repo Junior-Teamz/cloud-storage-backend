@@ -244,6 +244,7 @@ Route::prefix('superadmin')->middleware(['auth:api', 'validate_superadmin'])->gr
     Route::prefix('users')->group(function () {
         Route::get('/count_total', [UserSuperadminController::class, 'countAllUser']);
         Route::get('/list', [UserSuperadminController::class, 'listUser']);
+        Route::get('/admin_permissions', [UserSuperadminController::class. 'getAdminPermissions']);
         Route::get('/detail/{id}', [UserSuperadminController::class, 'user_info']);
         Route::post('/create', [UserSuperadminController::class, 'createUserFromAdmin']);
         Route::prefix('update')->group(function () {
