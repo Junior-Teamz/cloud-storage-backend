@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -206,15 +207,7 @@ class UserController extends Controller
         }
 
         try {
-            $adminRole = Role::where('name', 'admin')->first();
-
-            if (!$adminRole) {
-                return response()->json([
-                    'errors' => 'Admin role not found.'
-                ], 404);
-            }
-
-            $permissions = $adminRole->permissions;
+            $permissions = Permission::all();
 
             return response()->json([
                 'permissions' => $permissions
