@@ -30,15 +30,15 @@ fi
 
 # Step 1: Run composer install
 echo "Menjalankan 'composer install'..."
-composer install > /dev/null 2>&1
+composer install
 
 # Step 2: Run npm install
 echo "Menjalankan 'npm install'..."
-npm install > /dev/null 2>&1
+npm install
 
 # Step 3: Run npm run build
 echo "Menjalankan 'npm run build'..."
-npm run build > /dev/null 2>&1
+npm run build
 
 # Step 4: Copy .env.example to .env
 echo "Menyalin '.env.example' ke '.env'..."
@@ -52,11 +52,11 @@ sed -i 's|APP_DEBUG=.*|APP_DEBUG=false|' .env
 
 # Step 6: Run php artisan key:generate
 echo "Menjalankan 'php artisan key:generate'..."
-php artisan key:generate > /dev/null 2>&1
+php artisan key:generate
 
 # Step 7: Run php artisan jwt:secret
-echo "Menjalankan 'php artisan jwt:' ..."
-yes | php artisan jwt:secret > /dev/null 2>&1
+echo "Menjalankan 'php artisan jwt:secret' ..."
+yes | php artisan jwt:secret
 
 # Step 8: Interactive input for environment variables
 while true; do
@@ -159,27 +159,30 @@ class InstanceAndInstanceSectionSeeder extends Seeder
      */
     public function run(): void
     {
-        $instance = Instance::updateOrCreate([
+        \$instance = Instance::updateOrCreate([
             'name' => '${INSTANCE_NAME}',
             'address' => '${INSTANCE_ADDRESS}',
         ]);
 
         InstanceSection::updateOrCreate([
             'name' => '${INSTANCE_SECTION_NAME}',
-            'instance_id' => $instance->id,
+            'instance_id' => \$instance->id,
         ]);
     }
 }
 EOL
 
 # Step 11: Run php artisan migrate --seed
-yes | php artisan migrate --seed > /dev/null 2>&1
+echo "Menjalankan 'php artisan migrate --seed'..."
+yes | php artisan migrate --seed
 
 # Step 12: Run php artisan optimize:clear
-php artisan optimize:clear > /dev/null 2>&1
+echo "Menjalankan 'php artisan optimize:clear'..."
+php artisan optimize:clear
 
 # Step 13: Run php artisan optimize
-php artisan optimize > /dev/null 2>&1
+echo "Menjalankan 'php artisan optimize'..."
+php artisan optimize
 
 echo "Setup selesai! Aplikasi File Sharing siap digunakan."
 exit
