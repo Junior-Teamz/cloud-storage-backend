@@ -36,40 +36,41 @@ use App\Http\Controllers\Webhook\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 
-// Public Auth Routes
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/refresh_token', [AuthController::class, 'refresh']);
-Route::post('/check_access_token_valid', [AuthController::class, 'checkAccessTokenValid']);
-Route::post('/check_refresh_token_valid', [AuthController::class, 'checkRefreshTokenValid']);
-Route::post('/send_link_reset_password', [VerificationAndForgetPasswordController::class, 'sendPasswordResetLink']);
-Route::post('/reset_password', [VerificationAndForgetPasswordController::class, 'resetPassword']);
-
-// Public File Routes
-Route::post('/store_image_testing', [NewsController::class, 'storeImage']);
-Route::get('/file/preview/{id}', [FileController::class, 'serveFileById'])->name('file.url');
-Route::get('/file/video_stream/{id}', [FileController::class, 'serveFileVideoById'])->name('video.stream');
-
 // Github Webhook Route
 Route::post('/github-webhook', [WebhookController::class, 'handle']);
 
-// Public Legal Basis Routes
-Route::prefix('/legal_basis')->group(function () {
-    Route::get('/get_all', [LegalBasisController::class, 'getAll']);
-    Route::get('/detail/{id}', [LegalBasisController::class, 'getSpesificLegalBasis']);
+ // Public Auth Routes
+ Route::post('/login', [AuthController::class, 'login']);
+ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
+ Route::post('/refresh_token', [AuthController::class, 'refresh']);
+ Route::post('/check_access_token_valid', [AuthController::class, 'checkAccessTokenValid']);
+ Route::post('/check_refresh_token_valid', [AuthController::class, 'checkRefreshTokenValid']);
+ Route::post('/send_link_reset_password', [VerificationAndForgetPasswordController::class, 'sendPasswordResetLink']);
+ Route::post('/reset_password', [VerificationAndForgetPasswordController::class, 'resetPassword']);
+
+Route::prefix('public')->group(function () {    
+    // Public Legal Basis Routes
+    Route::prefix('/legal_basis')->group(function () {
+        Route::get('/all', [LegalBasisController::class, 'getAll']);
+        Route::get('/detail/{id}', [LegalBasisController::class, 'getSpesificLegalBasis']);
+    });
+
+    // Public News Routes
+    Route::prefix('news')->group(function () {
+        Route::get('/all', [NewsController::class, 'getAllNewsForPublic']);
+        Route::get('/detail/by_id/{id}', [NewsController::class, 'getNewsById']);
+        Route::get('/detail/by_slug/{newsSlug}', [NewsController::class, 'getNewsBySlug']);
+    });
 });
 
-// Public News Routes
-Route::prefix('news')->group(function () {
-    Route::get('/get_all_news', [NewsController::class, 'getAllNewsForPublic']);
-    Route::get('/detail/id/{id}', [NewsController::class, 'getNewsById']);
-    Route::get('/detail/slug/{newsSlug}', [NewsController::class, 'getNewsBySlug']);
+// Route for file access
+Route::prefix('media')->group(function () {
+    Route::get('/preview/{id}', [FileController::class, 'serveFileById'])->name('file.url');
+    Route::get('/video_stream/{id}', [FileController::class, 'serveFileVideoById'])->name('video.stream');
 });
 
 // Authenticated User Routes (All role can access this routes)
 Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag'])->group(function () {
-    // Auth Logout Routes
-    Route::post('/logout', [AuthController::class, 'logout']);
-
     // Search Routes
     Route::prefix('search')->group(function () {
         Route::get('/user', [SearchController::class, 'searchUser']);
@@ -174,7 +175,7 @@ Route::middleware(['auth:api', 'protectRootFolder', 'protectRootTag'])->group(fu
         });
 
         Route::prefix('files')->group(function () {
-            Route::get('/get_all_permission/{folderId}', [PermissionFileController::class, 'getAllPermissionOnFile']);
+            Route::get('/get_all_permission/{fileId}', [PermissionFileController::class, 'getAllPermissionOnFile']);
             Route::post('/get_spesific_permission', [PermissionFileController::class, 'getPermission']);
             Route::post('/grant_permission', [PermissionFileController::class, 'grantFilePermission']);
             Route::put('/change_permission', [PermissionFileController::class, 'changeFilePermission']);
@@ -226,7 +227,7 @@ Route::prefix('superadmin')->middleware(['auth:api', 'validate_superadmin'])->gr
         Route::get('/storage_usage', [AppStatisticController::class, 'storageUsage']);
         Route::get('/all_folder_count', [AppStatisticController::class, 'allFolderCount']);
         Route::get('/all_file_count', [AppStatisticController::class, 'allFileCount']);
-        
+
         Route::prefix('tags')->group(function () {
             Route::get('/all_tag_usage', [AppStatisticController::class, 'getTagUsageStatistics']);
             Route::get('/count_all_tags', [TagController::class, 'countAllTags']);
@@ -244,7 +245,7 @@ Route::prefix('superadmin')->middleware(['auth:api', 'validate_superadmin'])->gr
     Route::prefix('users')->group(function () {
         Route::get('/count_total', [UserSuperadminController::class, 'countAllUser']);
         Route::get('/list', [UserSuperadminController::class, 'listUser']);
-        Route::get('/admin_permissions', [UserSuperadminController::class. 'getAdminPermissions']);
+        Route::get('/admin_permissions', [UserSuperadminController::class . 'getAdminPermissions']);
         Route::get('/detail/{id}', [UserSuperadminController::class, 'user_info']);
         Route::post('/create', [UserSuperadminController::class, 'createUserFromAdmin']);
         Route::prefix('update')->group(function () {
