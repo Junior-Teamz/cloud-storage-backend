@@ -25,25 +25,25 @@ class AuthenticatedUserWebController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        if (Auth::guard('web')->attempt($request->only('email', 'password'))) {
+            $request->session()->regenerate();
 
-        $request->session()->regenerate();
+            // Determine the redirect path based on user input
+            $redirectPath = $request->input('redirect_to', '/telescope');
 
-        // Determine the redirect path based on user input
-        $redirectPath = $request->input('redirect_to', '/telescope');
+            return redirect()->intended($redirectPath);
+        }
 
-        return redirect()->intended($redirectPath);
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ]);
     }
-
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
 
+        $request->session()->flush();
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/login');

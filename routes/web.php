@@ -20,10 +20,10 @@ Route::get('/', function () {
     return view('app');
 });
 
-Route::middleware('auth')->group(function () {
-    Route::post('logout', [AuthenticatedUserWebController::class, 'destroy'])
-        ->name('logout');
-});
+// Route::middleware('auth:web')->group(function () {
+//     Route::post('logout', [AuthenticatedUserWebController::class, 'destroy'])
+//         ->name('logout');
+// });
 
 Route::get('/email_page', function () {
     return view('mails.reset-password');
