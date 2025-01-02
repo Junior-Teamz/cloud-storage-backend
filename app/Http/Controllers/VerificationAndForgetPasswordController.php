@@ -66,6 +66,13 @@ class VerificationAndForgetPasswordController extends Controller
 
     public function sendPasswordResetLink(Request $request)
     {
+        // Check if mail credentials are set
+        if (env('MAIL_USERNAME') === null || env('MAIL_PASSWORD') === null) {
+            return response()->json([
+                'message' => 'Mail configuration is not set. This feature is disabled.',
+            ], 503);
+        }
+
         // Rate limiting: Maksimum 3 permintaan dalam 1 menit
         $email = $request->email;
         $key = "password-reset:{$email}";
@@ -146,6 +153,13 @@ class VerificationAndForgetPasswordController extends Controller
 
     public function resetPassword(Request $request)
     {
+        // Check if mail credentials are set
+    if (env('MAIL_USERNAME') === null || env('MAIL_PASSWORD') === null) {
+        return response()->json([
+            'message' => 'Mail configuration is not set. This feature is disabled.',
+        ], 503);
+    }
+
         try {
             $validator = Validator::make([
                 'token' => 'required',
