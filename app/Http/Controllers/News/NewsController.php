@@ -724,8 +724,8 @@ class NewsController extends Controller
             // Cek jika thumbnail adalah path file di storage (tidak berupa URL)
             if ($news->thumbnail && !filter_var($news->thumbnail, FILTER_VALIDATE_URL)) {
                 // Pastikan file thumbnail masih ada di storage sebelum menghapusnya
-                if (Storage::exists($news->thumbnail)) {
-                    Storage::delete($news->thumbnail);
+                if (Storage::disk('public')->exists($news->thumbnail)) {
+                    Storage::disk('public')->delete($news->thumbnail);
                     Log::info('Thumbnail deleted: ' . $news->thumbnail);
                 } else {
                     Log::warning('Thumbnail file not found in storage: ' . $news->thumbnail);
