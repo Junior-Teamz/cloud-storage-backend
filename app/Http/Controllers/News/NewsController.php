@@ -59,7 +59,7 @@ class NewsController extends Controller
             $status = $request->query('status');
 
             // Query dasar untuk mengambil berita dengan relasi creator dan tags
-            $query = News::with(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
+            $query = News::with(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
 
             // Tambahkan filter berdasarkan nama creator jika ada
             if (!empty($titleNews)) {
@@ -113,7 +113,7 @@ class NewsController extends Controller
             $titleNews = $request->query('title');
 
             // Ambil semua data berita beserta nama pembuat dan tag-nya, dengan pagination 10 item per halaman
-            $queryNews = News::with(['creator:id,name', 'creator.instances:name,address', 'tags:id,name']);
+            $queryNews = News::with(['creator:id,name,photo_profile_url', 'creator.instances:name,address', 'tags:id,name']);
 
             if (!empty($titleNews)) {
                 $queryNews->whereHas('title', function ($q) use ($titleNews) {
@@ -164,7 +164,7 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,name',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,name,photo_profile_url',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
                 'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])
@@ -261,7 +261,7 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,name',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,name,photo_profile_url',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:name,address',
                 'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])
@@ -319,7 +319,7 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,name,email',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,name,email,roles,photo_profile_url',  // Ambil id dan name dari relasi creator (User)
                 'creator.instances:id,name,address',
                 'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])->where('id', $newsId)->first();
@@ -488,7 +488,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
+            $news->load(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News successfully created.',
@@ -665,7 +665,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
+            $news->load(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News updated successfully.',
@@ -804,7 +804,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email', 'creator.instances:id,name,address', 'tags:id,name']);
+            $news->load(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News status changed successfully.',
