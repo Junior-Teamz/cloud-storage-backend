@@ -176,7 +176,7 @@ class NewsController extends Controller
                 return response()->json([
                     'message' => 'News not found.',
                     'data' => []
-                ], 200);
+                ], 404);
             }
 
             $origin = $request->header('Origin', '');
@@ -273,7 +273,7 @@ class NewsController extends Controller
                 return response()->json([
                     'message' => 'News not found.',
                     'data' => []
-                ], 200);
+                ], 404);
             }
 
             $origin = $request->header('Origin', '');
