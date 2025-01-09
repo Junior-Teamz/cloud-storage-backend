@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\File;
 
+use App\Models\File;
 use App\Services\GenerateURLService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -35,7 +36,9 @@ class FileResource extends JsonResource
         // Gunakan user ID yang diberikan atau fallback ke user yang sedang login
         $currentUserId = $this->userId ?? Auth::id();
 
-        $favorite = $this->favorite()->where('user_id', $currentUserId)->first();
+        $fileInfo = File::where('id', $this->id)->first();
+
+        $favorite = $fileInfo->favorite()->where('user_id', $currentUserId)->first();
         $isFavorite = !is_null($favorite);
         $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 

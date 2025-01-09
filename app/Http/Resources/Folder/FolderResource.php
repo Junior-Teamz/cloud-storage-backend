@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Folder;
 
+use App\Models\Folder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
@@ -32,8 +33,10 @@ class FolderResource extends JsonResource
         // Gunakan user ID yang diberikan atau fallback ke user yang sedang login
         $currentUserId = $this->userId ?? Auth::user()->id;
 
+        $folderInfo = Folder::where('id', $this->id)->first();
+
         // Cek apakah folder ini difavoritkan oleh user yang relevan
-        $favorite = $this->favorite()->where('user_id', $currentUserId)->first();
+        $favorite = $folderInfo->favorite()->where('user_id', $currentUserId)->first();
         $isFavorite = !is_null($favorite);
         $favoritedAt = $isFavorite ? $favorite->pivot->created_at : null;
 
