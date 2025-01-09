@@ -31,7 +31,7 @@ class FolderResource extends JsonResource
     public function toArray(Request $request): array
     {
         // Gunakan user ID yang diberikan atau fallback ke user yang sedang login
-        $currentUserId = $this->userId ?? Auth::user()->id;
+        $currentUserId = Auth::user()->id;
 
         $folderInfo = Folder::where('id', $this->id)->first();
 
