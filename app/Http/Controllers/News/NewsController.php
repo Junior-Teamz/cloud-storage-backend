@@ -59,7 +59,7 @@ class NewsController extends Controller
             $status = $request->query('status');
 
             // Query dasar untuk mengambil berita dengan relasi creator dan tags
-            $query = News::with(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
+            $query = News::with(['creator:id,name,email,photo_profile_url', 'creator.roles:name', 'creator.instances:id,name,address', 'tags:id,name']);
 
             // Tambahkan filter berdasarkan nama creator jika ada
             if (!empty($titleNews)) {
@@ -261,7 +261,7 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,name,photo_profile_url',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,name,photo_profile_url',
                 'creator.instances:name,address',
                 'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])
@@ -319,7 +319,8 @@ class NewsController extends Controller
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
             $news = News::with([
-                'creator:id,name,email,roles,photo_profile_url',  // Ambil id dan name dari relasi creator (User)
+                'creator:id,name,email,photo_profile_url',
+                'creator.roles:name',
                 'creator.instances:id,name,address',
                 'tags:id,name'  // Ambil id dan name dari relasi tags (NewsTag)
             ])->where('id', $newsId)->first();
@@ -488,7 +489,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
+            $news->load(['creator:id,name,email,photo_profile_url', 'creator.roles:name', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News successfully created.',
@@ -665,7 +666,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
+            $news->load(['creator:id,name,email,photo_profile_url', 'creator.roles:name', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News updated successfully.',
@@ -804,7 +805,7 @@ class NewsController extends Controller
 
             DB::commit();
 
-            $news->load(['creator:id,name,email,roles,photo_profile_url', 'creator.instances:id,name,address', 'tags:id,name']);
+            $news->load(['creator:id,name,email,photo_profile_url', 'creator.roles:name', 'creator.instances:id,name,address', 'tags:id,name']);
 
             return response()->json([
                 'message' => 'News status changed successfully.',
@@ -823,46 +824,46 @@ class NewsController extends Controller
 
 
     // ENDPOINT UNTUK TESTING IMAGE
-    public function storeImage(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'image' => 'required|file|max:5120|mimes:img,png,svg,jpg,webp'
-        ]);
+    // public function storeImage(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'image' => 'required|file|max:5120|mimes:img,png,svg,jpg,webp'
+    //     ]);
 
-        if($validator->fails()){
-            return response()->json([
-                'errors' => $validator->errors()
-            ]);
-        }
+    //     if($validator->fails()){
+    //         return response()->json([
+    //             'errors' => $validator->errors()
+    //         ]);
+    //     }
 
-        try {
-            $file = $request->file('image');
+    //     try {
+    //         $file = $request->file('image');
 
-            $folderImageStore = 'image_testing';
+    //         $folderImageStore = 'image_testing';
 
-            if (!Storage::disk('public')->exists($folderImageStore)) {
-                Storage::disk('public')->makeDirectory($folderImageStore);
-            }
+    //         if (!Storage::disk('public')->exists($folderImageStore)) {
+    //             Storage::disk('public')->makeDirectory($folderImageStore);
+    //         }
 
-            $filePath = $file->store($folderImageStore, 'public');
+    //         $filePath = $file->store($folderImageStore, 'public');
 
-            $url = Storage::disk('public')->url($filePath);
+    //         $url = Storage::disk('public')->url($filePath);
 
-            return response()->json([
-                'message' => 'Image stored successfully',
-                'data' => [
-                    'image_url' => $url
-                ]
-            ], 200);
+    //         return response()->json([
+    //             'message' => 'Image stored successfully',
+    //             'data' => [
+    //                 'image_url' => $url
+    //             ]
+    //         ], 200);
 
-        } catch (Exception $e){
-            Log::error('Error occured while storing image testing: ' . $e->getMessage(), [
-                'trace' => $e->getTrace()
-            ]);
+    //     } catch (Exception $e){
+    //         Log::error('Error occured while storing image testing: ' . $e->getMessage(), [
+    //             'trace' => $e->getTrace()
+    //         ]);
 
-            return response()->json([
-                'errors' => 'Internal server error!, please check log!'
-            ], 500);
-        }
-    }
+    //         return response()->json([
+    //             'errors' => 'Internal server error!, please check log!'
+    //         ], 500);
+    //     }
+    // }
 }
