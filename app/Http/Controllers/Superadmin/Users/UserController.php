@@ -362,7 +362,7 @@ class UserController extends Controller
                 $newUser->save();
             }
 
-            $newUser->load(['instances:id,name,address', 'sections:id,name']);
+            $newUser->load(['instances:id,name,address', 'section:id,name']);
 
             if($request->role === 'admin'){
                 $permissions = $newUser->getAllPermissions()->map(function ($permission) {
@@ -544,7 +544,7 @@ class UserController extends Controller
 
             DB::commit();
 
-            $userToBeUpdated->load(['instances:id,name,address', 'sections:id,name']);
+            $userToBeUpdated->load(['instances:id,name,address', 'section:id,name']);
 
             return response()->json([
                 'message' => 'User updated successfully.',
@@ -699,7 +699,7 @@ class UserController extends Controller
 
             DB::commit();
 
-            $userToBeUpdated->load(['instances:id,name,address', 'sections:id,name']);
+            $userToBeUpdated->load(['instances:id,name,address', 'section:id,name']);
 
             if($userToBeUpdated->role === 'admin'){
                 $permissions = $userToBeUpdated->getAllPermissions()->map(function ($permission) {
