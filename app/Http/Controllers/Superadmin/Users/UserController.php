@@ -362,19 +362,21 @@ class UserController extends Controller
                 $newUser->save();
             }
 
-            $newUser->load('instances:id,name,address');
+            $newUser->load(['instances:id,name,address', 'sections:id,name']);
 
-            $permissions = $newUser->getAllPermissions()->map(function ($permission) {
-                return [
-                    'id' => $permission->id,
-                    'name' => $permission->name,
-                    'guard_name' => $permission->guard_name,
-                    'created_at' => $permission->created_at,
-                    'updated_at' => $permission->updated_at,
-                ];
-            });
-
-            $newUser["permissions"] = $permissions;
+            if($request->role === 'admin'){
+                $permissions = $newUser->getAllPermissions()->map(function ($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'guard_name' => $permission->guard_name,
+                        'created_at' => $permission->created_at,
+                        'updated_at' => $permission->updated_at,
+                    ];
+                });
+    
+                $newUser["permissions"] = $permissions;
+            }
 
             DB::commit();
 
@@ -542,7 +544,7 @@ class UserController extends Controller
 
             DB::commit();
 
-            $userToBeUpdated->load('instances:id,name,address');
+            $userToBeUpdated->load(['instances:id,name,address', 'sections:id,name']);
 
             return response()->json([
                 'message' => 'User updated successfully.',
@@ -697,7 +699,21 @@ class UserController extends Controller
 
             DB::commit();
 
-            $userToBeUpdated->load('instances:id,name,address');
+            $userToBeUpdated->load(['instances:id,name,address', 'sections:id,name']);
+
+            if($userToBeUpdated->role === 'admin'){
+                $permissions = $userToBeUpdated->getAllPermissions()->map(function ($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'guard_name' => $permission->guard_name,
+                        'created_at' => $permission->created_at,
+                        'updated_at' => $permission->updated_at,
+                    ];
+                });
+    
+                $userToBeUpdated["permissions"] = $permissions;
+            }
 
             return response()->json([
                 'message' => 'User updated successfully.',
