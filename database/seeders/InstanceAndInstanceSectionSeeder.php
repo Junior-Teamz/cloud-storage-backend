@@ -15,8 +15,8 @@ class InstanceAndInstanceSectionSeeder extends Seeder
     public function run(): void
     {
         $instance = Instance::updateOrCreate([
-            'name' => 'PT. Example',
-            'address' => 'Jl. Contoh No. 1',
+            'name' => 'KemenkopUKM',
+            'address' => 'Jalan Rasuna Said',
         ]);
 
         InstanceSection::updateOrCreate([
