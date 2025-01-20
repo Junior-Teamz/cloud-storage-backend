@@ -63,7 +63,7 @@ class CheckAdminService
             throw new Exception('Invalid permission given.');
         }
 
-        if($user->hasRole('admin') && $user->hasPermission($permission)){
+        if($user->hasRole('admin') && $user->hasPermissionTo($permission)){
             return true;
         }
 
