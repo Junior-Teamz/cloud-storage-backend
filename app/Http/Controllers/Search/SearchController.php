@@ -121,7 +121,7 @@ class SearchController extends Controller
             $keywordEmail = $request->query('email');
 
             // Buat query dasar dengan relasi dan kolom yang dipilih
-            $query = User::with('instances:id,name,address')->select('id', 'name', 'email');
+            $query = User::with(['instances:id,name,address', 'section']);
 
             // Jika ada query name, tambahkan kondisi pencarian untuk name
             if ($keywordName) {
