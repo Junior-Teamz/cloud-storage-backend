@@ -23,7 +23,7 @@ class UserFilePermissionResource extends JsonResource
     public function toArray(Request $request): array
     {
         // Cek MIME type dengan handling null
-        $mimeType = Storage::exists($this->path) ? Storage::mimeType($this->path) : null;
+        $mimeType = Storage::exists($this->file->path) ? Storage::mimeType($this->file->path) : null;
 
         $userFilePermissionResponse = [
             'permission_id' => $this->id,
@@ -69,7 +69,7 @@ class UserFilePermissionResource extends JsonResource
         ];
 
         if ($mimeType && Str::startsWith($mimeType, 'video')) {
-            $userFilePermissionResponse['file']['video_url'] = app(GenerateURLService::class)->generateUrlForVideo($this->id);
+            $userFilePermissionResponse['file']['video_url'] = app(GenerateURLService::class)->generateUrlForVideo($this->file->id);
         }
 
         return $userFilePermissionResponse;
