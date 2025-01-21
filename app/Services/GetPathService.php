@@ -58,7 +58,7 @@ class GetPathService
     public function getFolderPath($parentId)
     {
         if ($parentId === null) {
-            return 'users'; // Root directory is now in 'users' folder
+            return ''; // Root Folder
         }
 
         $parentFolder = Folder::findOrFail($parentId);

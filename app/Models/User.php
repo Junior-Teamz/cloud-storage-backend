@@ -92,11 +92,11 @@ class User extends Authenticatable implements JWTSubject
             // Get nanoid from newly created folder
             $folderNanoid = $folder->nanoid;
 
-            // Create directory in storage/app/users/{nanoid}
-            $folderPath = 'users/' . $folderNanoid;
+            // // Create directory in storage/app/users/{nanoid}
+            // $folderPath = 'users/' . $folderNanoid;
 
             // Create physical directory in Laravel local storage
-            Storage::makeDirectory($folderPath);
+            Storage::makeDirectory($folderNanoid);
         });
     }
 

@@ -140,10 +140,10 @@ class UserController extends Controller
 
     public function user_info($id)
     {
-        $user = Auth::user();
+        $authenticatedUser = Auth::user();
 
+        // Periksa apakah user adalah admin
         $checkAdmin = $this->checkAdminService->checkSuperAdmin();
-
         if (!$checkAdmin) {
             return response()->json([
                 'errors' => 'You are not allowed to perform this action.'
@@ -151,23 +151,8 @@ class UserController extends Controller
         }
 
         try {
-
-            $user = User::with([
-                'instances:id,name,address',
-                'section:id,name',
-                'folders' => function ($query) {
-                    $query->whereNull('parent_id');
-                }
-            ])->where('id', $id)->first();
-
-            // Transformasi data pada folders
-            $user->folders->transform(function ($folder) {
-                $folder->total_subfolder = $folder->calculateTotalSubfolder();
-                $folder->total_file = $folder->calculateTotalFile();
-                $folder->total_size = $folder->calculateTotalSize();
-                unset($folder->user_id, $folder->created_at, $folder->updated_at, $folder->files, $folder->subfolders);
-                return $folder;
-            });
+            // Periksa apakah user dengan ID tersebut ada
+            $user = User::where('id', $id)->first();
 
             if (!$user) {
                 return response()->json([
@@ -176,15 +161,44 @@ class UserController extends Controller
                 ], 200);
             }
 
+            // Ambil user dengan relasi yang diinginkan
+            $user = User::with([
+                'instances:id,name,address',
+                'section:id,name',
+                'folders' => function ($query) {
+                    $query->whereNull('parent_id'); // Hanya ambil folder induk
+                }
+            ])->where('id', $id)->first();
+
+            // Periksa apakah user memiliki folder induk
+            if ($user->folders->isEmpty()) {
+                return response()->json([
+                    'message' => "User does not have any parent folders.",
+                    'data' => []
+                ], 500);
+            }
+
+            // Transformasi data folder
+            $user->folders->transform(function ($folder) {
+                $folder->total_subfolder = $folder->calculateTotalSubfolder();
+                $folder->total_file = $folder->calculateTotalFile();
+                $folder->total_size = $folder->calculateTotalSize();
+                unset($folder->user_id, $folder->created_at, $folder->updated_at, $folder->files, $folder->subfolders);
+                return $folder;
+            });
+
             return response()->json([
                 'data' => $user
             ]);
         } catch (Exception $e) {
+            // Log error jika terjadi kesalahan pada kode
             Log::error('Error occurred on getting user information: ' . $e->getMessage(), [
-                'trace' => $e->getTrace()
+                'trace' => $e->getTrace(),
+                'user_id' => $id
             ]);
+
             return response()->json([
-                'errors' => 'An error occured on getting user information.',
+                'errors' => 'An error occurred on getting user information.',
             ], 500);
         }
     }
@@ -366,7 +380,7 @@ class UserController extends Controller
 
             $newUser->load(['instances:id,name,address', 'section:id,name']);
 
-            if($request->role === 'admin'){
+            if ($request->role === 'admin') {
                 $permissions = $newUser->getAllPermissions()->map(function ($permission) {
                     return [
                         'id' => $permission->id,
@@ -376,7 +390,7 @@ class UserController extends Controller
                         'updated_at' => $permission->updated_at,
                     ];
                 });
-    
+
                 $newUser["permissions"] = $permissions;
             }
 
@@ -703,7 +717,7 @@ class UserController extends Controller
 
             $userToBeUpdated->load(['instances:id,name,address', 'section:id,name']);
 
-            if($userToBeUpdated->role === 'admin'){
+            if ($userToBeUpdated->role === 'admin') {
                 $permissions = $userToBeUpdated->getAllPermissions()->map(function ($permission) {
                     return [
                         'id' => $permission->id,
@@ -713,7 +727,7 @@ class UserController extends Controller
                         'updated_at' => $permission->updated_at,
                     ];
                 });
-    
+
                 $userToBeUpdated["permissions"] = $permissions;
             }
 
