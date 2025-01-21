@@ -140,8 +140,6 @@ class UserController extends Controller
 
     public function user_info($id)
     {
-        $authenticatedUser = Auth::user();
-
         // Periksa apakah user adalah admin
         $checkAdmin = $this->checkAdminService->checkSuperAdmin();
         if (!$checkAdmin) {
@@ -152,9 +150,11 @@ class UserController extends Controller
 
         try {
             // Periksa apakah user dengan ID tersebut ada
-            $user = User::where('id', $id)->first();
+            Log::info('Getting user information with ID: ' . $id);
+            $checkUser = User::where('id', $id)->first();
 
-            if (!$user) {
+            if (!$checkUser) {
+                Log::warning('User not found with ID: ' . $id);
                 return response()->json([
                     'message' => "User not found.",
                     'data' => []
