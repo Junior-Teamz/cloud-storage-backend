@@ -60,7 +60,7 @@ class AuthController extends Controller
             if (!$accessToken) {
                 // Respon jika login gagal karena email atau password salah
                 return response()->json([
-                    'errors' => 'Email or Password is incorrect.',
+                    'errors' => 'These credentials do not match our records.',
                 ], 401);
             }
 
