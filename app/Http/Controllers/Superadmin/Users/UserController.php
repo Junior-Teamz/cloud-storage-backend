@@ -150,11 +150,9 @@ class UserController extends Controller
 
         try {
             // Periksa apakah user dengan ID tersebut ada
-            Log::info('Getting user information with ID: ' . $id);
             $checkUser = User::where('id', $id)->first();
 
             if (!$checkUser) {
-                Log::warning('User not found with ID: ' . $id);
                 return response()->json([
                     'message' => "User not found.",
                     'data' => []
@@ -172,9 +170,12 @@ class UserController extends Controller
 
             // Periksa apakah user memiliki folder induk
             if ($user->folders->isEmpty()) {
+                Log::error('A user does not have parent folder!', [
+                    'user_id' => $id,
+                    'full_message' => 'A user does not have parent folder. Please check the database integrity, and check the folder creation process during the user creation process in Models/User.php.'
+                ]);
                 return response()->json([
-                    'message' => "User does not have any parent folders.",
-                    'data' => []
+                    'errors' => "An error occurred on getting user information.",
                 ], 500);
             }
 
@@ -1044,7 +1045,7 @@ class UserController extends Controller
 
         // if ($user->id == $userIdToBeDeleted) {
         //     return response()->json([
-        //         'errors' => 'Anda tidak diizinkan untuk menghapus diri sendiri.',
+        //         'errors' => 'You cannot delete your own account.',
         //     ], 403);
         // }
 

@@ -183,6 +183,16 @@ class UserController extends Controller
             $userAdminData = User::where('id', $userLogin->id)->first();
             $adminInstance = $userAdminData->instances()->first();
 
+            // Periksa apakah user dengan ID tersebut ada
+            $checkUser = User::where('id', $id)->first();
+
+            if (!$checkUser) {
+                return response()->json([
+                    'message' => "User not found.",
+                    'data' => []
+                ], 200);
+            }
+
             $user = User::with([
                 'instances:id,name,address',
                 'section:id,name',

@@ -26,7 +26,7 @@ class ValidateSuperadmin
         }
 
         return response()->json([
-            'errors' => 'Anda tidak diizinkan untuk mengakses halaman ini.',
+            'errors' => 'You are not authorized to access this resource.',
         ], 403); // 403 Forbidden
     }
 }
