@@ -108,6 +108,7 @@ class UserController extends Controller
 
             $allUser = $query->with([
                 'instances:id,name,address',
+                'section:id,name',
                 'folders' => function ($query) {
                     $query->whereNull('parent_id');
                 }
@@ -153,6 +154,7 @@ class UserController extends Controller
 
             $user = User::with([
                 'instances:id,name,address',
+                'section:id,name',
                 'folders' => function ($query) {
                     $query->whereNull('parent_id');
                 }

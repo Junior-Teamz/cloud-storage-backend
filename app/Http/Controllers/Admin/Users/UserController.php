@@ -137,6 +137,7 @@ class UserController extends Controller
             // Fetch users with their associated instances and folders
             $allUser = $query->with([
                 'instances:id,name,address',
+                'section:id,name',
                 'folders' => function ($query) {
                     $query->whereNull('parent_id');
                 }
@@ -184,6 +185,7 @@ class UserController extends Controller
 
             $user = User::with([
                 'instances:id,name,address',
+                'section:id,name',
                 'folders' => function ($query) {
                     $query->whereNull('parent_id');
                 }
@@ -332,7 +334,7 @@ class UserController extends Controller
                 $newUser->save();
             }
 
-            $newUser->load('instances:id,name,address');
+            $newUser->load(['instances:id,name,address', 'section:id,name']);
 
             $userFolders = Folder::where('user_id', $newUser->id)->get();
 

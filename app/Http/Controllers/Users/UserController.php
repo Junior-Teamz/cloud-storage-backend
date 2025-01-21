@@ -168,7 +168,7 @@ class UserController extends Controller
     {
         try {
 
-            $userInfo = User::with(['instances:id,name,address'])->where('id', $id)->first();
+            $userInfo = User::with(['instances:id,name,address', 'section:id,name'])->where('id', $id)->first();
 
             if (!$userInfo) {
                 return response()->json([
@@ -204,7 +204,7 @@ class UserController extends Controller
 
         try {
 
-            $userInfo = User::with('instances:id,name,address')->where('id', $user->id)->first();
+            $userInfo = User::with(['instances:id,name,address', 'section:id,name'])->where('id', $user->id)->first();
 
             return response()->json([
                 'data' => $userInfo
@@ -322,7 +322,7 @@ class UserController extends Controller
                 $userToBeUpdated->save();
             }
 
-            $userToBeUpdated->load('instances:id,name,address');
+            $userToBeUpdated->load(['instances:id,name,address', 'section:id,name']);
 
             DB::commit();
 
