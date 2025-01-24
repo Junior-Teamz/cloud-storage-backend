@@ -20,14 +20,19 @@ class ErrorFormat
     {
         $response = $next($request);
 
-        // Tangkap semua response dengan HTTP status code >= 400
-        if ($response->status() >= 400) {
-            $content = [
-                'status' => $response->status(),
-                'errors' => $this->formatErrorMessage($response),
-            ];
+        // Pastikan response memiliki metode getStatusCode() dan dapat diolah
+        if (method_exists($response, 'getStatusCode')) {
+            $statusCode = $response->getStatusCode();
 
-            return response()->json($content, $response->status());
+            // Tangkap semua response dengan HTTP status code >= 400
+            if ($statusCode >= 400) {
+                $content = [
+                    'status' => $statusCode,
+                    'errors' => $this->formatErrorMessage($response),
+                ];
+
+                return response()->json($content, $statusCode);
+            }
         }
 
         return $response;
