@@ -150,7 +150,7 @@ class AppStatisticController extends Controller
         }
     }
 
-    
+
     /**
      * Get tag usage statistics.
      * 
@@ -321,18 +321,24 @@ class AppStatisticController extends Controller
 
         try {
             $countAllFolder = Folder::whereNotNull('parent_id')->count();
+            $totalSizeAllFolders = $this->calculateTotalSizeAllFolders();
+            $formattedTotalSizeAllFolders = $this->formatSizeUnits($totalSizeAllFolders);
 
             if ($countAllFolder == 0) {
                 return response()->json([
                     'message' => 'No folders created.',
                     'data' => [
-                        'count_folder' => $countAllFolder
+                        'count_folder' => $countAllFolder,
+                        'total_size_all_folders' => $totalSizeAllFolders,
+                        'formatted_total_size_all_folders' => $formattedTotalSizeAllFolders
                     ]
                 ], 200);
             }
 
             return response()->json([
-                'count_folder' => $countAllFolder
+                'count_folder' => $countAllFolder,
+                'total_size_all_folders' => $totalSizeAllFolders,
+                'formatted_total_size_all_folders' => $formattedTotalSizeAllFolders
             ], 200);
         } catch (Exception $e) {
             Log::error('Error occured while counting all folder: ' . $e->getMessage(), [
@@ -450,6 +456,18 @@ class AppStatisticController extends Controller
         // Rekursif menghitung ukuran semua subfolder
         foreach ($folder->subfolders as $subfolder) {
             $totalSize += $this->calculateFolderSize($subfolder);
+        }
+
+        return $totalSize;
+    }
+
+    private function calculateTotalSizeAllFolders()
+    {
+        $totalSize = 0;
+
+        $folders = Folder::all();
+        foreach ($folders as $folder) {
+            $totalSize += $folder->calculateTotalSize();
         }
 
         return $totalSize;
