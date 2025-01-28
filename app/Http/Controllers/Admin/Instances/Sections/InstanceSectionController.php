@@ -82,13 +82,13 @@ class InstanceSectionController extends Controller
             $userLoginInstance = $userLogin->instances()->first();
             $instanceSectionData = InstanceSection::with('instance')->where('id', $instanceSectionId)->first();
 
-            if(!$instanceSectionData){
+            if (!$instanceSectionData) {
                 return response()->json([
                     'errors' => 'Instance Section not found.'
                 ], 404);
             }
 
-            if($instanceSectionData->instance->id !== $userLoginInstance->id){
+            if ($instanceSectionData->instance->id !== $userLoginInstance->id) {
                 return response()->json([
                     'errors' => 'You are not allowed to get other instance section data.'
                 ], 403);
@@ -97,7 +97,7 @@ class InstanceSectionController extends Controller
             return response()->json([
                 'data' => new InstanceSectionResource($instanceSectionData)
             ], 200);
-        } catch (Exception $e){
+        } catch (Exception $e) {
             Log::error('Error while getting instance section by id: ' . $e->getMessage(), [
                 'trace' => $e->getTrace()
             ]);
@@ -110,7 +110,7 @@ class InstanceSectionController extends Controller
 
         $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.create');
 
-        if(!$checkPermission){
+        if (!$checkPermission) {
             return response()->json([
                 'errors' => 'Instance Section not found.'
             ], 404);
@@ -120,12 +120,12 @@ class InstanceSectionController extends Controller
             'name' => 'string|max:255'
         ]);
 
-        if($validator->fails()){
+        if ($validator->fails()) {
             return response()->json([
                 'errors' => $validator->errors()
             ], 400);
         }
-    
+
         try {
             // validate if instance section name is already exists with the same instance
             $instance = $userLogin->instances()->first();
@@ -151,7 +151,6 @@ class InstanceSectionController extends Controller
                 'message' => 'Instance section created successfully.',
                 'data' => new InstanceSectionResource($newSection)
             ], 201);
-
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error while creating instance section: ' . $e->getMessage(), [
@@ -177,7 +176,7 @@ class InstanceSectionController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'string|max:255'
+            'name' => 'required|string|max:255'
         ]);
 
         if ($validator->fails()) {
@@ -200,6 +199,25 @@ class InstanceSectionController extends Controller
                 return response()->json([
                     'errors' => 'You are not allowed to update other instance section data.'
                 ], 403);
+            }
+
+            // Check if name is same as current name
+            if ($instanceSection->name === $request->name) {
+                return response()->json([
+                    'errors' => 'New section name must be different from current name.'
+                ], 422);
+            }
+
+            // Check if name exists in other sections of same instance
+            $nameExists = $instanceSection->instance->sections
+                ->where('name', $request->name)
+                ->where('id', '!=', $instanceSectionId)
+                ->isNotEmpty();
+
+            if ($nameExists) {
+                return response()->json([
+                    'errors' => 'Section name already exists in this instance.'
+                ], 422);
             }
 
             DB::beginTransaction();

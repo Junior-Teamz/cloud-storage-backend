@@ -165,7 +165,7 @@ class InstanceSectionController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'new_name' => 'string|max:255'
+            'new_name' => 'required|string|max:255'
         ]);
 
         if ($validator->fails()) {
@@ -175,7 +175,7 @@ class InstanceSectionController extends Controller
         }
 
         try {
-            $instanceSection = InstanceSection::where('id', $instanceSectionId)->first();
+            $instanceSection = InstanceSection::with('instance')->where('id', $instanceSectionId)->first();
 
             if (!$instanceSection) {
                 return response()->json([
@@ -183,9 +183,26 @@ class InstanceSectionController extends Controller
                 ], 404);
             }
 
+            if (strtolower($instanceSection->name) === strtolower($request->new_name)) {
+                return response()->json([
+                    'errors' => 'The new name must be different from the current name.'
+                ], 400);
+            }
+
+            $nameExists = $instanceSection->instance->sections
+                ->where('name', $request->new_name)
+                ->where('id', '!=', $instanceSectionId)
+                ->isNotEmpty();
+
+            if ($nameExists) {
+                return response()->json([
+                    'errors' => 'The new name already exists in the same instance.'
+                ], 400);
+            }
+
             DB::beginTransaction();
 
-            $instanceSection->name = $request->name;
+            $instanceSection->name = $request->new_name;
             $instanceSection->save();
 
             DB::commit();
