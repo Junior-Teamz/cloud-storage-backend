@@ -191,6 +191,8 @@ class UserController extends Controller
                 return $folder;
             });
 
+            $user->permissions = $user->getAllPermissions();
+
             return response()->json([
                 'data' => $user
             ]);
@@ -384,19 +386,7 @@ class UserController extends Controller
 
             $newUser->load(['instances:id,name,address', 'section:id,name']);
 
-            if ($request->role === 'admin') {
-                $permissions = $newUser->getAllPermissions()->map(function ($permission) {
-                    return [
-                        'id' => $permission->id,
-                        'name' => $permission->name,
-                        'guard_name' => $permission->guard_name,
-                        'created_at' => $permission->created_at,
-                        'updated_at' => $permission->updated_at,
-                    ];
-                });
-
-                $newUser["permissions"] = $permissions;
-            }
+            $newUser["permissions"] = $newUser->getAllPermissions();
 
             DB::commit();
 
