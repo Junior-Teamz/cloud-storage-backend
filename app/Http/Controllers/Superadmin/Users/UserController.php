@@ -188,6 +188,11 @@ class UserController extends Controller
                 return $folder;
             });
 
+            // Add permissions if user is admin
+            if ($user->roles->contains('admin')) {
+                $user->permissions = $user->getAllPermissions()->pluck('name');
+            }
+
             return response()->json([
                 'data' => $user
             ]);
