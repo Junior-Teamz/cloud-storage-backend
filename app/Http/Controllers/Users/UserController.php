@@ -176,6 +176,8 @@ class UserController extends Controller
                 ], 200);
             }
 
+            $userInfo['permissions'] = $userInfo->getAllPermissions()->pluck('name');
+
             return response()->json([
                 'message' => 'Your account information',
                 'data' => $userInfo
@@ -205,6 +207,8 @@ class UserController extends Controller
         try {
 
             $userInfo = User::with(['instances:id,name,address', 'section:id,name'])->where('id', $user->id)->first();
+
+            $userinfo['permissions'] = $userInfo->getAllPermissions()->pluck('name');
 
             return response()->json([
                 'data' => $userInfo
