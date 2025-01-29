@@ -124,7 +124,7 @@ class UserController extends Controller
                     return $folder;
                 });
 
-                $user->permissions = $user->getAllPermissions()->pluck('name');
+                $user->permissions = $user->getAllPermissions();
 
                 return $user;
             });
