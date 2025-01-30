@@ -161,7 +161,7 @@ class FolderController extends Controller
             // Ambil folder root user dengan eager loading untuk subfolders dan files
             $parentFolder = Folder::where('user_id', $user->id)
                 ->whereNull('parent_id')
-                ->with(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'favorite'])
+                ->with(['user', 'tags', 'instances', 'userFolderPermissions', 'userFolderPermissions.user', 'userFolderPermissions.user.instances', 'userFolderPermissions.user.instances.sections', 'favorite'])
                 ->first();
 
             // Cek apakah parent folder ditemukan
@@ -176,6 +176,7 @@ class FolderController extends Controller
 
             return response()->json([
                 'data' => [
+                    'root_folder' => new FolderResource($parentFolder),
                     'subfolders' => new FolderCollection($subfolders),
                     'files' => new FileCollection($files)
                 ],
