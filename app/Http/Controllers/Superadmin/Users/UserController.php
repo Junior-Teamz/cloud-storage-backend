@@ -640,12 +640,6 @@ class UserController extends Controller
             ], 422);
         }
 
-        if (!$request->has('permissions')) {
-            return response()->json([
-                'errors' => 'Permissions are required for admin role.'
-            ], 422);
-        }
-
         try {
             $userToBeUpdated = User::where('id', $userIdToBeUpdated)->first();
 
@@ -684,7 +678,9 @@ class UserController extends Controller
                 }
             }
 
-            $userToBeUpdated->syncPermissions($request->permissions);
+            if($request->has('permissions')){
+                $userToBeUpdated->syncPermissions($request->permissions);
+            }
 
             if ($request->has('photo_profile')) {
                 $photoFile = $request->file('photo_profile');
