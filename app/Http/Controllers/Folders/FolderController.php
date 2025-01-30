@@ -845,8 +845,8 @@ class FolderController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'folder_id' => 'required,exists:folders,id',
-                'new_parent_id' => 'required,exists:folders,id',
+                'folder_id' => 'required|exists:folders,id',
+                'new_parent_id' => 'required|exists:folders,id',
             ],
         );
 
