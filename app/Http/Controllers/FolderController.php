@@ -516,6 +516,7 @@ class FolderController extends Controller
                 'name' => 'required|string',
                 'parent_id' => 'nullable|exists:folders,id',
                 'tag_ids' => 'required|array',
+                'tag_ids.*' => 'string|exists:tags,id'
             ],
         );
 
@@ -1034,6 +1035,7 @@ class FolderController extends Controller
         // Validasi bahwa folder_ids dikirim dalam request
         $validator = Validator::make($request->all(), [
             'folder_ids' => 'required|array',
+            'folder_ids.*' => 'string|exists:folders,id',
         ]);
 
         if ($validator->fails()) {
