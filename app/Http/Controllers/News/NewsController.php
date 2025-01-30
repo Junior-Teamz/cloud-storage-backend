@@ -20,13 +20,13 @@ use Illuminate\Support\Facades\Validator;
 
 class NewsController extends Controller
 {
-    protected $checkAdminService;
+    // protected $checkAdminService;
     protected $generateImageURL;
 
     // Inject RoleService ke dalam constructor
-    public function __construct(CheckAdminService $checkAdminService, GenerateURLService $generateURLService)
+    public function __construct(/*CheckAdminService $checkAdminService,*/ GenerateURLService $generateURLService)
     {
-        $this->checkAdminService = $checkAdminService;
+        // $this->checkAdminService = $checkAdminService;
         $this->generateImageURL = $generateURLService;
     }
 
@@ -45,13 +45,13 @@ class NewsController extends Controller
     public function getAllNews(Request $request)
     {
         // Cek apakah user adalah admin
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.read');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.read');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             // Ambil parameter query dari request
@@ -308,13 +308,13 @@ class NewsController extends Controller
      */
     public function getNewsDetailForAdmin($newsId)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.read');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.read');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             // Ambil berita berdasarkan ID beserta nama pembuat dan tag-nya
@@ -364,13 +364,13 @@ class NewsController extends Controller
     {
         // Cek apakah user yang login adalah admin
         $userLogin = Auth::user();
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.create');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.create');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         // Validasi input
         $validator = Validator::make($request->all(), [
@@ -524,13 +524,13 @@ class NewsController extends Controller
     public function updateNews(Request $request, $id)
     {
         // Cek apakah user adalah admin
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.update');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.update');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         // Validasi input
         $validator = Validator::make($request->all(), [
@@ -701,13 +701,13 @@ class NewsController extends Controller
      */
     public function deleteNews($id)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.delete');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.delete');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ]);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ]);
+        // }
 
         try {
             $news = News::where('id', $id)->first();
@@ -767,13 +767,13 @@ class NewsController extends Controller
      */
     public function changeStatus(Request $request, $newsId)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.status.update');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('news.status.update');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:published,archived',

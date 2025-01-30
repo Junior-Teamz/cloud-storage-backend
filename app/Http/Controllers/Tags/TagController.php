@@ -156,7 +156,7 @@ class TagController extends Controller
      */
     public function countAllTags()
     {
-        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+        $checkAdmin = $this->checkAdminService->checkAdmin(/**'tag.statistic.read' */);
 
         if (!$checkAdmin) {
             return response()->json([
@@ -203,7 +203,7 @@ class TagController extends Controller
      */
     public function store(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.create');
+        $checkAdmin = $this->checkAdminService->checkAdmin(/**'tag.create' */);
 
         if (!$checkAdmin) {
             return response()->json([
@@ -274,7 +274,7 @@ class TagController extends Controller
     public function exampleImportDownload()
     {
         // Mengecek apakah pengguna adalah admin
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.create');
+        $checkAdmin = $this->checkAdminService->checkAdmin(/**'tag.create' */);
 
         if (!$checkAdmin) {
             return response()->json([
@@ -324,7 +324,7 @@ class TagController extends Controller
      */
     public function import(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.create');
+        $checkAdmin = $this->checkAdminService->checkAdmin(/**'tag.create' */);
 
         if (!$checkAdmin) {
             return response()->json([
@@ -418,7 +418,7 @@ class TagController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.update');
+        $checkAdmin = $this->checkAdminService->checkAdmin(/**'tag.update' */);
 
         if (!$checkAdmin) {
             return response()->json([
@@ -507,7 +507,7 @@ class TagController extends Controller
      */
     public function destroy(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermissionOrSuperadmin('tag.delete');
+        $checkAdmin = $this->checkAdminService->checkAdmin(/**'tag.delete' */);
 
         if (!$checkAdmin) {
             return response()->json([

@@ -20,10 +20,10 @@ class InstanceController extends Controller
     protected $checkAdminService;
 
     // Inject CheckAdminService class ke dalam constructor
-    public function __construct(CheckAdminService $checkAdminService)
-    {
-        $this->checkAdminService = $checkAdminService;
-    }
+    // public function __construct(CheckAdminService $checkAdminService)
+    // {
+    //     $this->checkAdminService = $checkAdminService;
+    // }
 
     /**
      * Get the instance information associated with the authenticated admin user.
@@ -40,13 +40,13 @@ class InstanceController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.read');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.read');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userData = User::where('id', $user->id)->first();
@@ -84,13 +84,13 @@ class InstanceController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.update');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.update');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         $validator = Validator::make(
             $request->all(),
@@ -171,13 +171,13 @@ class InstanceController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.delete');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.delete');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userData = User::where('id', $user->id)->first();

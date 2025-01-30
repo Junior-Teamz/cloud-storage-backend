@@ -19,24 +19,24 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    protected $checkAdminService;
+    // protected $checkAdminService;
     protected $getPathService;
 
-    public function __construct(CheckAdminService $checkAdminService, GetPathService $getPathServiceParam)
+    public function __construct(/*CheckAdminService $checkAdminService,*/ GetPathService $getPathServiceParam)
     {
-        $this->checkAdminService = $checkAdminService;
+        // $this->checkAdminService = $checkAdminService;
         $this->getPathService = $getPathServiceParam;
     }
 
     public function countAllUserSameInstance()
     {
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.statistic.read');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.statistic.read');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             // Get the currently logged-in admin
@@ -101,13 +101,13 @@ class UserController extends Controller
         $user = Auth::user();
 
         // Check if the user is an admin
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.read');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.read');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userData = User::where('id', $user->id)->first();
@@ -171,13 +171,13 @@ class UserController extends Controller
     {
         $userLogin = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.read');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.read');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userAdminData = User::where('id', $userLogin->id)->first();
@@ -252,13 +252,13 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.create');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.create');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
@@ -387,13 +387,13 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.update');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.update');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'name' => ['nullable', 'string', 'max:255'],
@@ -549,13 +549,13 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.update');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.update');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'password' => ['required', 'string', 'min:8', 'confirmed'],
@@ -638,13 +638,13 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.delete');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('users.delete');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userAdminData = User::where('id', $user->id)->first();

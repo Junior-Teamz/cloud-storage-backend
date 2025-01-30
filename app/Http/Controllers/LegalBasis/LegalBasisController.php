@@ -18,12 +18,12 @@ use Illuminate\Support\Facades\Validator;
  */
 class LegalBasisController extends Controller
 {
-    protected $checkAdminService;
+    // protected $checkAdminService;
     protected $getPathService;
 
-    public function __construct(CheckAdminService $checkAdminService, GetPathService $getPathServiceParam)
+    public function __construct(/*CheckAdminService $checkAdminService,*/ GetPathService $getPathServiceParam)
     {
-        $this->checkAdminService = $checkAdminService;
+        // $this->checkAdminService = $checkAdminService;
         $this->getPathService = $getPathServiceParam;
     }
 
@@ -118,13 +118,13 @@ class LegalBasisController extends Controller
      */
     public function save(Request $request)
     {
-        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+        // $checkAdmin = $this->checkAdminService->checkSuperAdmin();
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -215,13 +215,13 @@ class LegalBasisController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+        // $checkAdmin = $this->checkAdminService->checkSuperAdmin();
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         // Validasi input
         $validator = Validator::make($request->all(), [
@@ -315,13 +315,13 @@ class LegalBasisController extends Controller
      */
     public function delete($id)
     {
-        $checkAdmin = $this->checkAdminService->checkSuperAdmin();
+        // $checkAdmin = $this->checkAdminService->checkSuperAdmin();
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             DB::beginTransaction();

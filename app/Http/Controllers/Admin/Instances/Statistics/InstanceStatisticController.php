@@ -17,10 +17,10 @@ class InstanceStatisticController extends Controller
     protected $checkAdminService;
 
     // Inject CheckAdminService class ke dalam constructor
-    public function __construct(CheckAdminService $checkAdminService)
-    {
-        $this->checkAdminService = $checkAdminService;
-    }
+    // public function __construct(CheckAdminService $checkAdminService)
+    // {
+    //     $this->checkAdminService = $checkAdminService;
+    // }
 
     /**
      * Get current admin instance registered statistic.
@@ -29,13 +29,13 @@ class InstanceStatisticController extends Controller
     {
         $user = Auth::user();
 
-        $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.statistic.read');
+        // $checkAdmin = $this->checkAdminService->checkAdminWithPermission('instance.statistic.read');
 
-        if (!$checkAdmin) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkAdmin) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userData = User::where('id', $user->id)->first();

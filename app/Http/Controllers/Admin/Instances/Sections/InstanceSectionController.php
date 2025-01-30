@@ -16,13 +16,13 @@ use Illuminate\Support\Facades\Validator;
 
 class InstanceSectionController extends Controller
 {
-    protected $checkAdminService;
+    // protected $checkAdminService;
 
-    // Inject CheckAdminService class ke dalam constructor
-    public function __construct(CheckAdminService $checkAdminService)
-    {
-        $this->checkAdminService = $checkAdminService;
-    }
+    // // Inject CheckAdminService class ke dalam constructor
+    // public function __construct(CheckAdminService $checkAdminService)
+    // {
+    //     $this->checkAdminService = $checkAdminService;
+    // }
 
     /**
      * Get all section data from instance registered with the admin
@@ -32,13 +32,13 @@ class InstanceSectionController extends Controller
         $userLogin = Auth::user(); // Ambil user yang sedang login
 
         // Periksa izin user
-        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.read');
+        // $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.read');
 
-        if (!$checkPermission) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkPermission) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             // Ambil instansi terkait user yang sedang login
@@ -70,13 +70,13 @@ class InstanceSectionController extends Controller
     {
         $userLogin = Auth::user();
 
-        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.read');
+        // $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.read');
 
-        if (!$checkPermission) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkPermission) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userLoginInstance = $userLogin->instances()->first();
@@ -108,13 +108,13 @@ class InstanceSectionController extends Controller
     {
         $userLogin = Auth::user();
 
-        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.create');
+        // $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.create');
 
-        if (!$checkPermission) {
-            return response()->json([
-                'errors' => 'Instance Section not found.'
-            ], 404);
-        }
+        // if (!$checkPermission) {
+        //     return response()->json([
+        //         'errors' => 'Instance Section not found.'
+        //     ], 404);
+        // }
 
         $validator = Validator::make([
             'name' => 'string|max:255'
@@ -167,13 +167,13 @@ class InstanceSectionController extends Controller
     {
         $userLogin = Auth::user();
 
-        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.update');
+        // $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.update');
 
-        if (!$checkPermission) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkPermission) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255'
@@ -247,13 +247,13 @@ class InstanceSectionController extends Controller
     {
         $userLogin = Auth::user();
 
-        $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.delete');
+        // $checkPermission = $this->checkAdminService->checkAdminWithPermission('instance.section.delete');
 
-        if (!$checkPermission) {
-            return response()->json([
-                'errors' => 'You are not allowed to perform this action.'
-            ], 403);
-        }
+        // if (!$checkPermission) {
+        //     return response()->json([
+        //         'errors' => 'You are not allowed to perform this action.'
+        //     ], 403);
+        // }
 
         try {
             $userLoginInstance = $userLogin->instances()->first();
