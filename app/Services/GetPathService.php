@@ -26,7 +26,14 @@ class GetPathService
     public function getPublicPath($id)
     {
         try {
-            $folder = Folder::findOrFail($id);
+            $folder = Folder::find($id);
+            
+            if (!$folder) {
+                return response()->json([
+                    'errors' => 'Folder not found.',
+                ], 404);
+            }
+
             $path = [];
 
             while ($folder) {
